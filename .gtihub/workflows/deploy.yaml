@@ -12,11 +12,11 @@ jobs:
     steps:
       - name: Sync latest repository code
         run: |
-          cd ~/dotnet-2627-template
+          cd ~/rise-dev-group-4
           git pull origin main
 
       - name: Publish dotnet app
         run: |
-          cd ~/dotnet-2627-template/src/Rise.Server
+          cd ~/rise-dev-group-4/src/Rise.Server
           dotnet publish -c Release -o /var/www/rise-server
       
