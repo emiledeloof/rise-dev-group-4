@@ -15,13 +15,8 @@ jobs:
           cd ~/dotnet-2627-template
           git pull origin main
 
-      - name: Install dotnet 10 SDK
-        run: |
-          sudo apt update
-          sudo apt install -y dotnet-sdk-10.0
-
       - name: Publish dotnet app
         run: |
           cd ~/dotnet-2627-template/src/Rise.Server
-          sudo dotnet publish -c Release -o /var/www/rise-server
+          dotnet publish -c Release -o /var/www/rise-server
       
