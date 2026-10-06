@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Rise.Domain.Admins;
+using Rise.Domain.Bookings;
+using Rise.Domain.Guests;
 using Rise.Domain.Products;
+using Rise.Domain.Rooms;
 using Rise.Domain.Projects;
 
 namespace Rise.Persistence;
@@ -19,6 +23,10 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         await UsersAsync();
         await ProductsAsync();
         await ProjectsAsync();
+        await AdminsAsync();
+        await RoomsAsync();
+        await GuestsAsync();
+        await BookingsAsync();
     }
 
     private async Task RolesAsync()
@@ -144,6 +152,92 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         };
 
         dbContext.Projects.AddRange(projects);
+        await dbContext.SaveChangesAsync();
+    }
+
+    private async Task AdminsAsync()
+    {
+        if (dbContext.Admins.Any())
+            return;
+
+        var adminAccount = await userManager.FindByEmailAsync("admin@example.com");
+
+        if (adminAccount is null)
+            return;
+
+        dbContext.Admins.Add(new Admin(adminAccount.Id));
+        await dbContext.SaveChangesAsync();
+    }
+
+    private async Task RoomsAsync()
+    {
+        if (dbContext.Rooms.Any())
+            return;
+
+        var single = new Room("101", "Single Room", 1, "Cosy room with a single bed.");
+        single.AddRate("Standard", 79m);
+        single.AddPhoto("https://picsum.photos/seed/room101/800/600");
+
+        var doubleRoom = new Room("102", "Double Room", 2, "Spacious room with a double bed.");
+        doubleRoom.AddRate("Standard", 109m);
+        doubleRoom.AddPhoto("https://picsum.photos/seed/room102a/800/600");
+        doubleRoom.AddPhoto("https://picsum.photos/seed/room102b/800/600");
+
+        var twin = new Room("103", "Twin Room", 2, "Room with two single beds.");
+        twin.AddRate("Standard", 99m);
+        twin.AddPhoto("https://picsum.photos/seed/room103/800/600");
+
+        var family = new Room("201", "Family Room", 4, "Large room with a double bed and a bunk bed.");
+        family.AddRate("Standard", 159m);
+        family.AddPhoto("https://picsum.photos/seed/room201a/800/600");
+        family.AddPhoto("https://picsum.photos/seed/room201b/800/600");
+
+        var suite = new Room("301", "Suite", 2, "Suite with a separate living room and a view over the city.");
+        suite.AddRate("Standard", 249m);
+        suite.AddPhoto("https://picsum.photos/seed/room301/800/600");
+
+        dbContext.Rooms.AddRange(single, doubleRoom, twin, family, suite);
+        await dbContext.SaveChangesAsync();
+    }
+
+    private async Task GuestsAsync()
+    {
+        if (dbContext.Guests.Any())
+            return;
+
+        dbContext.Guests.AddRange(
+            new Guest("Jan Janssens", "jan.janssens@example.com", "+32 470 12 34 56",
+                new GuestAddress("Koningstraat 12", "Bus 3A", "Belgium")),
+            new Guest("Marie Dubois", "marie.dubois@example.com", "+33 6 12 34 56 78",
+                new GuestAddress("Rue de Rivoli 50", null, "France")),
+            new Guest("Lukas Müller", "lukas.mueller@example.com", "+49 151 23456789",
+                new GuestAddress("Hauptstraße 5", "2. Stock", "Germany")));
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private async Task BookingsAsync()
+    {
+        if (dbContext.Bookings.Any())
+            return;
+
+        var guests = await dbContext.Guests.OrderBy(x => x.Id).ToListAsync();
+        var rooms = await dbContext.Rooms.Include(x => x.Rates).OrderBy(x => x.Id).ToListAsync();
+
+        if (guests.Count < 2 || rooms.Count < 3)
+            return;
+
+        var paidBooking = new Booking("20261001-0001", guests[0], new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
+        paidBooking.AddRoom(rooms[1], rooms[1].Rates[0]);
+        var paidPayment = paidBooking.AddPayment(2 * rooms[1].Rates[0].PricePerNight, "cs_test_seed_0001");
+        paidPayment.MarkAsPaid(new DateTime(2026, 10, 1, 14, 30, 0, DateTimeKind.Utc), "in_test_seed_0001", "INV-2026-0001");
+
+        var openBooking = new Booking("20261003-0002", guests[1], new DateOnly(2026, 11, 5), new DateOnly(2026, 11, 8));
+        openBooking.AddRoom(rooms[0], rooms[0].Rates[0]);
+        openBooking.AddRoom(rooms[2], rooms[2].Rates[0]);
+        openBooking.AddPayment(3 * (rooms[0].Rates[0].PricePerNight + rooms[2].Rates[0].PricePerNight), "cs_test_seed_0002");
+
+        dbContext.Bookings.AddRange(paidBooking, openBooking);
         await dbContext.SaveChangesAsync();
     }
 }
