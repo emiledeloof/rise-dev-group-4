@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Rise.Domain.Admins;
+using Rise.Domain.Bookings;
+using Rise.Domain.Guests;
 using Rise.Domain.Products;
+using Rise.Domain.Rooms;
 using Rise.Domain.Projects;
 
 namespace Rise.Persistence;
@@ -20,7 +24,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> opts) :
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<Technician> Technicians => Set<Technician>();
-  
+
+    public DbSet<Admin> Admins => Set<Admin>();
+    public DbSet<Guest> Guests => Set<Guest>();
+    public DbSet<Room> Rooms => Set<Room>();
+    public DbSet<RoomPhoto> RoomPhotos => Set<RoomPhoto>();
+    public DbSet<Rate> Rates => Set<Rate>();
+    public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<BookingRoom> BookingRooms => Set<BookingRoom>();
+    public DbSet<Payment> Payments => Set<Payment>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // All columns in the database have a maxlength of 4000.
