@@ -1,12 +1,13 @@
 ﻿@inherits LayoutComponentBase
-<div>
+@* page frame shared by all pages, header on top, content, footer at the bottom *@
+<div class="site-layout">
     <header>
         <NavBar/>
     </header>
-    <main>
+    <main class="site-main">
         <section class="section">
             @Body
         </section>
     </main>
+    <Footer/>
 </div>
-
