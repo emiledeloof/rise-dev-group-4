@@ -1,0 +1,186 @@
+/* date range picker styles, scoped to DateRangePicker.razor */
+
+/* wrapper, the panel opens below the field */
+.drp {
+    position: relative;
+    width: 100%;
+    max-width: 22rem;
+}
+
+/* ---------- closed field ---------- */
+
+/* looks like the dates field of the mockup search bar */
+.drp-field {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-family: var(--font-body);
+    text-align: left;
+    cursor: pointer;
+}
+
+.drp-field:hover,
+.drp-field[aria-expanded="true"] {
+    border-color: var(--color-primary);
+}
+
+/* small uppercase label above the value */
+.drp-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.drp-value {
+    font-size: 0.9375rem;
+    color: var(--color-text);
+}
+
+/* ---------- panel ---------- */
+
+/* white card floating above the page */
+.drp-panel {
+    position: absolute;
+    top: calc(100% + var(--space-sm));
+    left: 0;
+    z-index: 20;
+    width: max-content;
+    padding: var(--space-lg);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* arrows on both sides of the months */
+.drp-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
+}
+
+.drp-nav-btn {
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.drp-nav-btn:hover:not(:disabled) {
+    background-color: var(--color-bg);
+}
+
+.drp-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+/* months side by side */
+.drp-months {
+    display: flex;
+    gap: var(--space-lg);
+}
+
+/* month name in the title font */
+.drp-month-title {
+    margin-bottom: var(--space-sm);
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+    text-align: center;
+}
+
+/* 7 columns, one per weekday */
+.drp-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 2.5rem);
+    row-gap: 2px;
+}
+
+.drp-weekday {
+    padding-bottom: var(--space-xs);
+    font-size: 0.75rem;
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+/* ---------- days ---------- */
+
+.drp-day {
+    height: 2.5rem;
+    border: none;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.drp-day:hover:not(:disabled) {
+    outline: 1px solid var(--color-primary);
+    outline-offset: -1px;
+    border-radius: 50%;
+}
+
+/* today is underlined */
+.drp-day.is-today {
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+/* past days are greyed out and cannot be clicked */
+.drp-day.is-disabled {
+    color: var(--color-border);
+    cursor: default;
+    text-decoration: line-through;
+}
+
+/* nights between check in and check out get a light olive band */
+.drp-day.is-in-range {
+    background-color: color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+
+/* check in and check out are filled olive circles */
+.drp-day.is-start,
+.drp-day.is-end {
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+}
+
+/* hint under the calendar, eg select your check out date */
+.drp-hint {
+    margin-top: var(--space-md);
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+/* ---------- small screens ---------- */
+
+/* one month only and a panel as wide as the field */
+@media (max-width: 768px) {
+    .drp-month + .drp-month {
+        display: none;
+    }
+
+    .drp-panel {
+        width: 100%;
+        padding: var(--space-md);
+    }
+
+    .drp-grid {
+        grid-template-columns: repeat(7, 1fr);
+    }
+}
