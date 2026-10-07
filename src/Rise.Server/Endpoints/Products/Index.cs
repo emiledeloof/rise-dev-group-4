@@ -5,7 +5,7 @@ namespace Rise.Server.Endpoints.Products;
 /// <summary>
 /// List all products.
 /// See https://fast-endpoints.com/
-/// </summary>
+/// </summary>I t
 /// <param name="productService"></param>
 public class Index(IProductService productService) : Endpoint<QueryRequest.SkipTake, Result<ProductResponse.Index>>
 {

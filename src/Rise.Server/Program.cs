@@ -64,7 +64,7 @@ try
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var dbSeeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
-            // dbContext.Database.EnsureDeleted(); // Delete the database if it exists to clean it up if needed.
+            dbContext.Database.EnsureDeleted(); // Start every development run with a fresh, seeded database.
 
             dbContext.Database.Migrate(); // Creates the database if it doesn't exist and applies all migrations. See Readme.md for more info.
             await dbSeeder.SeedAsync(); // Seeds the database with some test data.
@@ -72,7 +72,7 @@ try
     }
     // Theses middlewares are strict in order of calling!
     app.UseHttpsRedirection()
-        .UseBlazorFrameworkFiles() // Blazor is also served from the API. 
+            .UseBlazorFrameworkFiles() // Blazor is also served from the API. 
         .UseStaticFiles()
         .UseDefaultExceptionHandler()
         .UseAuthentication()
