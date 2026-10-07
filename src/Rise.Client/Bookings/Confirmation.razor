@@ -1,11 +1,80 @@
-﻿@page "/booking/confirmation/"
+﻿@page "/booking/confirmation"
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+* {
+  box-sizing: border-box;
+}
+
+/* Create two equal columns that floats next to each other */
+.column {
+  float: left;
+  width: 50%;
+  padding: 10px;
+}
+</style>
+</head>
 
 <PageTitle>Booking Confirmation</PageTitle>
+<div class="row">
+    <div class="column">
+        <h2 class="subtitle">Booking # <strong>@bookingNumber</strong></h2>
 
-<h1 class="title">Booking Confirmation</h1>
+        <h2 class="subtitle">Booking Details</h2>
+        <p>Check in: @checkInDate</p>
+        <p>Check out: @checkOutDate</p>
+        <p>Guests: @guestCount</p>
+        <hr>
+        <h2 class="subtitle">Booked By</h2>
+        <p>Name: @guestName</p>
+        <p>Email: @guestEmail</p>
+        <hr>
+    </div>
+    <div class="column">
+        <h2 class="subtitle">Contact Details</h2>
+        <p>Email: @adminEmail</p>
+        <p>Phone: @adminPhone</p>
+        <p>Location: Localita Fioredda, 07020 Luogosanto SS</p>
+    </div>
+</div>
 
-<p role="status">Your booking number is: @bookingNumber</p>
+<table class="table is-fullwidth">
+    <thead>
+    <tr>
+        <th>Quantity</th>
+        <th>Description</th>
+        <th>Unit Price</th>
+        <th>Amount</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>1</td>
+        <td>@roomName</td>
+        <td>@roomRate €</td>
+        <td>@roomRate €</td>
+    </tr>
+    </tbody>
+    <tfoot>
+    <tr>
+        <td></td>
+        <td></td>
+        <td><strong>Total</strong></td>
+        <td><strong>@roomRate €</strong></td>
+    </tr>
+    </tfoot>
+</table>
 
 @code {
     private string bookingNumber = "XYZ123";
+    private DateOnly checkInDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7));
+    private DateOnly checkOutDate = DateOnly.FromDateTime(DateTime.Now.AddDays(10));
+    private int guestCount = 2;
+    private string guestName = "John Doe";
+    private string guestEmail = "john.doe@example.com";
+    private string roomName = "Deluxe Suite";
+    private decimal roomRate = 100;
+    private string adminEmail = "admin@example.com";
+    private string adminPhone = "+1 234 567 890";
 }
