@@ -1,0 +1,20 @@
+@* renders a link when href is set, otherwise a real button *@
+@if (Href is not null)
+{
+    <a href="@(IsDisabled ? null : Href)"
+       class="@CssClass"
+       aria-disabled="@(IsDisabled ? "true" : null)"
+       @attributes="AdditionalAttributes">
+        @ChildContent
+    </a>
+}
+else
+{
+    <button type="@Type"
+            class="@CssClass"
+            disabled="@(IsDisabled || IsLoading)"
+            @onclick="OnClick"
+            @attributes="AdditionalAttributes">
+        @ChildContent
+    </button>
+}
