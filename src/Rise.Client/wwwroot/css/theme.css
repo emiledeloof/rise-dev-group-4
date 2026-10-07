@@ -1,0 +1,150 @@
+/*
+  shared theme for the whole site, based on the ba mockup
+  use these vars instead of hard coded colors or fonts, eg color: var(--color-primary)
+  loaded after app.css so it overrides bulma defaults
+*/
+
+/* ---------- design tokens ---------- */
+
+:root {
+    /* colors, estimated from the mockup, TODO: replace with exact hex values from the ba */
+    --color-primary: #5e6b43;        /* olive green, main btns */
+    --color-primary-dark: #4b5636;   /* olive green on hover */
+    --color-accent: #7a2e2e;         /* burgundy, small labels and danger actions */
+    --color-bg: #f5f3ee;             /* cream page bg */
+    --color-surface: #ffffff;        /* cards and forms */
+    --color-border: #e4e1d8;         /* light beige borders of cards and inputs */
+    --color-text: #2b2b2b;           /* main text and titles */
+    --color-text-muted: #6b6b6b;     /* secondary text, eg descriptions and hints */
+    --color-footer: #242428;         /* dark footer bg */
+    --color-warning-bg: #f6e7c4;     /* info boxes like refund notices */
+
+    /* fonts, serif for titles and sans serif for body text */
+    --font-title: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+
+    /* shapes */
+    --radius: 6px;                   /* btns and inputs */
+    --radius-card: 10px;             /* cards and summary blocks */
+
+    /* spacing scale, use it for margins and paddings in custom css */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 2rem;
+    --space-xl: 4rem;
+}
+
+/* ---------- bulma overrides ---------- */
+
+/*
+  bulma 1.0 is built on css vars so we map our tokens on them
+  this way existing bulma classes like is-primary use the site colors
+  colors are in hsl because bulma computes hover and active shades from h s l
+*/
+:root {
+    /* primary = olive green, same as --color-primary */
+    --bulma-primary-h: 80deg;
+    --bulma-primary-s: 23%;
+    --bulma-primary-l: 34%;
+    --bulma-primary-invert-l: 100%;  /* white text on primary btns */
+    --bulma-primary-on-scheme-l: 34%; /* primary text on the page bg, eg tags */
+
+    /* danger = burgundy, same as --color-accent */
+    --bulma-danger-h: 0deg;
+    --bulma-danger-s: 45%;
+    --bulma-danger-l: 33%;
+    --bulma-danger-invert-l: 100%;
+    --bulma-danger-on-scheme-l: 33%;  /* burgundy text on the page bg */
+
+    /* links use the primary color too */
+    --bulma-link-h: 80deg;
+    --bulma-link-s: 23%;
+    --bulma-link-l: 34%;
+    --bulma-link-on-scheme-l: 34%;    /* bulma uses this one for link text, not link-l */
+
+    /* body font, page bg, text color and corners */
+    --bulma-family-primary: var(--font-body);
+    --bulma-body-background-color: var(--color-bg);
+    --bulma-body-color: var(--color-text);
+    --bulma-radius: var(--radius);
+}
+
+/* ---------- typography ---------- */
+
+/* default text style of the whole site */
+body {
+    font-family: var(--font-body);
+    color: var(--color-text);
+    background-color: var(--color-bg);
+}
+
+/* bulma has no title font var so we set it here */
+h1, h2, h3,
+.title {
+    font-family: var(--font-title);
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+/* bulma resets heading sizes, these give plain h1 to h3 the mockup look */
+h1 { font-size: 2.75rem; line-height: 1.15; }
+h2 { font-size: 2rem; line-height: 1.2; }
+h3 { font-size: 1.5rem; line-height: 1.25; }
+
+/* space under plain headings, bulma removes it */
+h1, h2, h3 {
+    margin-bottom: var(--space-md);
+}
+
+/* subtitles are lighter so the title stays the focus */
+.subtitle {
+    color: var(--color-text-muted);
+}
+
+/* small uppercase label above titles, eg room or the estate in the mockup */
+.eyebrow {
+    display: block;
+    margin-bottom: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+}
+
+/* ---------- buttons ---------- */
+
+/* shared base for every btn, see Components/Button.razor */
+.button {
+    font-family: var(--font-body);
+    font-weight: 500;
+}
+
+/* flat btns like the mockup, the focus ring is kept for keyboard users */
+.button:not(:focus-visible) {
+    box-shadow: none;
+}
+
+/* secondary btn, white with a light border, eg back to home */
+.button.is-secondary {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+/* darker border on hover so the user sees it is clickable */
+.button.is-secondary:hover {
+    border-color: var(--color-text-muted);
+}
+
+/* ---------- cards ---------- */
+
+/* white rounded blocks used for forms, summaries and room cards */
+.card,
+.box {
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-border);
+    box-shadow: none;
+}
