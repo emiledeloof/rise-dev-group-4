@@ -1,0 +1,13 @@
+/* layout styles, scoped to MainLayout.razor by blazor css isolation */
+
+/* full height column so the footer stays at the bottom on short pages */
+.site-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* content takes the free space between header and footer */
+.site-main {
+    flex: 1;
+}
