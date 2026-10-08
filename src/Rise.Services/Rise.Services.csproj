@@ -17,4 +17,8 @@
       <ProjectReference Include="..\Rise.Shared\Rise.Shared.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Stripe.net" Version="53.0.0" />
+    </ItemGroup>
+
 </Project>
