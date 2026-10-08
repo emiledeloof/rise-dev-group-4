@@ -18,8 +18,8 @@ namespace Rise.Server.Endpoints
             app.MapPost("/api/guests", async (GuestInformationDTO guestDto, ApplicationDbContext dbContext) => //Server listens to /api/guests and expects a POST request with a GuestInformationDTO in the body
             {
                 var guestAdress = new GuestAddress( // creating a new guest objects via the data of the transport object
-                    guestDto.AdressLine1,
-                    guestDto.AdressLine2,
+                    guestDto.AddressLine1,
+                    guestDto.AddressLine2,
                     guestDto.Country
                 );
 

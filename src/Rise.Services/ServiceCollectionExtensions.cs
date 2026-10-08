@@ -8,6 +8,8 @@ using Rise.Services.Projects;
 using Rise.Shared.Bookings;
 using Rise.Shared.Products;
 using Rise.Shared.Projects;
+using Rise.Services.Invoice;
+using Rise.Shared.Invoice;
 
 namespace Rise.Services;
 
@@ -18,6 +20,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProductService, ProductService>();        
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IBookingService, BookingService>();
+        services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IStripePaymentGateway, StripePaymentGateway>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
         services.AddTransient<DbSeeder>();       
