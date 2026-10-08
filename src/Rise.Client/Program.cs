@@ -34,19 +34,22 @@ try
 // register the account management interface
     builder.Services.AddScoped(sp => (IAccountManager)sp.GetRequiredService<AuthenticationStateProvider>());
 
+// the API is served from the same origin as the client (also in Docker), "BackendUrl" in wwwroot/appsettings.json can override it
+    var backendUrl = new Uri(builder.Configuration["BackendUrl"] ?? builder.HostEnvironment.BaseAddress);
+
 // configure client for auth interactions
-    builder.Services.AddHttpClient("SecureApi",opt => opt.BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "https://localhost:5001"))
+    builder.Services.AddHttpClient("SecureApi",opt => opt.BaseAddress = backendUrl)
         .AddHttpMessageHandler<CookieHandler>();
 
     builder.Services.AddHttpClient<IProductService, ProductService>(client =>
     {
-        client.BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "https://localhost:5001");
+        client.BaseAddress = backendUrl;
     });
 
     // the invoice endpoint needs the admin role, so send the auth cookie along
     builder.Services.AddHttpClient<IInvoiceService, InvoiceService>(client =>
     {
-        client.BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "https://localhost:5001");
+        client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();
 
     await builder.Build().RunAsync();
