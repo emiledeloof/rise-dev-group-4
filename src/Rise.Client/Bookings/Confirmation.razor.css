@@ -21,7 +21,7 @@
     padding: 0.25rem 0.65rem;
     border-radius: 999px;
     background-color: #d9ead7;
-    color: #285b32;
+    color: var(--color-primary);
     font-size: 0.75rem;
     font-weight: 600;
     line-height: 1;
@@ -29,7 +29,7 @@
 
 .booking-number {
     margin: var(--space-md) 0 var(--space-sm);
-    color: #7b1e2b;
+    color: var(--color-accent);
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.08em;
