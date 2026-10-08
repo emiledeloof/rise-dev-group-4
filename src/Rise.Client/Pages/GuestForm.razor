@@ -1,0 +1,62 @@
+@page "/guest-registration"
+@using Rise.Shared.Guests
+@inject HttpClient Http
+
+// Guest Registration Form
+
+<h3>Guest Registration </h3>
+
+<EditForm Model="@guestModel" OnValidSubmit=HandleValidSubmit> // EditForm instead of form tag to handle validation and submission to our guestModel object.
+    <DataAnnotationsValidator /> // checks all required fields and validation attributes on the guestModel (DTO) object.
+
+// Form fields for guest information
+
+    <div class="mb-3">
+        <label> First Name</label>
+        <InputText @bind-Value="guestModel.FirstName" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label> Last Name</label>
+        <InputText @bind-Value="guestModel.LastName" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label> Email</label>
+        <InputText @bind-Value="guestModel.Email" class="form-control" />  
+    </div>
+
+    <div class="mb-3">
+        <label> Phone Number</label>
+        <InputText @bind-Value="guestModel.PhoneNumber" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label> AddressLine1</label>
+        <InputText @bind-Value="guestModel.AddressLine1" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label> AddressLine2</label>
+        <InputText @bind-Value="guestModel.AddressLine2" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+</EditForm> 
+
+@code {
+
+// Guest model to bind form data to
+
+    private GuestInformationDTO guestModel = new GuestInformationDTO();
+
+    private async Task HandleValidSubmit()
+    {
+        var response = await Http.PostAsJsonAsync("api/guests", guestModel);
+
+        if (response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Guest saved successfully");
+        }
+    }
+}

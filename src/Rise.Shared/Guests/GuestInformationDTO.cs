@@ -26,10 +26,10 @@ namespace Rise.Shared.Guests
 
         [Required]
         [MaxLength(250)]
-        public string AdressLine1 { get; set; } = string.Empty;
+        public string AddressLine1 { get; set; } = string.Empty;
 
         [MaxLength(250)]
-        public string AdressLine2 { get; set; } = string.Empty;
+        public string AddressLine2 { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(250)]
