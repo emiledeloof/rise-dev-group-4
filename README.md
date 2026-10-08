@@ -2,18 +2,27 @@
 
 ## Quick Start
 
-Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and the .NET 10 SDK. From the repository root:
+Requires the .NET 10 SDK and [Docker Desktop](https://www.docker.com/products/docker-desktop/) (it must be running). From the repository root:
+
+**One-time setup** (no passwords are committed; each developer chooses their own):
 
 ```bash
-cp .env.example .env                    # once: then set your own POSTGRES_PASSWORD in .env
-docker compose up -d                    # database only (PostgreSQL on localhost:5433)
-docker compose --profile tools up -d    # + pgAdmin at http://localhost:5050
+cp .env.example .env    # then open .env and replace `change-me` with your own password
 
-# once, in src/Rise.Server: store the connection string (same password as in .env) in User Secrets
-dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;Port=5433;Database=rise;Username=rise;Password=<your password>"
+# store the app's connection string in User Secrets; use the SAME password as in .env
+dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;Port=5433;Database=rise;Username=rise;Password=<your password>" --project src/Rise.Server
 ```
 
-Then run `Rise.Server` as usual. See [Installation Instructions](#installation-instructions) for details.
+**Every time:**
+
+```bash
+docker compose up -d                    # database only (PostgreSQL on localhost:5433)
+docker compose --profile tools up -d    # or: database + pgAdmin at http://localhost:5050
+```
+
+Then run `Rise.Server` (https://localhost:5001). See [Installation Instructions](#installation-instructions) for details.
+
+> **Coming from the old setup** (password `rise` hard-coded)? After the one-time setup, run `docker compose down -v` once so the database is recreated with your new password.
 
 ## Team Members
 
@@ -76,14 +85,14 @@ dotnet --version
 
    Postgres only applies the password when its volume is created for the first time. If you change the password later, recreate the volume with `docker compose down -v` followed by `docker compose up -d`.
 
-5. Store the connection string for the app in [User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets). Use the same password as in `.env`, and run this in `src/Rise.Server`:
+5. Store the connection string for the app in [User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets). Use the same password as in `.env`, and run this from the repository root:
 
    ```bash
-   dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;Port=5433;Database=rise;Username=rise;Password=<your password>"
-   dotnet user-secrets list   # check that it is stored
+   dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;Port=5433;Database=rise;Username=rise;Password=<your password>" --project src/Rise.Server
+   dotnet user-secrets list --project src/Rise.Server   # check that it is stored
    ```
 
-   The secret is stored per machine outside the repository (`%APPDATA%\Microsoft\UserSecrets\` on Windows, `~/.microsoft/usersecrets/` on Linux/macOS). In Development the app and `dotnet ef` read it automatically. Other environments must provide the environment variable `ConnectionStrings__DatabaseConnection`.
+   The secret is stored per machine outside the repository (`%APPDATA%\Microsoft\UserSecrets\` on Windows, `~/.microsoft/usersecrets/` on Linux/macOS). `appsettings.json` only contains an empty `DatabaseConnection` placeholder. In Development the app and `dotnet ef` read the secret automatically and it overrides the placeholder. Other environments must provide the environment variable `ConnectionStrings__DatabaseConnection`. If the connection string is missing, the app stops at startup with a message showing this command.
 
 6. Run the project using `Rise.Server` as the startup project.
 
