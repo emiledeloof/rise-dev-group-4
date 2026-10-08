@@ -1,8 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rise.Persistence;
+using Rise.Services.Bookings;
 using Rise.Services.Invoice;
 using Rise.Services.Products;
 using Rise.Services.Projects;
+using Rise.Shared.Bookings;
 using Rise.Shared.Invoice;
 using Rise.Shared.Products;
 using Rise.Shared.Projects;
@@ -15,7 +17,8 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IProductService, ProductService>();        
         services.AddScoped<IProjectService, ProjectService>();        
-        services.AddScoped<IInvoiceService, InvoiceService>();        
+        services.AddScoped<IInvoiceService, InvoiceService>();  
+        services.AddScoped<IBookingService, BookingService>();
         services.AddTransient<DbSeeder>();       
         
         // Add other application services here.

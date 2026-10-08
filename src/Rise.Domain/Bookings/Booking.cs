@@ -9,7 +9,7 @@ namespace Rise.Domain.Bookings;
 public class Booking : Entity
 {
     /// <summary>
-    /// Readable booking number with booking date, e.g. 20261006-0042.
+    /// Readable booking number with booking date and hotel initials, e.g. 20261007-SVM-000042.
     /// </summary>
     public string BookingNumber { get; private set; } = default!;
     public Guest Guest { get; private set; } = default!;
