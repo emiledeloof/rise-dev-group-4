@@ -31,6 +31,18 @@ public class Payment : Entity
         StripeCheckoutSession = stripeCheckoutSession;
     }
 
+    public void SetStripeCheckoutSession(string stripeCheckoutSession)
+    {
+        if (string.IsNullOrWhiteSpace(stripeCheckoutSession))
+            throw new ArgumentException("A Stripe Checkout Session is required.", nameof(stripeCheckoutSession));
+
+        if (!string.IsNullOrWhiteSpace(StripeCheckoutSession) &&
+            StripeCheckoutSession != stripeCheckoutSession)
+            throw new InvalidOperationException("The payment already has a different Stripe Checkout Session.");
+
+        StripeCheckoutSession = stripeCheckoutSession;
+    }
+
     public void MarkAsPaid(DateTime paidAt, string? stripeInvoice = null, string? invoiceNumber = null)
     {
         if (IsPaid)
