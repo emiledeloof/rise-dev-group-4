@@ -2,7 +2,7 @@ name: rise
 
 # Development infrastructure. Start with `docker compose up -d`.
 # Optional pgAdmin GUI: `docker compose --profile tools up -d` -> http://localhost:5050
-# Values can be overridden in a local `.env` file (see `.env.example`).
+# First copy `.env.example` to `.env` and set POSTGRES_PASSWORD (the password is never committed).
 services:
   db:
     image: postgres:17-alpine
@@ -11,7 +11,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-rise}
       POSTGRES_USER: ${POSTGRES_USER:-rise}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rise}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (copy .env.example)}
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
@@ -32,7 +32,7 @@ services:
       PGADMIN_CONFIG_SERVER_MODE: "False"              # desktop mode: no pgAdmin login
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False" # no master password prompt
       POSTGRES_USER: ${POSTGRES_USER:-rise}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rise}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (copy .env.example)}
     # Writes a pgpass file with 0600 permissions (a Windows bind mount can't provide those and libpq
     # would ignore it), then hands over to pgAdmin's normal entrypoint.
     entrypoint:

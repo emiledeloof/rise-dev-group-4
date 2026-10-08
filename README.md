@@ -5,8 +5,12 @@
 Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and the .NET 10 SDK. From the repository root:
 
 ```bash
+cp .env.example .env                    # once: then set your own POSTGRES_PASSWORD in .env
 docker compose up -d                    # database only (PostgreSQL on localhost:5433)
 docker compose --profile tools up -d    # + pgAdmin at http://localhost:5050
+
+# once, in src/Rise.Server: store the connection string (same password as in .env) in User Secrets
+dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;Port=5433;Database=rise;Username=rise;Password=<your password>"
 ```
 
 Then run `Rise.Server` as usual. See [Installation Instructions](#installation-instructions) for details.
@@ -54,19 +58,38 @@ dotnet --version
 
    We prefer Rider, but you're free to choose.
 
-3. Start the PostgreSQL database from the repository root:
+3. Create your local `.env` file in the repository root and choose a database password:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Open `.env` and replace `change-me` with your own password. `.env` is git-ignored, so the password never ends up in the repository. `docker compose` refuses to start without it.
+
+4. Start the PostgreSQL database from the repository root:
 
    ```bash
    docker compose up -d
    ```
 
-   This starts PostgreSQL 17 on `localhost:5433` (database, user and password are all `rise`, see `docker-compose.yml`). Port 5433 is used so it does not clash with a locally installed PostgreSQL on 5432. To override these values, copy `.env.example` to `.env`.
+   This starts PostgreSQL 17 on `localhost:5433` (database and user are `rise`, the password comes from `.env`, see `docker-compose.yml`). Port 5433 is used so it does not clash with a locally installed PostgreSQL on 5432.
 
-4. Run the project using `Rise.Server` as the startup project.
+   Postgres only applies the password when its volume is created for the first time. If you change the password later, recreate the volume with `docker compose down -v` followed by `docker compose up -d`.
 
-5. The project should open in your default browser on port `5001`. In Development the database is dropped, migrated and seeded on every startup.
+5. Store the connection string for the app in [User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets). Use the same password as in `.env`, and run this in `src/Rise.Server`:
 
-6. Optional: start pgAdmin to browse the database:
+   ```bash
+   dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;Port=5433;Database=rise;Username=rise;Password=<your password>"
+   dotnet user-secrets list   # check that it is stored
+   ```
+
+   The secret is stored per machine outside the repository (`%APPDATA%\Microsoft\UserSecrets\` on Windows, `~/.microsoft/usersecrets/` on Linux/macOS). In Development the app and `dotnet ef` read it automatically. Other environments must provide the environment variable `ConnectionStrings__DatabaseConnection`.
+
+6. Run the project using `Rise.Server` as the startup project.
+
+7. The project should open in your default browser on port `5001`. In Development the database is dropped, migrated and seeded on every startup.
+
+8. Optional: start pgAdmin to browse the database:
 
    ```bash
    docker compose --profile tools up -d

@@ -7,6 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Requires the .NET 10 SDK and Docker Desktop. Solution file: `Rise.sln`.
 
 ```bash
+cp .env.example .env                                                     # once; set POSTGRES_PASSWORD (compose fails without it)
+dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;Port=5433;Database=rise;Username=rise;Password=<.env password>"  # once, in src/Rise.Server
 docker compose up -d                                                     # PostgreSQL on localhost:5433 (needed to run the app / add migrations)
 docker compose --profile tools up -d                                     # + pgAdmin on http://localhost:5050 (server pre-registered)
 dotnet build Rise.sln
@@ -23,7 +25,7 @@ dotnet ef migrations add <Name> --startup-project Rise.Server --project Rise.Per
 dotnet ef database update --startup-project Rise.Server --project Rise.Persistence
 ```
 
-In Development, the server applies migrations and runs `DbSeeder` on startup. The database is PostgreSQL in Docker (`docker-compose.yml`, db/user/password `rise`); the dev connection string lives in `Server/appsettings.Development.json`, non-dev environments must supply `ConnectionStrings__DatabaseConnection`. Seeded users (`user@`, `technician1@`, `technician2@`, `secretary@`, `admin@example.com`) all use the password `A1b2C3!`. The roles are Technician, Secretary and Administrator.
+In Development, the server applies migrations and runs `DbSeeder` on startup. The database is PostgreSQL in Docker (`docker-compose.yml`, db/user `rise`, password from the git-ignored `.env`). No passwords are committed: `appsettings.json` only holds an empty `DatabaseConnection` placeholder; the dev connection string comes from User Secrets (`ConnectionStrings:DatabaseConnection`, `UserSecretsId` in `Rise.Server.csproj`), non-dev environments must supply `ConnectionStrings__DatabaseConnection`. Seeded users (`user@`, `technician1@`, `technician2@`, `secretary@`, `admin@example.com`) all use the password `A1b2C3!`. The roles are Technician, Secretary and Administrator.
 
 ## Architecture
 
