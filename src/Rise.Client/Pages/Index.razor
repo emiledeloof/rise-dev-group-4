@@ -1,9 +1,147 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Stazzu La Vigna di Maria</PageTitle>
 
-<h1>Hello, world!</h1>
+@* ---------- hero with booking bar ---------- *@
+<div class="hero">
+    <span class="eyebrow hero-eyebrow">Sardinia · Estate with vineyards</span>
+    <h1 class="hero-title">Slow days among vines and granite</h1>
+    <p class="hero-text">A small, quiet guesthouse with gardens, vineyards and a wood full of granite rocks</p>
 
-<p>Welcome to your new app.</p>
+    <form class="booking-bar" @onsubmit="CheckAvailability" @onsubmit:preventDefault>
+        <div class="booking-field booking-field-dates">
+            <label for="check-in">Dates</label>
+            <div class="booking-dates">
+                <input id="check-in" type="date" class="booking-input" min="@Today"
+                       @bind="checkIn" @bind:event="onchange" aria-label="Check-in date" />
+                <span class="booking-dates-sep" aria-hidden="true">–</span>
+                <input id="check-out" type="date" class="booking-input" min="@MinCheckOut"
+                       @bind="checkOut" @bind:event="onchange" aria-label="Check-out date" />
+            </div>
+        </div>
 
-<p>After a user authenticates, the navigation menu shows a link to the <a href="private-page">Private Page</a>.</p>
+        <div class="booking-field">
+            <label for="guests">Guests</label>
+            <select id="guests" class="booking-input" @bind="guests">
+                @for (var i = 1; i <= MaxGuests; i++)
+                {
+                    <option value="@i">@i @(i == 1 ? "guest" : "guests")</option>
+                }
+            </select>
+        </div>
+
+        <div class="booking-field">
+            <label for="rooms">Rooms</label>
+            <select id="rooms" class="booking-input" @bind="rooms">
+                @for (var i = 1; i <= MaxRooms; i++)
+                {
+                    <option value="@i">@i @(i == 1 ? "room" : "rooms")</option>
+                }
+            </select>
+        </div>
+
+        <div class="booking-submit">
+            <Button Variant="ButtonVariant.Primary" Type="submit">Check availability</Button>
+        </div>
+    </form>
+</div>
+
+@* ---------- the estate ---------- *@
+<section class="home-section">
+    <div class="home-inner estate">
+        <div class="estate-text">
+            <span class="eyebrow">The estate</span>
+            <h2>A manor farm among three small vineyards</h2>
+            <p class="home-muted">
+                Stazzu La Vigna di Maria stands on 2.4 hectares of gardens, three small vineyards and a wood
+                with granite rocks and caves. In one of those caves we found a small statue of Mary, which
+                gave the estate its name.
+            </p>
+            <Button Variant="ButtonVariant.Secondary" Href="estate">Discover the estate</Button>
+        </div>
+        <div class="photo-placeholder estate-photo">Estate photo</div>
+    </div>
+</section>
+
+@* ---------- rooms ---------- *@
+<section class="home-section home-section-alt">
+    <div class="home-inner">
+        <span class="eyebrow">Our rooms</span>
+        <h2>Three rooms, each with its own character</h2>
+
+        <div class="card-grid">
+            @foreach (var room in RoomList)
+            {
+                <article class="room-card">
+                    <div class="photo-placeholder room-photo" style="background-color: @room.Color">Room photo</div>
+                    <div class="room-card-body">
+                        <h3>@room.Name</h3>
+                        <p class="home-small home-muted">from €@room.Price per night · incl. VAT</p>
+                        <a class="home-link" href="rooms">View room <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </article>
+            }
+        </div>
+    </div>
+</section>
+
+@* ---------- reviews ---------- *@
+<section class="home-section">
+    <div class="home-inner">
+        <span class="eyebrow">Reviews</span>
+        <h2>What our guests say</h2>
+
+        <div class="card-grid">
+            @foreach (var review in ReviewList)
+            {
+                <article class="review-card">
+                    <div class="review-stars" aria-label="5 out of 5 stars">★★★★★</div>
+                    <p>@review.Text</p>
+                    <p class="home-small home-muted">@review.Author · @review.Source</p>
+                </article>
+            }
+        </div>
+
+        <a class="home-link review-all" href="reviews">Read all reviews on Google <i class="fas fa-arrow-right"></i></a>
+    </div>
+</section>
+
+@code {
+    private const int MaxGuests = 6;
+    private const int MaxRooms = 3;
+
+    private DateOnly? checkIn;
+    private DateOnly? checkOut;
+    private int guests = 2;
+    private int rooms = 1;
+
+    private string Today => DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+
+    // check-out can't be before the day after check-in
+    private string MinCheckOut =>
+        (checkIn?.AddDays(1) ?? DateOnly.FromDateTime(DateTime.Today).AddDays(1)).ToString("yyyy-MM-dd");
+
+    private void CheckAvailability()
+    {
+        // TODO: navigate to the rooms/book page with the search values once that page exists
+        // eg Navigation.NavigateTo($"rooms?from={checkIn:yyyy-MM-dd}&to={checkOut:yyyy-MM-dd}&guests={guests}&rooms={rooms}");
+    }
+
+    // TODO: replace with real data from the api, placeholder colors stand in for the room photos
+    private record RoomItem(string Name, int Price, string Color);
+    private record ReviewItem(string Text, string Author, string Source);
+
+    private static readonly RoomItem[] RoomList =
+    [
+        new("Vigna Suite", 160, "#cdbb9d"),
+        new("Granite Room", 133, "#b5bcad"),
+        new("Garden Room", 150, "#c7cdb0"),
+    ];
+
+    private static readonly ReviewItem[] ReviewList =
+    [
+        new("A quiet, beautiful place among the vines. We will be back.", "Anna", "Google Reviews"),
+        new("Warm hosts, stunning breakfast on the terrace.", "Marc", "Google Reviews"),
+        new("Perfect base for exploring the coast.", "Sofia", "Facebook"),
+    ];
+}
