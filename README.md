@@ -1,5 +1,29 @@
 # Rise - [GROUPNAME]
 
+## Quick Start
+
+Requires the .NET 10 SDK and [Docker Desktop](https://www.docker.com/products/docker-desktop/) (it must be running). From the repository root:
+
+**One-time setup** (no passwords are committed; each developer chooses their own):
+
+```bash
+cp .env.example .env    # then open .env and replace `change-me` with your own password
+
+# store the app's connection string in User Secrets; use the SAME password as in .env
+dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;Port=5433;Database=rise;Username=rise;Password=<your password>" --project src/Rise.Server
+```
+
+**Every time:**
+
+```bash
+docker compose up -d                    # database only (PostgreSQL on localhost:5433)
+docker compose --profile tools up -d    # or: database + pgAdmin at http://localhost:5050
+```
+
+Then run `Rise.Server` (https://localhost:5001). See [Installation Instructions](#installation-instructions) for details.
+
+> **Coming from the old setup** (password `rise` hard-coded)? After the one-time setup, run `docker compose down -v` once so the database is recreated with your new password.
+
 ## Team Members
 
 - [MEMBER1_NAME] - [MEMBER1_EMAIL] - [MEMBER1_GITHUB_USERNAME]
@@ -27,6 +51,7 @@
 
 1. Install [Rider](https://www.jetbrains.com/rider/), [Visual Studio](https://visualstudio.microsoft.com/) or [Visual Studio Code](https://code.visualstudio.com/).
 2. Make sure you have the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) installed.
+3. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) (used to run the PostgreSQL database).
 
 You can verify your installed SDK using:
 
@@ -42,31 +67,46 @@ dotnet --version
 
    We prefer Rider, but you're free to choose.
 
-3. Run the project using `Rise.Server` as the startup project.
+3. Create your local `.env` file in the repository root and choose a database password:
 
-4. The project should open in your default browser on port `5001`.
+   ```bash
+   cp .env.example .env
+   ```
 
-5. The SQLite database will be created automatically. However, you will have to switch to a database provider of your choosing.
+   Open `.env` and replace `change-me` with your own password. `.env` is git-ignored, so the password never ends up in the repository. `docker compose` refuses to start without it.
 
-   1. **SQL Server**
+4. Start the PostgreSQL database from the repository root:
 
-      Package: `Microsoft.EntityFrameworkCore.SqlServer`
+   ```bash
+   docker compose up -d
+   ```
 
-      [NuGet](https://www.nuget.org/packages/Microsoft.EntityFrameworkCore.SqlServer/)
+   This starts PostgreSQL 17 on `localhost:5433` (database and user are `rise`, the password comes from `.env`, see `docker-compose.yml`). Port 5433 is used so it does not clash with a locally installed PostgreSQL on 5432.
 
-   2. **MariaDB**
+   Postgres only applies the password when its volume is created for the first time. If you change the password later, recreate the volume with `docker compose down -v` followed by `docker compose up -d`.
 
-      Package: `Pomelo.EntityFrameworkCore.MySql`
+5. Store the connection string for the app in [User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets). Use the same password as in `.env`, and run this from the repository root:
 
-      [NuGet](https://www.nuget.org/packages/Pomelo.EntityFrameworkCore.MySql/)
+   ```bash
+   dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;Port=5433;Database=rise;Username=rise;Password=<your password>" --project src/Rise.Server
+   dotnet user-secrets list --project src/Rise.Server   # check that it is stored
+   ```
 
-   3. **PostgreSQL**
+   The secret is stored per machine outside the repository (`%APPDATA%\Microsoft\UserSecrets\` on Windows, `~/.microsoft/usersecrets/` on Linux/macOS). `appsettings.json` only contains an empty `DatabaseConnection` placeholder. In Development the app and `dotnet ef` read the secret automatically and it overrides the placeholder. Other environments must provide the environment variable `ConnectionStrings__DatabaseConnection`. If the connection string is missing, the app stops at startup with a message showing this command.
 
-      Package: `Npgsql.EntityFrameworkCore.PostgreSQL`
+6. Run the project using `Rise.Server` as the startup project.
 
-      [NuGet](https://www.nuget.org/packages/Npgsql.EntityFrameworkCore.PostgreSQL/)
+7. The project should open in your default browser on port `5001`. In Development the database is dropped, migrated and seeded on every startup.
 
-   4. Other providers such as MongoDB can also be used if required.
+8. Optional: start pgAdmin to browse the database:
+
+   ```bash
+   docker compose --profile tools up -d
+   ```
+
+   Open [http://localhost:5050](http://localhost:5050). The `Rise (dev)` server is already registered and connects without a password prompt.
+
+   To stop everything use `docker compose --profile tools down`. Add `-v` to also remove the database volume.
 
 ## Creation of the Database
 
@@ -232,7 +272,7 @@ The API could, for example, be replaced by a console application without changin
 
 > We do not recommend abstracting Entity Framework Core behind a generic repository solely to make the database provider replaceable. Changing database providers should be treated as a migration rather than requiring another abstraction layer. See [Should you Abstract the Database?](https://enterprisecraftsmanship.com/posts/should-you-abstract-database/).
 
-The SQLite database included with the template is intended for development. You should switch to an appropriate production database provider.
+The project uses PostgreSQL (`Npgsql.EntityFrameworkCore.PostgreSQL`). For development it runs in Docker via `docker-compose.yml`.
 
 ---
 
