@@ -34,12 +34,17 @@ try
     // register the account management interface
     builder.Services.AddScoped(sp => (IAccountManager)sp.GetRequiredService<AuthenticationStateProvider>());
 
-    // the API is served from the same origin as the client (also in Docker), "BackendUrl" in wwwroot/appsettings.json can override it
+// the API is served from the same origin as the client (also in Docker), "BackendUrl" in wwwroot/appsettings.json can override it
     var backendUrl = new Uri(builder.Configuration["BackendUrl"] ?? builder.HostEnvironment.BaseAddress);
 
-    // configure client for auth interactions
-    builder.Services.AddHttpClient("SecureApi", opt => opt.BaseAddress = backendUrl)
+// configure client for auth interactions
+    builder.Services.AddHttpClient("SecureApi",opt => opt.BaseAddress = backendUrl)
         .AddHttpMessageHandler<CookieHandler>();
+
+    builder.Services.AddHttpClient<IProductService, ProductService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    });
 
     // the room search is public, no auth cookie needed
     builder.Services.AddHttpClient<IRoomService, RoomService>(client =>
