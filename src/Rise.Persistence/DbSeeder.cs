@@ -224,7 +224,7 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         var guests = await dbContext.Guests.OrderBy(x => x.Id).ToListAsync();
         var rooms = await dbContext.Rooms.Include(x => x.Rates).OrderBy(x => x.Id).ToListAsync();
 
-        if (guests.Count < 2 || rooms.Count < 3)
+        if (guests.Count < 3 || rooms.Count < 5)
             return;
 
         var paidBooking = new Booking("20261001-0001", guests[0], new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
@@ -237,7 +237,24 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         openBooking.AddRoom(rooms[2], rooms[2].Rates[0]);
         openBooking.AddPayment(3 * (rooms[0].Rates[0].PricePerNight + rooms[2].Rates[0].PricePerNight), "cs_test_seed_0002");
 
-        dbContext.Bookings.AddRange(paidBooking, openBooking);
+        var familyBooking = new Booking("20261004-0003", guests[2], new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 20));
+        familyBooking.AddRoom(rooms[3], rooms[3].Rates[0]);
+        var familyPayment = familyBooking.AddPayment(3 * rooms[3].Rates[0].PricePerNight, "cs_test_seed_0003");
+        familyPayment.MarkAsPaid(new DateTime(2026, 10, 4, 9, 15, 0, DateTimeKind.Utc), "in_test_seed_0003", "INV-2026-0002");
+
+        // Deposit is paid, the remaining amount is still open.
+        var suiteBooking = new Booking("20261005-0004", guests[0], new DateOnly(2026, 12, 23), new DateOnly(2026, 12, 27));
+        suiteBooking.AddRoom(rooms[4], rooms[4].Rates[0]);
+        var deposit = suiteBooking.AddPayment(300m, "cs_test_seed_0004");
+        deposit.MarkAsPaid(new DateTime(2026, 10, 5, 11, 0, 0, DateTimeKind.Utc), "in_test_seed_0004", "INV-2026-0003");
+        suiteBooking.AddPayment(4 * rooms[4].Rates[0].PricePerNight - 300m, "cs_test_seed_0005");
+
+        var shortBooking = new Booking("20261006-0005", guests[1], new DateOnly(2026, 10, 24), new DateOnly(2026, 10, 25));
+        shortBooking.AddRoom(rooms[1], rooms[1].Rates[0]);
+        var shortPayment = shortBooking.AddPayment(rooms[1].Rates[0].PricePerNight, "cs_test_seed_0006");
+        shortPayment.MarkAsPaid(new DateTime(2026, 10, 6, 18, 45, 0, DateTimeKind.Utc), "in_test_seed_0006", "INV-2026-0004");
+
+        dbContext.Bookings.AddRange(paidBooking, openBooking, familyBooking, suiteBooking, shortBooking);
         await dbContext.SaveChangesAsync();
     }
 }

@@ -1,0 +1,22 @@
+/* footer styles, scoped to Footer.razor by blazor css isolation */
+
+/* dark bar at the bottom, links on the left and right */
+.site-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    background-color: var(--color-footer);
+    color: var(--color-surface);
+    font-size: 0.8125rem;
+}
+
+/* groups of links, spaced evenly */
+.site-footer-left,
+.site-footer-right {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}

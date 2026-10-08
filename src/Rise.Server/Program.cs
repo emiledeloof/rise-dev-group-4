@@ -28,9 +28,16 @@ try
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .Services.AddDbContext<ApplicationDbContext>(o =>
         {
-            var connectionString = builder.Configuration.GetConnectionString("DatabaseConnection") ??
-                                   throw new InvalidOperationException("Connection string 'DatabaseConnection' not found.");
-            o.UseSqlite(connectionString); // Swap Sqlite for your database provider (e.g. Sql Server, MySQL, PostgreSQL, etc.).
+            // Empty placeholder in appsettings.json, overridden by User Secrets in development (see README)
+            // and by the env var ConnectionStrings__DatabaseConnection in other environments.
+            var connectionString = builder.Configuration.GetConnectionString("DatabaseConnection");
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new InvalidOperationException(
+                    "Connection string 'DatabaseConnection' not found. In development run (in src/Rise.Server): " +
+                    "dotnet user-secrets set \"ConnectionStrings:DatabaseConnection\" " +
+                    "\"Host=localhost;Port=5433;Database=rise;Username=rise;Password=<POSTGRES_PASSWORD from .env>\". " +
+                    "Other environments: set the env var ConnectionStrings__DatabaseConnection.");
+            o.UseNpgsql(connectionString); // PostgreSQL, run it locally with `docker compose up -d` (see docker-compose.yml).
             o.EnableDetailedErrors();
             if (builder.Environment.IsDevelopment())
             {
@@ -64,7 +71,7 @@ try
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var dbSeeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
-            // dbContext.Database.EnsureDeleted(); // Delete the database if it exists to clean it up if needed.
+            dbContext.Database.EnsureDeleted(); // Start every development run with a fresh, seeded database.
 
             dbContext.Database.Migrate(); // Creates the database if it doesn't exist and applies all migrations. See Readme.md for more info.
             await dbSeeder.SeedAsync(); // Seeds the database with some test data.
@@ -72,7 +79,7 @@ try
     }
     // Theses middlewares are strict in order of calling!
     app.UseHttpsRedirection()
-        .UseBlazorFrameworkFiles() // Blazor is also served from the API. 
+            .UseBlazorFrameworkFiles() // Blazor is also served from the API. 
         .UseStaticFiles()
         .UseDefaultExceptionHandler()
         .UseAuthentication()

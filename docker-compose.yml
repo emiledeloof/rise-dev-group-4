@@ -1,0 +1,56 @@
+name: rise
+
+# Development infrastructure. Start with `docker compose up -d`.
+# Optional pgAdmin GUI: `docker compose --profile tools up -d` -> http://localhost:5050
+# First copy `.env.example` to `.env` and set POSTGRES_PASSWORD (the password is never committed).
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: rise-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rise}
+      POSTGRES_USER: ${POSTGRES_USER:-rise}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (copy .env.example)}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - rise-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: rise-pgadmin
+    profiles: ["tools"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"              # desktop mode: no pgAdmin login
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False" # no master password prompt
+      POSTGRES_USER: ${POSTGRES_USER:-rise}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (copy .env.example)}
+    # Writes a pgpass file with 0600 permissions (a Windows bind mount can't provide those and libpq
+    # would ignore it), then hands over to pgAdmin's normal entrypoint.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        printf 'db:5432:*:%s:%s\n' "$$POSTGRES_USER" "$$POSTGRES_PASSWORD" > /tmp/pgpass
+        chmod 600 /tmp/pgpass
+        exec /entrypoint.sh
+    volumes:
+      # Pre-registers the Rise database. Only imported on pgAdmin's first start; after editing it run
+      # `docker compose rm -sfv pgadmin` and start the tools profile again.
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  rise-db-data:
