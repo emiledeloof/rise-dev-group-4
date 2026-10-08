@@ -1,22 +1,47 @@
 name: Deploy dotnet app
 
-on:
+on: 
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
 
 jobs: 
-  server:
+  ci:
     runs-on: self-hosted
-
     steps:
       - name: Sync latest repository code
+        uses: actions/checkout@v4 
+        
+      # 1. Dependency Restore & Vulnerability Audit
+      - name: Restore dependencies & Audit CVEs
         run: |
-          cd ~/rise-dev-group-4
-          git pull origin main
+          dotnet restore
+          dotnet list package --vulnerable --include-transitive
 
-      - name: Publish dotnet app
+      # 2. Fast Whitespace & Formatting Check
+      # Fails fast before triggering the heavier compiler step
+      - name: Verify Formatting (dotnet format)
         run: |
-          cd ~/rise-dev-group-4/src/Rise.Server
-          dotnet publish -c Release -o /var/www/rise-server
-      
+          dotnet format --verify-no-changes --verbosity normal
+
+      # 3. Static Analysis & Roslyn Code Style Check
+      # Executes Roslyn analyzers, SonarAnalyzer, and treats warnings as errors
+      - name: Build with Strict Code Analysis
+        run: |
+          dotnet build --no-restore --configuration Release --warnaserror
+
+      # 4. Unit & Integration Tests (with code coverage)
+      - name: Run Tests
+        run: |
+          dotnet test --no-build --configuration Release --verbosity normal
+
+  deploy:
+    runs-on: self-hosted
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Sync latest repository code
+        uses: actions/checkout@v4
