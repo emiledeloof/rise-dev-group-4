@@ -1,0 +1,60 @@
+@* check in and check out picker for the stay search, styles in DateRangePicker.razor.css *@
+<div class="drp">
+    @* field showing the chosen dates, opens or closes the calendar *@
+    <button type="button"
+            class="drp-field"
+            aria-expanded="@(_isOpen ? "true" : "false")"
+            @onclick="Toggle">
+        <span class="drp-label">Dates</span>
+        <span class="drp-value">@FieldText</span>
+    </button>
+
+    @if (_isOpen)
+    {
+        <div class="drp-panel" role="dialog" aria-label="Choose your stay dates">
+            @* month navigation, going back stops at the current month *@
+            <div class="drp-nav">
+                <button type="button" class="drp-nav-btn" disabled="@(!CanGoBack)" aria-label="Previous month" @onclick="PreviousMonth">&lsaquo;</button>
+                <button type="button" class="drp-nav-btn" aria-label="Next month" @onclick="NextMonth">&rsaquo;</button>
+            </div>
+
+            <div class="drp-months" @onmouseleave="ClearHover">
+                @foreach (var month in VisibleMonths)
+                {
+                    <div class="drp-month">
+                        <p class="drp-month-title">@month.ToString("MMMM yyyy", Culture)</p>
+
+                        <div class="drp-grid">
+                            @foreach (var name in WeekDayNames)
+                            {
+                                <span class="drp-weekday">@name</span>
+                            }
+
+                            @foreach (var day in DaysOf(month))
+                            {
+                                @* empty cells before the first day so days line up under their weekday *@
+                                if (day is not { } date)
+                                {
+                                    <span></span>
+                                    continue;
+                                }
+
+                                <button type="button"
+                                        class="@DayClass(date)"
+                                        disabled="@IsDisabled(date)"
+                                        aria-pressed="@(IsSelected(date) ? "true" : "false")"
+                                        aria-label="@date.ToString("d MMMM yyyy", Culture)"
+                                        @onclick="() => SelectAsync(date)"
+                                        @onmouseover="() => Hover(date)">
+                                    @date.Day
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <p class="drp-hint">@HintText</p>
+        </div>
+    }
+</div>
