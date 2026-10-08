@@ -21,8 +21,8 @@ internal class IdentityConfiguration :
     // If you want to use a separate schema for your Identity tables,
     // you can specify the schema as "auth" like this:
     //     builder.ToTable("Users", "auth");
-    // However, be aware that SQLite does NOT support schemas, so this only works with SQL Server, MarioDB, PostgreSQL,...
-    // The default below will work on any provider.
+    // PostgreSQL supports schemas, but SQLite does NOT, so keep that in mind if the provider ever changes.
+    // The default below uses the default schema (public) and works on any provider.
     
     public void Configure(EntityTypeBuilder<IdentityUser> builder)
         => builder.ToTable("Users");

@@ -30,7 +30,7 @@ try
         {
             var connectionString = builder.Configuration.GetConnectionString("DatabaseConnection") ??
                                    throw new InvalidOperationException("Connection string 'DatabaseConnection' not found.");
-            o.UseSqlite(connectionString); // Swap Sqlite for your database provider (e.g. Sql Server, MySQL, PostgreSQL, etc.).
+            o.UseNpgsql(connectionString); // PostgreSQL, run it locally with `docker compose up -d` (see docker-compose.yml).
             o.EnableDetailedErrors();
             if (builder.Environment.IsDevelopment())
             {

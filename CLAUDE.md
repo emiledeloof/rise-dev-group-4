@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-Requires the .NET 10 SDK. Solution file: `Rise.sln`.
+Requires the .NET 10 SDK and Docker Desktop. Solution file: `Rise.sln`.
 
 ```bash
+docker compose up -d                                                     # PostgreSQL on localhost:5433 (needed to run the app / add migrations)
+docker compose --profile tools up -d                                     # + pgAdmin on http://localhost:5050 (server pre-registered)
 dotnet build Rise.sln
 dotnet test Rise.sln                                                     # all tests
 dotnet test tests/Rise.Services.Tests                                    # one project
@@ -21,7 +23,7 @@ dotnet ef migrations add <Name> --startup-project Rise.Server --project Rise.Per
 dotnet ef database update --startup-project Rise.Server --project Rise.Persistence
 ```
 
-In Development, the server applies migrations and runs `DbSeeder` on startup. The default database is SQLite (`Rise.db`). Seeded users (`user@`, `technician1@`, `technician2@`, `secretary@`, `admin@example.com`) all use the password `A1b2C3!`. The roles are Technician, Secretary and Administrator.
+In Development, the server applies migrations and runs `DbSeeder` on startup. The database is PostgreSQL in Docker (`docker-compose.yml`, db/user/password `rise`); the dev connection string lives in `Server/appsettings.Development.json`, non-dev environments must supply `ConnectionStrings__DatabaseConnection`. Seeded users (`user@`, `technician1@`, `technician2@`, `secretary@`, `admin@example.com`) all use the password `A1b2C3!`. The roles are Technician, Secretary and Administrator.
 
 ## Architecture
 
@@ -51,7 +53,7 @@ This template combines Clean Architecture, DDD and vertical slices. The project 
 - **Current user in services**: inject `ISessionContextProvider` (defined in `Services/Identity/IIdentityContextProvider.cs`, implemented by `HttpContextSessionProvider` in Server). Use `User.GetUserId()` from `Shared/Identity/ClaimsPrincipalExtentions.cs`. Tests substitute `FakeSessionContextProvider`. The file names differ from the type names.
 - **Auth**: ASP.NET Identity with cookie auth. The client uses `CookieAuthenticationStateProvider` (which also implements `IAccountManager`) and `CookieHandler` on the `"SecureApi"` HttpClient. Role names live in `Shared/Identity/Roles.cs` (`AppRoles`), and policies live in `Policies.cs`.
 - **Logging**: Serilog is configured in `appsettings.json` (console + `Logs/` file). Mark sensitive DTO properties with Destructurama attributes so they are masked.
-- **DB-provider-specific bits**: if the provider is swapped, update `UseSqlite` in `Server/Program.cs` and `HasDefaultValueSql("CURRENT_TIMESTAMP")` in `EntityConfiguration`.
+- **PostgreSQL specifics**: the provider is set by `UseNpgsql` in `Server/Program.cs`. `DateTime` maps to `timestamp with time zone`, so only store UTC values (`DateTime.UtcNow`, `DateTimeKind.Utc`); Npgsql rejects Local/Unspecified kinds. String comparisons (`Contains`, `==`) are case-sensitive.
 
 ## Tests
 

@@ -1,5 +1,16 @@
 # Rise - [GROUPNAME]
 
+## Quick Start
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and the .NET 10 SDK. From the repository root:
+
+```bash
+docker compose up -d                    # database only (PostgreSQL on localhost:5433)
+docker compose --profile tools up -d    # + pgAdmin at http://localhost:5050
+```
+
+Then run `Rise.Server` as usual. See [Installation Instructions](#installation-instructions) for details.
+
 ## Team Members
 
 - [MEMBER1_NAME] - [MEMBER1_EMAIL] - [MEMBER1_GITHUB_USERNAME]
@@ -27,6 +38,7 @@
 
 1. Install [Rider](https://www.jetbrains.com/rider/), [Visual Studio](https://visualstudio.microsoft.com/) or [Visual Studio Code](https://code.visualstudio.com/).
 2. Make sure you have the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) installed.
+3. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) (used to run the PostgreSQL database).
 
 You can verify your installed SDK using:
 
@@ -42,31 +54,27 @@ dotnet --version
 
    We prefer Rider, but you're free to choose.
 
-3. Run the project using `Rise.Server` as the startup project.
+3. Start the PostgreSQL database from the repository root:
 
-4. The project should open in your default browser on port `5001`.
+   ```bash
+   docker compose up -d
+   ```
 
-5. The SQLite database will be created automatically. However, you will have to switch to a database provider of your choosing.
+   This starts PostgreSQL 17 on `localhost:5433` (database, user and password are all `rise`, see `docker-compose.yml`). Port 5433 is used so it does not clash with a locally installed PostgreSQL on 5432. To override these values, copy `.env.example` to `.env`.
 
-   1. **SQL Server**
+4. Run the project using `Rise.Server` as the startup project.
 
-      Package: `Microsoft.EntityFrameworkCore.SqlServer`
+5. The project should open in your default browser on port `5001`. In Development the database is dropped, migrated and seeded on every startup.
 
-      [NuGet](https://www.nuget.org/packages/Microsoft.EntityFrameworkCore.SqlServer/)
+6. Optional: start pgAdmin to browse the database:
 
-   2. **MariaDB**
+   ```bash
+   docker compose --profile tools up -d
+   ```
 
-      Package: `Pomelo.EntityFrameworkCore.MySql`
+   Open [http://localhost:5050](http://localhost:5050). The `Rise (dev)` server is already registered and connects without a password prompt.
 
-      [NuGet](https://www.nuget.org/packages/Pomelo.EntityFrameworkCore.MySql/)
-
-   3. **PostgreSQL**
-
-      Package: `Npgsql.EntityFrameworkCore.PostgreSQL`
-
-      [NuGet](https://www.nuget.org/packages/Npgsql.EntityFrameworkCore.PostgreSQL/)
-
-   4. Other providers such as MongoDB can also be used if required.
+   To stop everything use `docker compose --profile tools down`. Add `-v` to also remove the database volume.
 
 ## Creation of the Database
 
@@ -232,7 +240,7 @@ The API could, for example, be replaced by a console application without changin
 
 > We do not recommend abstracting Entity Framework Core behind a generic repository solely to make the database provider replaceable. Changing database providers should be treated as a migration rather than requiring another abstraction layer. See [Should you Abstract the Database?](https://enterprisecraftsmanship.com/posts/should-you-abstract-database/).
 
-The SQLite database included with the template is intended for development. You should switch to an appropriate production database provider.
+The project uses PostgreSQL (`Npgsql.EntityFrameworkCore.PostgreSQL`). For development it runs in Docker via `docker-compose.yml`.
 
 ---
 
