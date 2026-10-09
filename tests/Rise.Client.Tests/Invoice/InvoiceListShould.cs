@@ -32,4 +32,24 @@ public class InvoiceListShould : BunitContext
         firstRow.ShouldContain("€100.00");
         firstRow.ShouldContain("Paid");
     }
+
+    [Fact]
+    public void ShowStripePaymentInfoForPaidInvoice()
+    {
+        var cut = Render<InvoiceList>();
+        var firstRow = cut.FindAll("ul li")[0];
+        firstRow.TextContent.ShouldContain("Visa •••• 4242");
+        firstRow.TextContent.ShouldContain("via Stripe");
+        firstRow.QuerySelectorAll("a").Select(a => a.GetAttribute("href"))
+            .ShouldBe(["https://pay.stripe.com/receipts/test_1", "https://dashboard.stripe.com/test/payments/pi_test_1"]);
+    }
+
+    [Fact]
+    public void HideStripePaymentInfoForOpenInvoice()
+    {
+        var cut = Render<InvoiceList>();
+        var openRow = cut.FindAll("ul li")[1];
+        openRow.TextContent.ShouldNotContain("Stripe");
+        openRow.QuerySelectorAll("a").ShouldBeEmpty();
+    }
 }
