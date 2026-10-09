@@ -1,0 +1,27 @@
+@* compact search bar used on the home, search and results pages, styles in SearchBar.razor.css *@
+
+@* same form as before, Search is only called when the validator passes *@
+@* EditContext instead of Model so the code behind can ask for a new check when the dates change *@
+<EditForm EditContext="_editContext" OnValidSubmit="Search">
+
+    @* plugs the StayPeriod validator from shared into the form *@
+    <FluentValidationValidator/>
+
+    @* white box, the row on top and the error messages inside it so they stay readable on the green hero *@
+    <div class="search-bar">
+        @* one row, dates on the left and the btn on the right, stacks on small screens *@
+        <div class="search-bar-row">
+            @* check in and check out picker, both dates go into _stay *@
+            @* :after runs DatesChanged right after a date is written into _stay *@
+            <DateRangePicker @bind-CheckIn="_stay.CheckIn" @bind-CheckIn:after="DatesChanged"
+                             @bind-CheckOut="_stay.CheckOut" @bind-CheckOut:after="DatesChanged" />
+
+            @* submit btn, label from the mockup *@
+            <Button Type="submit" Class="search-btn">Check availability</Button>
+        </div>
+
+        @* error messages under the row *@
+        <ValidationMessage For="@(() => _stay.CheckIn)" class="has-text-danger"/>
+        <ValidationMessage For="@(() => _stay.CheckOut)" class="has-text-danger"/>
+    </div>
+</EditForm>

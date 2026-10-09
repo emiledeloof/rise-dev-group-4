@@ -1,0 +1,175 @@
+/* ---------- home page: hero ---------- */
+
+.hero {
+    /* muted olive from the mockup, TODO: replace with the exact hex from the ba */
+    --color-hero: #7d866a;
+
+    background-color: var(--color-hero);
+    color: #fff;
+    padding: var(--space-xl) var(--space-lg);
+}
+
+.hero .hero-eyebrow {
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.1em;
+}
+
+.hero .hero-title {
+    color: #fff;
+    font-size: clamp(2.5rem, 5vw, 3.75rem);
+    font-weight: 400;
+    margin-bottom: var(--space-md);
+}
+
+.hero .hero-text {
+    max-width: 48rem;
+    margin-bottom: var(--space-lg);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* the shared search bar has a bottom margin for the other pages, not needed at the bottom of the hero */
+.hero ::deep .search-bar {
+    margin-bottom: 0;
+}
+
+/* ---------- home page: small screens ---------- */
+
+@media (max-width: 768px) {
+    .hero {
+        padding: var(--space-lg) var(--space-md);
+    }
+}
+
+/* ---------- home page: sections ---------- */
+
+.home-section {
+    padding: var(--space-xl) var(--space-lg);
+}
+
+/* slightly darker beige band, used for the rooms */
+.home-section-alt {
+    background-color: #eeebe3; /* TODO: exact hex from the ba */
+}
+
+.home-inner {
+    max-width: 72rem;
+    margin: 0 auto;
+}
+
+.home-muted {
+    color: var(--color-text-muted);
+}
+
+.home-small {
+    font-size: 0.8rem;
+}
+
+.home-link {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.home-link:hover {
+    color: var(--color-primary-dark);
+}
+
+/* grey-green blocks that stand in for photos until we have real ones */
+.photo-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: #fff;
+    background-color: #b5bcad;
+}
+
+/* ---------- home page: the estate ---------- */
+
+.estate {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    align-items: center;
+}
+
+.estate-text p {
+    max-width: 34rem;
+    margin-bottom: var(--space-md);
+    line-height: 1.6;
+}
+
+.estate-photo {
+    min-height: 20rem;
+}
+
+/* ---------- home page: rooms and reviews grid ---------- */
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+}
+
+.room-card,
+.review-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+}
+
+.room-photo {
+    height: 9rem;
+}
+
+.room-card-body {
+    padding: var(--space-md);
+}
+
+.room-card-body h3 {
+    margin-bottom: var(--space-xs);
+}
+
+.room-card-body p {
+    margin-bottom: var(--space-xs);
+}
+
+.review-card {
+    padding: var(--space-md);
+}
+
+.review-card p {
+    margin-bottom: var(--space-sm);
+}
+
+.review-stars {
+    margin-bottom: var(--space-sm);
+    color: #a67c1a; /* gold stars */
+    letter-spacing: 0.1em;
+}
+
+.review-all {
+    display: inline-block;
+    margin-top: var(--space-lg);
+}
+
+/* ---------- home page: sections on small screens ---------- */
+
+@media (max-width: 768px) {
+    .home-section {
+        padding: var(--space-lg) var(--space-md);
+    }
+
+    .estate,
+    .card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .estate-photo {
+        min-height: 12rem;
+    }
+}

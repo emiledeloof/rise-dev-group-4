@@ -1,5 +1,6 @@
 using Destructurama;
 using FastEndpoints.Swagger;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Rise.Persistence;
@@ -24,7 +25,7 @@ try
     builder.Services
         .AddSerilog((_, lc) => lc.ReadFrom.Configuration(builder.Configuration) // Configuration in AppSettings.json
             .Destructure.UsingAttributes()) // Sensitive data logging
-        .AddIdentity<IdentityUser, IdentityRole>() 
+        .AddIdentity<IdentityUser, IdentityRole>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .Services.AddDbContext<ApplicationDbContext>(o =>
         {
@@ -52,7 +53,7 @@ try
         .AddFastEndpoints(o =>
         {
             o.IncludeAbstractValidators = true; // Include validators from abstract classes (see https://docs.fluentvalidation.net/en/latest/).
-            o.Assemblies = [typeof(Rise.Shared.Products.ProductRequest).Assembly]; // Adds the validators from other assemblies
+            o.Assemblies = [typeof(Rise.Shared.Search.SearchRequest).Assembly]; // Adds the validators from other assemblies
         })
         .SwaggerDocument(o =>
         {
@@ -77,9 +78,29 @@ try
             await dbSeeder.SeedAsync(); // Seeds the database with some test data.
         }
     }
+    else if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+    {
+        // Docker deployments (see docker-compose.local.yml): migrate without wiping, seeding is optional (DbSeeder skips existing data).
+        using var scope = app.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.Migrate();
+        if (app.Configuration.GetValue<bool>("Database:Seed"))
+            await scope.ServiceProvider.GetRequiredService<DbSeeder>().SeedAsync();
+    }
+
+    // Behind a reverse proxy (TLS terminated there) the original scheme and client IP come from the X-Forwarded-* headers.
+    var forwardedHeaders = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    };
+    forwardedHeaders.KnownIPNetworks.Clear(); // trust any proxy, the container port is only reachable through it
+    forwardedHeaders.KnownProxies.Clear();
+    app.UseForwardedHeaders(forwardedHeaders);
+    // The container only listens on HTTP (ASPNETCORE_HTTP_PORTS), HTTPS is handled by the reverse proxy.
+    if (app.Configuration.GetValue("UseHttpsRedirection", true))
+        app.UseHttpsRedirection();
+
     // Theses middlewares are strict in order of calling!
-    app.UseHttpsRedirection()
-            .UseBlazorFrameworkFiles() // Blazor is also served from the API. 
+    app.UseBlazorFrameworkFiles() // Blazor is also served from the API.
         .UseStaticFiles()
         .UseDefaultExceptionHandler()
         .UseAuthentication()

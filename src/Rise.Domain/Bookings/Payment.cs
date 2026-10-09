@@ -14,6 +14,16 @@ public class Payment : Entity
     public string? StripeInvoice { get; private set; }
     public string? InvoiceNumber { get; private set; }
     public DateTime? PaidAt { get; private set; }
+    /// <summary>
+    /// The Stripe PaymentIntent (pi_...), links the payment to the Stripe dashboard.
+    /// </summary>
+    public string? StripePaymentIntent { get; private set; }
+    /// <summary>
+    /// Stripe's hosted payment receipt, the payment confirmation shown to the customer.
+    /// </summary>
+    public string? StripeReceiptUrl { get; private set; }
+    public string? CardBrand { get; private set; }
+    public string? CardLast4 { get; private set; }
 
     public bool IsPaid => PaidAt is not null;
 
@@ -51,5 +61,16 @@ public class Payment : Entity
         PaidAt = paidAt;
         StripeInvoice = stripeInvoice;
         InvoiceNumber = invoiceNumber;
+    }
+
+    /// <summary>
+    /// Stores the payment details Stripe returned for the paid Checkout Session.
+    /// </summary>
+    public void SetStripePaymentDetails(string paymentIntent, string? receiptUrl, string? cardBrand, string? cardLast4)
+    {
+        StripePaymentIntent = Guard.Against.NullOrWhiteSpace(paymentIntent);
+        StripeReceiptUrl = receiptUrl;
+        CardBrand = cardBrand;
+        CardLast4 = cardLast4;
     }
 }

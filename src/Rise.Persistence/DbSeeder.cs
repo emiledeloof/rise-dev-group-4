@@ -3,9 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Admins;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
-using Rise.Domain.Products;
 using Rise.Domain.Rooms;
-using Rise.Domain.Projects;
 
 namespace Rise.Persistence;
 /// <summary>
@@ -21,8 +19,6 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
     {
         await RolesAsync();
         await UsersAsync();
-        await ProductsAsync();
-        await ProjectsAsync();
         await AdminsAsync();
         await RoomsAsync();
         await GuestsAsync();
@@ -35,15 +31,13 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
             return;
 
         await roleManager.CreateAsync(new IdentityRole("Administrator"));
-        await roleManager.CreateAsync(new IdentityRole("Secretary"));
-        await roleManager.CreateAsync(new IdentityRole("Technician"));
     }
-    
-    private async Task  UsersAsync()
+
+    private async Task UsersAsync()
     {
         if (dbContext.Users.Any())
             return;
-        
+
         await dbContext.Roles.ToListAsync();
 
         var admin = new IdentityUser
@@ -53,105 +47,8 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
             EmailConfirmed = true,
         };
         await userManager.CreateAsync(admin, PasswordDefault);
-        
-        var secretary = new IdentityUser
-        {
-            UserName = "secretary@example.com",
-            Email = "secretary@example.com",
-            EmailConfirmed = true,
-        };
-        await userManager.CreateAsync(secretary, PasswordDefault);
-        
-        var technicianAccount1 = new IdentityUser
-        {
-            UserName = "technician1@example.com",
-            Email = "technician1@example.com",
-            EmailConfirmed = true,
-        };
-        await userManager.CreateAsync(technicianAccount1, PasswordDefault);
-        
-        var technicianAccount2 = new IdentityUser
-        {
-            UserName = "technician2@example.com",
-            Email = "technician2@example.com",
-            EmailConfirmed = true,
-        };
-        await userManager.CreateAsync(technicianAccount2, PasswordDefault);
-                
-        var user = new IdentityUser
-        {
-            UserName = "user@example.com",
-            Email = "user@example.com",
-            EmailConfirmed = true,
-        };
-        await userManager.CreateAsync(user, PasswordDefault);
-        
+
         await userManager.AddToRoleAsync(admin, "Administrator");
-        await userManager.AddToRoleAsync(secretary, "Secretary");
-        await userManager.AddToRoleAsync(technicianAccount1, "Technician");
-        await userManager.AddToRoleAsync(technicianAccount2, "Technician");
-
-        dbContext.Technicians.AddRange(
-            new Technician("Tech 1", "Awesome", technicianAccount1.Id),
-            new Technician("Tech 2", "Less Awesome", technicianAccount2.Id));
-        
-        await dbContext.SaveChangesAsync();
-    }
-    
-
-    
-    private async Task  ProductsAsync()
-    {
-        if (dbContext.Products.Any())
-            return;
-        
-        dbContext.Products.AddRange(
-            new Product{ Name = "Laptop", Description = "15-inch display, 16GB RAM" },
-            new Product{ Name = "Smartphone", Description = "6.5-inch screen, 128GB storage" },
-            new Product{ Name = "Headphones", Description = "Wireless noise-cancelling" },
-            new Product{ Name = "Keyboard", Description = "Mechanical RGB backlit" },
-            new Product{ Name = "Mouse", Description = "Ergonomic wireless mouse" },
-            new Product{ Name = "Monitor", Description = "27-inch 4K UHD display" },
-            new Product{ Name = "Printer", Description = "All-in-one inkjet printer" },
-            new Product{ Name = "Camera", Description = "Mirrorless 24MP with 4K video" },
-            new Product{ Name = "Smartwatch", Description = "Heart rate monitor, GPS" },
-            new Product{ Name = "Speaker", Description = "Bluetooth portable speaker" }
-        );
-
-        await dbContext.SaveChangesAsync();
-    }
-    
-    private async Task  ProjectsAsync()
-    {
-        if (dbContext.Projects.Any())
-            return;
-        
-        var technicians = await dbContext.Technicians.ToListAsync();
-        
-        if (!technicians.Any())
-            return;
-        
-        var addresses = new List<Address>
-        {
-            new Address("Koningstraat 12", "Bus 3A", "Brussel", "1000"),
-            new Address("Meir 45", "", "Antwerpen", "2000"),
-            new Address("Veldstraat 78", "2e verdieping", "Gent", "9000"),
-            new Address("Rue de la Loi 175", "", "Bruxelles", "1040"),
-            new Address("Place Saint-Lambert 8", "Bureau 12", "Liège", "4000"),
-        };
-
-        var rnd = new Random(123); // Using a seed so the random is always the same.
-        
-        var projects = new List<Project>
-        {
-            new("Website Redesign", technicians[rnd.Next(technicians.Count)], addresses[0]),
-            new("Mobile App Development", technicians[rnd.Next(technicians.Count)], addresses[1]),
-            new("Database Migration", technicians[rnd.Next(technicians.Count)], addresses[2]),
-            new("E-commerce Platform", technicians[rnd.Next(technicians.Count)], addresses[3]),
-            new("CRM Integration", technicians[rnd.Next(technicians.Count)], addresses[4])
-        };
-
-        dbContext.Projects.AddRange(projects);
         await dbContext.SaveChangesAsync();
     }
 
@@ -174,26 +71,37 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         if (dbContext.Rooms.Any())
             return;
 
+        // 3 rates per room, the non-refundable one first because the seeded bookings below use Rates[0]
         var single = new Room("101", "Single Room", 1, "Cosy room with a single bed.");
-        single.AddRate("Standard", 79m);
+        single.AddRate("Non-refundable", 79m, "No refund after booking");
+        single.AddRate("Partially refundable", 89m, "50% refund until 3 days before");
+        single.AddRate("Fully refundable", 99m, "100% refund until 7 days before");
         single.AddPhoto("https://picsum.photos/seed/room101/800/600");
 
         var doubleRoom = new Room("102", "Double Room", 2, "Spacious room with a double bed.");
-        doubleRoom.AddRate("Standard", 109m);
+        doubleRoom.AddRate("Non-refundable", 109m, "No refund after booking");
+        doubleRoom.AddRate("Partially refundable", 125m, "50% refund until 3 days before");
+        doubleRoom.AddRate("Fully refundable", 139m, "100% refund until 7 days before");
         doubleRoom.AddPhoto("https://picsum.photos/seed/room102a/800/600");
         doubleRoom.AddPhoto("https://picsum.photos/seed/room102b/800/600");
 
         var twin = new Room("103", "Twin Room", 2, "Room with two single beds.");
-        twin.AddRate("Standard", 99m);
+        twin.AddRate("Non-refundable", 99m, "No refund after booking");
+        twin.AddRate("Partially refundable", 115m, "50% refund until 3 days before");
+        twin.AddRate("Fully refundable", 125m, "100% refund until 7 days before");
         twin.AddPhoto("https://picsum.photos/seed/room103/800/600");
 
         var family = new Room("201", "Family Room", 4, "Large room with a double bed and a bunk bed.");
-        family.AddRate("Standard", 159m);
+        family.AddRate("Non-refundable", 159m, "No refund after booking");
+        family.AddRate("Partially refundable", 179m, "50% refund until 3 days before");
+        family.AddRate("Fully refundable", 199m, "100% refund until 7 days before");
         family.AddPhoto("https://picsum.photos/seed/room201a/800/600");
         family.AddPhoto("https://picsum.photos/seed/room201b/800/600");
 
         var suite = new Room("301", "Suite", 2, "Suite with a separate living room and a view over the city.");
-        suite.AddRate("Standard", 249m);
+        suite.AddRate("Non-refundable", 249m, "No refund after booking");
+        suite.AddRate("Partially refundable", 285m, "50% refund until 3 days before");
+        suite.AddRate("Fully refundable", 315m, "100% refund until 7 days before");
         suite.AddPhoto("https://picsum.photos/seed/room301/800/600");
 
         dbContext.Rooms.AddRange(single, doubleRoom, twin, family, suite);

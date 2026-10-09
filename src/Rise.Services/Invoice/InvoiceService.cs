@@ -36,7 +36,11 @@ public class InvoiceService(ApplicationDbContext dbContext) : IInvoiceService
                 Amount = p.Amount,
                 PaidAt = p.PaidAt,
                 InvoiceNumber = p.InvoiceNumber,
-                StripeInvoice = p.StripeInvoice
+                StripeInvoice = p.StripeInvoice,
+                StripePaymentIntent = p.StripePaymentIntent,
+                StripeReceiptUrl = p.StripeReceiptUrl,
+                CardBrand = p.CardBrand,
+                CardLast4 = p.CardLast4
             })
             .ToListAsync(ctx);
 

@@ -17,6 +17,16 @@ public static class InvoiceDto
         public string? StripeInvoice { get; set; }
         public string? InvoiceNumber { get; set; }
         public DateTime? PaidAt { get; set; }
+        /// <summary>
+        /// Stripe PaymentIntent (pi_...), used to open the payment in the Stripe dashboard.
+        /// </summary>
+        public string? StripePaymentIntent { get; set; }
+        /// <summary>
+        /// Stripe's hosted payment receipt.
+        /// </summary>
+        public string? StripeReceiptUrl { get; set; }
+        public string? CardBrand { get; set; }
+        public string? CardLast4 { get; set; }
 
         public bool IsPaid => PaidAt is not null;
     }

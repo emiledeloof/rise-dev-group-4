@@ -1,0 +1,63 @@
+﻿@page "/search/results"
+@* results of the stay search, shows the free rooms for the chosen dates *@
+@* TODO: translate the texts with the languages task *@
+
+<PageTitle>Available rooms</PageTitle>
+
+@* centered frame, see .page in theme.css *@
+<div class="page">
+    <span class="eyebrow">Book a room</span>
+    <h1>Available rooms</h1>
+    <p class="subtitle">
+        @CheckIn?.ToString("d MMM") – @CheckOut?.ToString("d MMM yyyy") · @Stay.Nights @(Stay.Nights == 1 ? "night" : "nights")
+    </p>
+
+    @* compact bar to change the dates without leaving the page *@
+    <SearchBar CheckIn="@CheckIn" CheckOut="@CheckOut" />
+
+    @if (_rooms is null)
+    {
+        @* api still answering, short text while waiting *@
+        <p>Loading available rooms...</p>
+    }
+    else if (_errorMessage is not null)
+    {
+        @* api call failed, show the error msg *@
+        <p class="has-text-danger">@_errorMessage</p>
+    }
+    else if (_rooms.Count == 0)
+    {
+        @* no free room for these dates, the guest can go back and pick other dates *@
+        @* short message, eg no rooms are available for these dates *@
+        <p>No rooms are available for these dates.</p>
+
+        @* btn back to the search page to change the dates *@
+        <Button Variant="ButtonVariant.Secondary" Href="search" Class="back-btn mt-3">Change dates</Button>
+    }
+    else
+    {
+        @* cards on the left and the selection summary on the right, styles in Results.razor.css *@
+        <div class="results-layout">
+            @* one card per room, styles of the list in Results.razor.css *@
+            <div class="room-list">
+                @foreach (var room in _rooms)
+                {
+                    <RoomCard Name="@room.Name"
+                        Description="@room.Description"
+                        MaxGuests="@room.MaxGuests"
+                        PricePerNight="@room.PricePerNight"
+                        Nights="@room.Nights"
+                        TotalPrice="@room.TotalPrice"
+                        Rates="@room.Rates"
+                        PhotoUrl="@room.PhotoUrl"
+                        SelectedRateId="@SelectedRateOf(room.Id)"
+                        OnRateSelected="rateId => SelectRate(room.Id, rateId)"
+                        OnRemove="() => RemoveRoom(room.Id)"/>
+                }
+            </div>
+
+            @* picked rooms and total, on the right on big screens, under the cards on phones *@
+            <SelectionSummary Rooms="@SelectedRooms" Nights="@Stay.Nights" />
+        </div>
+    }
+</div>

@@ -1,0 +1,157 @@
+/* room card styles, scoped to RoomCard.razor */
+
+/*
+  white card with rounded corners and a light border, like the room cards of the mockup homepage
+  overflow hidden cuts the photo corners so they follow the rounded card
+*/
+.room-card {
+    /* column layout so the body can fill the whole card height, needed to align the btns */
+    display: flex;
+    flex-direction: column;
+
+    background-color: var(--color-surface);
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+}
+
+/* photo on top of the card, full width, always the same height, cropped instead of stretched */
+.room-card-photo {
+    display: block;
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+/* beige block shown instead of the photo when the room has none */
+.room-card-photo.is-placeholder {
+    background-color : var(--color-border);
+}
+
+/* space around the text under the photo */
+.room-card-body {
+    /* takes the space left under the photo, texts stacked with a small gap between them */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+}
+
+/* room name, less space under it than the default h3 of the theme */
+.room-card-body h3 {
+    margin-bottom: 0;
+    font-size: 1.5rem;
+}
+
+/* description in a smaller and softer text */
+.room-card-description {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+/* capacity, small grey detail like in the mockup */
+.room-card-meta {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+}
+
+/* price block, a thin line on top splits it from the room info */
+.room-card-prices {
+    margin-top: var(--space-xs);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+}
+
+/* eg 3 nights · prices include VAT, small and grey like the capacity */
+.room-card-price-detail {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+}
+
+/* list of rates, no bullets, a small gap between the rates */
+.room-card-rates {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-top: var(--space-xs);
+}
+
+/*
+  one rate on 2 rows and 3 columns
+  radio on the left, name and total on the 1st row, conditions and detail on the 2nd row
+  grid areas so the order of the tags in the razor does not matter
+  the whole line is a label, so it looks clickable
+*/
+.room-card-rate {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+        "radio name total"
+        "radio conditions detail";
+    column-gap: var(--space-sm);
+    align-items: baseline;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+/* darker border on hover so the guest sees the line is clickable */
+.room-card-rate:hover {
+    border-color: var(--color-text-muted);
+}
+
+/* the chosen rate gets a green border, :has checks if the radio inside is checked */
+.room-card-rate:has(.room-card-rate-radio:checked) {
+    border-color: var(--color-primary);
+    box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+/* radio btn in the green of the theme instead of the browser blue */
+.room-card-rate-radio {
+    grid-area: radio;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
+
+/* rate name, eg Non-refundable */
+.room-card-rate-name {
+    grid-area: name;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+/* conditions under the name, small and grey */
+.room-card-rate-conditions {
+    grid-area: conditions;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+}
+
+/* total of the stay with this rate, the main number of the line, in the title font */
+.room-card-total {
+    grid-area: total;
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+    color: var(--color-text);
+    text-align: right;
+}
+
+/* eg €109 × 3 nights under the total, small and grey */
+.room-card-rate-detail {
+    grid-area: detail;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    text-align: right;
+}
+
+/*
+  select btn pushed to the bottom of the card so all cards line up
+  ::deep is needed because the btn comes from the Button component, a child component
+*/
+.room-card-body ::deep .select-btn {
+    margin-top: auto;
+    align-self: flex-start;
+}
