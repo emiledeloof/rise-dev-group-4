@@ -44,7 +44,7 @@ try
     // the room search is public, no auth cookie needed
     builder.Services.AddHttpClient<IRoomService, RoomService>(client =>
     {
-        client.BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "https://localhost:5001");
+        client.BaseAddress = backendUrl;
     });
 
     // the invoice endpoint needs the admin role, so send the auth cookie along
