@@ -1,4 +1,5 @@
-﻿using Xunit.Abstractions;
+﻿using Shouldly;
+using Xunit.Abstractions;
 
 namespace Rise.Client.Pages;
 
@@ -13,13 +14,29 @@ public class IndexShould : BunitContext
         Services.AddXunitLogger(outputHelper);
     }
 
+    /// <summary>
+    /// the hero shows the title of the mockup, it replaced the hello world of the template
+    /// </summary>
     [Fact]
-    public void ShowHelloWorld()
+    public void ShowTheHeroTitle()
     {
         // Arrange
         var cut = Render<Index>();
 
-        // Assert that content of the paragraph shows counter at zero
-        cut.Find("h1").MarkupMatches("<h1>Hello, world!</h1>");
+        // Assert
+        cut.Find("h1").TextContent.ShouldBe("Slow days among vines and granite");
+    }
+
+    /// <summary>
+    /// the hero holds the shared search bar, so the guest can search a stay from the home
+    /// </summary>
+    [Fact]
+    public void ShowTheSearchBar()
+    {
+        // Arrange
+        var cut = Render<Index>();
+
+        // Assert, one search bar inside the hero
+        cut.FindAll(".hero .search-bar").Count.ShouldBe(1);
     }
 }
