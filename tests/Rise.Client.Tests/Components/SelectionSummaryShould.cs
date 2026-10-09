@@ -83,4 +83,34 @@ public class SelectionSummaryShould : BunitContext
         // assert
         cut.Find(".selection-summary-meta").TextContent.ShouldBe("3 nights");
     }
+
+    /// <summary>
+    /// the continue button is disabled when no room is selected
+    /// </summary>
+    [Fact]
+    public void DisableContinueButtonWhenNoRoomsSelected()
+    {
+        // arrange and act
+        var cut = RenderSummary();
+
+        // assert
+        var link = cut.Find("a");
+        link.GetAttribute("aria-disabled").ShouldBe("true");
+        link.HasAttribute("href").ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// the continue button links to the guest registration page when rooms are selected
+    /// </summary>
+    [Fact]
+    public void EnableContinueButtonWithGuestRegistrationLinkWhenRoomsSelected()
+    {
+        // arrange and act
+        var cut = RenderSummary(new SelectedRoom("Double Room", "Standard", 150m));
+
+        // assert
+        var link = cut.Find("a");
+        link.GetAttribute("href").ShouldBe("/guests/create");
+        link.HasAttribute("aria-disabled").ShouldBeFalse();
+    }
 }

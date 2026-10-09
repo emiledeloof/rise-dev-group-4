@@ -31,7 +31,6 @@
 
     <p class="selection-summary-vat">Prices include VAT</p>
 
-    @* next step of the booking, no action yet *@
-    @* TODO: go to the guest details page with the booking stories (A4) *@
-    <Button IsFullWidth="true">Continue</Button>
+    @* next step of the booking, navigates to the guest details page *@
+    <Button IsFullWidth="true" IsDisabled="Rooms.Count == 0" Href="/guests/create">Continue</Button>
 </aside>
