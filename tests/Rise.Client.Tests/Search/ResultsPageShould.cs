@@ -54,6 +54,19 @@ public class ResultsPageShould : BunitContext
     }
 
     /// <summary>
+    /// the rates sent by the api reach the cards, the double room has 2 and the single room none
+    /// </summary>
+    [Fact]
+    public void PassTheRatesToTheCards()
+    {
+        // arrange and act
+        var cut = RenderWithDates(2, 5);
+
+        // assert
+        cut.FindAll(".room-card-rate").Count.ShouldBe(2);
+    }
+
+    /// <summary>
     /// the page sends the dates of the url to the api
     /// </summary>
     [Fact]

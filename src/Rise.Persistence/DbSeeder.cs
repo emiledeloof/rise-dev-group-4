@@ -174,26 +174,37 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         if (dbContext.Rooms.Any())
             return;
 
+        // 3 rates per room, the non-refundable one first because the seeded bookings below use Rates[0]
         var single = new Room("101", "Single Room", 1, "Cosy room with a single bed.");
-        single.AddRate("Standard", 79m);
+        single.AddRate("Non-refundable", 79m, "No refund after booking");
+        single.AddRate("Partially refundable", 89m, "50% refund until 3 days before");
+        single.AddRate("Fully refundable", 99m, "100% refund until 7 days before");
         single.AddPhoto("https://picsum.photos/seed/room101/800/600");
 
         var doubleRoom = new Room("102", "Double Room", 2, "Spacious room with a double bed.");
-        doubleRoom.AddRate("Standard", 109m);
+        doubleRoom.AddRate("Non-refundable", 109m, "No refund after booking");
+        doubleRoom.AddRate("Partially refundable", 125m, "50% refund until 3 days before");
+        doubleRoom.AddRate("Fully refundable", 139m, "100% refund until 7 days before");
         doubleRoom.AddPhoto("https://picsum.photos/seed/room102a/800/600");
         doubleRoom.AddPhoto("https://picsum.photos/seed/room102b/800/600");
 
         var twin = new Room("103", "Twin Room", 2, "Room with two single beds.");
-        twin.AddRate("Standard", 99m);
+        twin.AddRate("Non-refundable", 99m, "No refund after booking");
+        twin.AddRate("Partially refundable", 115m, "50% refund until 3 days before");
+        twin.AddRate("Fully refundable", 125m, "100% refund until 7 days before");
         twin.AddPhoto("https://picsum.photos/seed/room103/800/600");
 
         var family = new Room("201", "Family Room", 4, "Large room with a double bed and a bunk bed.");
-        family.AddRate("Standard", 159m);
+        family.AddRate("Non-refundable", 159m, "No refund after booking");
+        family.AddRate("Partially refundable", 179m, "50% refund until 3 days before");
+        family.AddRate("Fully refundable", 199m, "100% refund until 7 days before");
         family.AddPhoto("https://picsum.photos/seed/room201a/800/600");
         family.AddPhoto("https://picsum.photos/seed/room201b/800/600");
 
         var suite = new Room("301", "Suite", 2, "Suite with a separate living room and a view over the city.");
-        suite.AddRate("Standard", 249m);
+        suite.AddRate("Non-refundable", 249m, "No refund after booking");
+        suite.AddRate("Partially refundable", 285m, "50% refund until 3 days before");
+        suite.AddRate("Fully refundable", 315m, "100% refund until 7 days before");
         suite.AddPhoto("https://picsum.photos/seed/room301/800/600");
 
         dbContext.Rooms.AddRange(single, doubleRoom, twin, family, suite);

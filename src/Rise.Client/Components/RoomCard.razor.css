@@ -63,24 +63,65 @@
     border-top: 1px solid var(--color-border);
 }
 
-/* eg €160 × 3 nights, small and grey like the capacity */
+/* eg 3 nights · prices include VAT, small and grey like the capacity */
 .room-card-price-detail {
     font-size: 0.8125rem;
     color: var(--color-text-muted);
 }
 
-/* eg €480 total, the main number of the card, bigger and in the title font */
-.room-card-total {
-    font-family: var(--font-title);
-    font-size: 1.5rem;
+/* list of rates, no bullets, a small gap between the rates */
+.room-card-rates {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+}
+
+/*
+  one rate on 2 rows and 2 columns
+  name and total on the 1st row, conditions and detail on the 2nd row
+  grid areas so the order of the tags in the razor does not matter
+*/
+.room-card-rate {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+        "name total"
+        "conditions detail";
+    column-gap: var(--space-sm);
+    align-items: baseline;
+}
+
+/* rate name, eg Non-refundable */
+.room-card-rate-name {
+    grid-area: name;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--color-text);
 }
 
-/* eg incl. VAT next to the total, as small as the detail line */
-.room-card-vat {
+/* conditions under the name, small and grey */
+.room-card-rate-conditions {
+    grid-area: conditions;
     font-size: 0.8125rem;
     color: var(--color-text-muted);
-    font-family: var(--font-body);
+}
+
+/* total of the stay with this rate, the main number of the line, in the title font */
+.room-card-total {
+    grid-area: total;
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+    color: var(--color-text);
+    text-align: right;
+}
+
+/* eg €109 × 3 nights under the total, small and grey */
+.room-card-rate-detail {
+    grid-area: detail;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    text-align: right;
 }
 
 /*
