@@ -1,3 +1,4 @@
+using Rise.Shared.Rooms;
 using Shouldly;
 using Xunit.Abstractions;
 
@@ -18,17 +19,24 @@ public class RoomCardShould : BunitContext
         Services.AddXunitLogger(outputHelper);
     }
 
+    // 2 sample rates for 3 nights, the 2nd one has no conditions on purpose
+    private static RateDto.Available[] SampleRates(int nights = 3) =>
+    [
+        new() { Id = 1, Name = "Non-refundable", Description = "No refund after booking", PricePerNight = 109m, TotalPrice = 109m * nights },
+        new() { Id = 2, Name = "Fully refundable", Description = null, PricePerNight = 139m, TotalPrice = 139m * nights },
+    ];
+
     // renders a card with sample values, each test only changes what it checks
-    // 109 per night for 3 nights by default, so a total of 327
     private IRenderedComponent<RoomCard> RenderCard(int maxGuests = 2, string? photoUrl = null, string? description = "Spacious room.",
-        int nights = 3, decimal totalPrice = 327m) =>
+        int nights = 3) =>
         Render<RoomCard>(p => p
             .Add(x => x.Name, "Double Room")
             .Add(x => x.Description, description)
             .Add(x => x.MaxGuests, maxGuests)
             .Add(x => x.PricePerNight, 109m)
             .Add(x => x.Nights, nights)
-            .Add(x => x.TotalPrice, totalPrice)
+            .Add(x => x.TotalPrice, 109m * nights)
+            .Add(x => x.Rates, SampleRates(nights))
             .Add(x => x.PhotoUrl, photoUrl));
 
     /// <summary>
@@ -46,17 +54,49 @@ public class RoomCardShould : BunitContext
     }
 
     /// <summary>
-    /// the price block shows the price per night, the nb of nights and the total
+    /// the nb of nights is written once above the rates, with the vat note
     /// </summary>
     [Fact]
-    public void ShowThePriceBreakdown()
+    public void ShowTheNightsOnceAboveTheRates()
     {
-        // arrange and act, 109 per night for 3 nights
+        // arrange and act
         var cut = RenderCard();
 
-        // assert, the detail line then the total with the vat note
-        cut.Find(".room-card-price-detail").TextContent.ShouldBe("€109 × 3 nights");
-        cut.Find(".room-card-total").TextContent.ShouldBe("€327 total incl. VAT");
+        // assert
+        cut.Find(".room-card-price-detail").TextContent.ShouldBe("3 nights · prices include VAT");
+    }
+
+    /// <summary>
+    /// one line per rate with its name, conditions, total and price per night
+    /// </summary>
+    [Fact]
+    public void ShowOneLinePerRate()
+    {
+        // arrange and act
+        var cut = RenderCard();
+
+        // assert, 2 rates so 2 lines, the 1st one checked in detail
+        var lines = cut.FindAll(".room-card-rate");
+        lines.Count.ShouldBe(2);
+
+        var first = lines[0];
+        first.QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Non-refundable");
+        first.QuerySelector(".room-card-rate-conditions")!.TextContent.ShouldBe("No refund after booking");
+        first.QuerySelector(".room-card-total")!.TextContent.ShouldBe("€327");
+        first.QuerySelector(".room-card-rate-detail")!.TextContent.ShouldBe("€109 × 3 nights");
+    }
+
+    /// <summary>
+    /// a rate without conditions has no empty conditions line
+    /// </summary>
+    [Fact]
+    public void HideTheConditionsWhenARateHasNone()
+    {
+        // arrange and act
+        var cut = RenderCard();
+
+        // assert, QuerySelector gives null when nothing matches inside the 2nd line
+        cut.FindAll(".room-card-rate")[1].QuerySelector(".room-card-rate-conditions").ShouldBeNull();
     }
 
     /// <summary>
@@ -65,11 +105,12 @@ public class RoomCardShould : BunitContext
     [Fact]
     public void WriteNightInSingularForOneNight()
     {
-        // arrange and act, 1 night so the total is the price of 1 night
-        var cut = RenderCard(nights: 1, totalPrice: 109m);
+        // arrange and act
+        var cut = RenderCard(nights: 1);
 
-        // assert
-        cut.Find(".room-card-price-detail").TextContent.ShouldBe("€109 × 1 night");
+        // assert, in the line above the rates and in the detail of each rate
+        cut.Find(".room-card-price-detail").TextContent.ShouldBe("1 night · prices include VAT");
+        cut.Find(".room-card-rate-detail").TextContent.ShouldBe("€109 × 1 night");
     }
 
     /// <summary>

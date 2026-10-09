@@ -59,9 +59,9 @@ public class Room : Entity
         return photo;
     }
 
-    public Rate AddRate(string name, decimal pricePerNight)
+    public Rate AddRate(string name, decimal pricePerNight, string? description = null)
     {
-        var rate = new Rate(this, name, pricePerNight);
+        var rate = new Rate(this, name, pricePerNight, description);
         _rates.Add(rate);
         return rate;
     }

@@ -30,8 +30,10 @@ public class RoomServiceShould
 
         var dbContext = new ApplicationDbContext(options);
 
+        // the expensive rate is added first on purpose, the service must still sort them cheapest first
         var doubleRoom = new Room("102", DoubleRoom, 2, "Spacious room with a double bed.");
-        var doubleRate = doubleRoom.AddRate("Standard", 109m);
+        doubleRoom.AddRate("Fully refundable", 139m, "100% refund until 7 days before");
+        var doubleRate = doubleRoom.AddRate("Non-refundable", 109m, "No refund after booking");
         doubleRoom.AddPhoto("https://example.com/double-1.jpg");
         doubleRoom.AddPhoto("https://example.com/double-2.jpg");
 
@@ -187,5 +189,25 @@ public class RoomServiceShould
         rooms.ShouldAllBe(r => r.Nights == 3);
         rooms.Single(r => r.Name == DoubleRoom).TotalPrice.ShouldBe(327m);
         rooms.Single(r => r.Name == SingleRoom).TotalPrice.ShouldBe(237m);
+    }
+
+    /// <summary>
+    /// all the rates of a room come back, cheapest first, each with its total for the stay
+    /// </summary>
+    [Fact]
+    public async Task ReturnAllRatesCheapestFirst()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnAllRatesCheapestFirst));
+
+        // act, oct 20 to 23 is 3 nights
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 23));
+
+        // assert, 2 rates for the double room, sorted even though the expensive one was added first
+        var rates = result.Value.Rooms.Single(r => r.Name == DoubleRoom).Rates.ToList();
+        rates.Select(r => r.Name).ShouldBe(new[] { "Non-refundable", "Fully refundable" });
+        rates[0].Description.ShouldBe("No refund after booking");
+        rates[0].TotalPrice.ShouldBe(327m);
+        rates[1].TotalPrice.ShouldBe(417m);
     }
 }

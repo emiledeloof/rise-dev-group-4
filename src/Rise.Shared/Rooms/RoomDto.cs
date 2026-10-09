@@ -33,5 +33,8 @@ public static class RoomDto
 
         // price for the whole stay, nights times price per night
         public required decimal TotalPrice { get; set; }
+
+        // all rates of the room for the stay, cheapest first
+        public IEnumerable<RateDto.Available> Rates { get; set; } = [];
     }
 }

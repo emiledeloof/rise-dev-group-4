@@ -59,6 +59,32 @@ public class RoomShould
         rate.PricePerNight.ShouldBe(79m);
     }
 
+    /// <summary>
+    /// the conditions given to AddRate are kept on the rate
+    /// </summary>
+    [Fact]
+    public void AddARateWithConditions()
+    {
+        var room = new Room("101", "Single Room", 1);
+
+        var rate = room.AddRate("Non-refundable", 79m, "No refund after booking");
+
+        rate.Description.ShouldBe("No refund after booking");
+    }
+
+    /// <summary>
+    /// conditions are optional, the existing calls without them still work
+    /// </summary>
+    [Fact]
+    public void AddARateWithoutConditions()
+    {
+        var room = new Room("101", "Single Room", 1);
+
+        var rate = room.AddRate("Standard", 79m);
+
+        rate.Description.ShouldBeNull();
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-10)]
