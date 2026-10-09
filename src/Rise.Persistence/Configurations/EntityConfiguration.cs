@@ -12,7 +12,7 @@ internal class EntityConfiguration<TEntity> : IEntityTypeConfiguration<TEntity> 
 {
     public virtual void Configure(EntityTypeBuilder<TEntity> builder)
     {
-        // All tables are singlular named and have the name of the class e.g. Product instead of Products.
+        // All tables are singlular named and have the name of the class e.g. Room instead of Rooms.
         builder.ToTable(typeof(TEntity).Name);
 
         // CreatedAt should be filled in by the database when using raw SQL.

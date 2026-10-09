@@ -12,7 +12,7 @@ public partial class Index
     private readonly SearchRequest.StayPeriod _stay = new();
 
     // blazor service used to change page from the code
-    // [Inject] gives it to us automatically, see Products/Index.razor.cs for an example
+    // [Inject] gives it to us automatically
     [Inject] public required NavigationManager Navigation { get; set; }
 
 

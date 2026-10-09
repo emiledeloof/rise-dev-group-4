@@ -4,9 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
 using Rise.Client.Identity;
 using Rise.Client.Invoice;
-using Rise.Client.Products;
 using Rise.Shared.Invoice;
-using Rise.Shared.Products;
 using Rise.Client.Rooms;
 using Rise.Shared.Rooms;
 
@@ -42,11 +40,6 @@ try
 // configure client for auth interactions
     builder.Services.AddHttpClient("SecureApi",opt => opt.BaseAddress = backendUrl)
         .AddHttpMessageHandler<CookieHandler>();
-
-    builder.Services.AddHttpClient<IProductService, ProductService>(client =>
-    {
-        client.BaseAddress = backendUrl;
-    });
 
     // the room search is public, no auth cookie needed
     builder.Services.AddHttpClient<IRoomService, RoomService>(client =>
