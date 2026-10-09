@@ -28,6 +28,16 @@ public partial class RoomCard
     [Parameter] public decimal PricePerNight { get; set; }
 
     /// <summary>
+    /// nb of nights for the stay
+    /// </summary>
+    [Parameter] public int Nights { get; set; }
+
+    /// <summary>
+    /// price for the whole stay
+    /// </summary>
+    [Parameter] public decimal TotalPrice { get; set; }
+
+    /// <summary>
     /// url of the main photo of the room, can be empty if the room has no photo yet
     /// </summary>
     [Parameter] public string? PhotoUrl { get; set; }

@@ -50,11 +50,37 @@
     color: var(--color-text-muted);
 }
 
-/* capacity and price, small grey details like in the mockup */
-.room-card-meta,
-.room-card-price {
+/* capacity, small grey detail like in the mockup */
+.room-card-meta {
     font-size: 0.8125rem;
     color: var(--color-text-muted);
+}
+
+/* price block, a thin line on top splits it from the room info */
+.room-card-prices {
+    margin-top: var(--space-xs);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+}
+
+/* eg €160 × 3 nights, small and grey like the capacity */
+.room-card-price-detail {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+}
+
+/* eg €480 total, the main number of the card, bigger and in the title font */
+.room-card-total {
+    font-family: var(--font-title);
+    font-size: 1.5rem;
+    color: var(--color-text);
+}
+
+/* eg incl. VAT next to the total, as small as the detail line */
+.room-card-vat {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
 }
 
 /*
