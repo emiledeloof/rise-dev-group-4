@@ -22,16 +22,22 @@ public class Rate : Entity
     }
 
     /// <summary>
+    /// conditions of the rate shown to the guest, eg no refund after booking
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
     /// Entity Framework Core Constructor
     /// </summary>
     private Rate()
     {
     }
 
-    internal Rate(Room room, string name, decimal pricePerNight)
+    internal Rate(Room room, string name, decimal pricePerNight, string? description = null)
     {
         Room = Guard.Against.Null(room);
         Name = name;
         PricePerNight = pricePerNight;
+        Description = description;
     }
 }
