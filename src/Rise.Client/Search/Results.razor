@@ -47,7 +47,10 @@
                     Nights="@room.Nights"
                     TotalPrice="@room.TotalPrice"
                     Rates="@room.Rates"
-                    PhotoUrl="@room.PhotoUrl"/>
+                    PhotoUrl="@room.PhotoUrl"
+                    SelectedRateId="@SelectedRateOf(room.Id)"
+                    OnRateSelected="rateId => SelectRate(room.Id, rateId)"
+                    OnRemove="() => RemoveRoom(room.Id)"/>
             }
         </div>
     }
