@@ -25,7 +25,7 @@ try
     builder.Services
         .AddSerilog((_, lc) => lc.ReadFrom.Configuration(builder.Configuration) // Configuration in AppSettings.json
             .Destructure.UsingAttributes()) // Sensitive data logging
-        .AddIdentity<IdentityUser, IdentityRole>() 
+        .AddIdentity<IdentityUser, IdentityRole>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .Services.AddDbContext<ApplicationDbContext>(o =>
         {

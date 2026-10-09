@@ -32,12 +32,12 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
 
         await roleManager.CreateAsync(new IdentityRole("Administrator"));
     }
-    
-    private async Task  UsersAsync()
+
+    private async Task UsersAsync()
     {
         if (dbContext.Users.Any())
             return;
-        
+
         await dbContext.Roles.ToListAsync();
 
         var admin = new IdentityUser
@@ -47,7 +47,7 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
             EmailConfirmed = true,
         };
         await userManager.CreateAsync(admin, PasswordDefault);
-        
+
         await userManager.AddToRoleAsync(admin, "Administrator");
         await dbContext.SaveChangesAsync();
     }

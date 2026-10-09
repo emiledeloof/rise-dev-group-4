@@ -20,8 +20,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStripePaymentGateway, StripePaymentGateway>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
         services.AddScoped<IRoomService, RoomService>();
-        services.AddTransient<DbSeeder>();       
-        
+        services.AddTransient<DbSeeder>();
+
         // Add other application services here.
         return services;
     }
