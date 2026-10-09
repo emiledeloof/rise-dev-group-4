@@ -1,75 +1,31 @@
-@* site header, styled after the ba mockup, styles in NavBar.razor.css *@
-<nav class="navbar site-navbar" role="navigation" aria-label="main navigation">
-  <div class="navbar-brand">
-    @* site name in the title font instead of a logo, as in the mockup *@
-    <a class="navbar-item site-brand" href="/">
-      Stazzu La Vigna di Maria
-    </a>
-    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-    </a>
-  </div>
-
-  <div id="navbarBasicExample" class="navbar-menu">
-    @* template links kept for now, each dev replaces them with their own pages *@
-    <div class="navbar-start">
-      <NavLink class="navbar-item" href="" Match="NavLinkMatch.All" ActiveClass="is-active">
-          Home
-      </NavLink>
-
-      <NavLink class="navbar-item" href="counter">
-        Counter
-      </NavLink>
-      <NavLink class="navbar-item" href="product">
-        Products
-      </NavLink>
-      <NavLink class="navbar-item" href="booking/confirmation">
-        Confirmation
-      </NavLink>
-      <AuthorizeView>
-        <Authorized>
-          <NavLink class="navbar-item" href="invoice-list">
-            Invoice list
-          </NavLink>
-          <NavLink class="navbar-item" href="private">
-            Private Page
-          </NavLink>
-          <NavLink class="navbar-item" href="private-administrator">
-            Private Administrator
-          </NavLink>
-        </Authorized>
-      </AuthorizeView>
-    </div>
-
-    <div class="navbar-end">
-      @* current language, display only for now *@
-      @* TODO: make it a real language switcher with the languages task *@
-      <span class="navbar-item site-language">EN</span>
-
-      @* main call to action of the site, opens the stay search *@
-      <div class="navbar-item">
-        <Button Href="search">Book a room</Button>
-      </div>
-
-      <AuthorizeView>
-        <Authorized>
-          <div class="navbar-item">
-            <span class="mr-3">@context.User.Identity?.Name</span>
-            <Button Variant="ButtonVariant.Secondary" Href="logout">Logout</Button>
-          </div>
-        </Authorized>
-        <NotAuthorized>
-          <div class="navbar-item">
-            <div class="buttons">
-              <Button Variant="ButtonVariant.Secondary" Href="register">Register</Button>
-              <Button Variant="ButtonVariant.Secondary" Href="login">Login</Button>
-            </div>
-          </div>
-        </NotAuthorized>
-      </AuthorizeView>
-    </div>
-  </div>
-</nav>
+<nav class="navbar site-navbar" role="navigation" aria-label="main navigation">                                             
+      <!-- LEFT: Brand Name -->                                                                                                 
+      <div class="navbar-brand">                                                                                                
+        <a class="navbar-item site-brand" href="/">                                                                             
+          Stazzu La Vigna di Maria                                                                                              
+        </a>                                                                                                                    
+      </div>                                                                                                                    
+                                                                                                                                
+      <div id="navbarBasicExample" class="navbar-menu">                                                                         
+        <!-- Empty navbar-start pushes everything to navbar-end -->                                                             
+        <div class="navbar-start"></div>                                                                                        
+                                                                                                                                
+        <!-- RIGHT: Navigation links, Language, and Book a Room button -->                                                      
+        <div class="navbar-end">                                                                                                
+          <NavLink class="navbar-item" href="rooms">Rooms</NavLink>                                                             
+          <NavLink class="navbar-item" href="estate">The Estate</NavLink>                                                       
+          <NavLink class="navbar-item" href="reviews">Reviews</NavLink>                                                         
+          <NavLink class="navbar-item" href="contact">Contact</NavLink>                                                         
+                                                                                                                                
+          <!-- Language Button / Indicator -->                                                                                  
+          <div class="navbar-item">                                                                                             
+            <button class="button is-secondary is-small">EN</button>                                                            
+          </div>                                                                                                                
+                                                                                                                                
+          <!-- Green Book a Room Button (ButtonVariant.Primary uses --color-primary: olive green) -->                           
+          <div class="navbar-item">                                                                                             
+            <Button Variant="ButtonVariant.Primary" Href="book">Book a room</Button>                                            
+          </div>                                                                                                                
+        </div>                                                                                                                  
+      </div>                                                                                                                    
+    </nav>

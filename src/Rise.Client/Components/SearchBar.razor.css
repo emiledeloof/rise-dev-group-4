@@ -1,0 +1,29 @@
+/* compact search bar styles, scoped to SearchBar.razor */
+
+/* white bar with a border, dates and btn on one row like the mockup */
+.search-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    margin-bottom: var(--space-lg);
+}
+
+/* the picker takes all the free space, the btn keeps its own size */
+/* ::deep because .drp is inside the DateRangePicker child component */
+.search-bar ::deep .drp {
+    flex: 1;
+    /* the picker css caps it at 22rem, not wanted in the bar */
+    max-width: none;
+}
+
+/* phones, the btn goes under the dates and takes the full width */
+@media (max-width: 768px) {
+    .search-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

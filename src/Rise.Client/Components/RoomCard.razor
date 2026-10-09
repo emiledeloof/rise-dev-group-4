@@ -1,0 +1,32 @@
+﻿@* one room in the search results, styles in RoomCard.razor.css *@
+<article class="room-card">
+    @* photo of the room, a beige block is shown when there is no photo yet *@
+    @if (!string.IsNullOrWhiteSpace(PhotoUrl))
+    {
+        <img src="@PhotoUrl" alt="Photo of the @Name" class="room-card-photo" loading="lazy" />
+    }
+    else
+    {
+           <div class="room-card-photo is-placeholder" aria-hidden="true"></div>
+    }
+
+    <div class="room-card-body">
+        @* room name in the title font *@
+        <h3>@Name</h3>
+
+        @* short description, only shown when there is one *@
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <p class="room-card-description">@Description</p>
+        }
+
+        @* capacity, eg up to 2 guests *@
+        <p class="room-card-meta">Up to @MaxGuests @(MaxGuests == 1 ? "guest" : "guests")</p>
+
+        @* price for one night, eg €160 per night *@
+        <p class="room-card-price">€@PricePerNight.ToString("0") per night</p>
+
+        @* select btn, tells the page that this room was chosen *@
+        <Button OnClick="@OnSelect" Class="select-btn">Select</Button>
+    </div>
+</article>

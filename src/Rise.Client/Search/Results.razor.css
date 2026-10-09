@@ -1,0 +1,11 @@
+/* results page styles, scoped to Results.razor */
+
+/*
+  cards side by side, as many as fit on the screen, each one at least 18rem wide
+  on a phone only one fits so they stack, on a laptop 3 fit, no media query needed
+*/
+.room-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: var(--space-lg);
+}
