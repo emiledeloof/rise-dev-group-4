@@ -148,3 +148,20 @@ h1, h2, h3 {
     border: 1px solid var(--color-border);
     box-shadow: none;
 }
+
+/* ---------- page frame ---------- */
+
+/* centered content frame for pages that are not full width, same width as the home sections */
+/* the layout has no container anymore so the home hero can go edge to edge */
+.page {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-lg);
+}
+
+/* less padding on phones */
+@media (max-width: 768px) {
+    .page {
+        padding: var(--space-lg) var(--space-md);
+    }
+}
