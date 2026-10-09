@@ -73,23 +73,46 @@
 .room-card-rates {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: var(--space-xs);
     margin-top: var(--space-xs);
 }
 
 /*
-  one rate on 2 rows and 2 columns
-  name and total on the 1st row, conditions and detail on the 2nd row
+  one rate on 2 rows and 3 columns
+  radio on the left, name and total on the 1st row, conditions and detail on the 2nd row
   grid areas so the order of the tags in the razor does not matter
+  the whole line is a label, so it looks clickable
 */
 .room-card-rate {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto 1fr auto;
     grid-template-areas:
-        "name total"
-        "conditions detail";
+        "radio name total"
+        "radio conditions detail";
     column-gap: var(--space-sm);
     align-items: baseline;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+/* darker border on hover so the guest sees the line is clickable */
+.room-card-rate:hover {
+    border-color: var(--color-text-muted);
+}
+
+/* the chosen rate gets a green border, :has checks if the radio inside is checked */
+.room-card-rate:has(.room-card-rate-radio:checked) {
+    border-color: var(--color-primary);
+    box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+/* radio btn in the green of the theme instead of the browser blue */
+.room-card-rate-radio {
+    grid-area: radio;
+    accent-color: var(--color-primary);
+    cursor: pointer;
 }
 
 /* rate name, eg Non-refundable */

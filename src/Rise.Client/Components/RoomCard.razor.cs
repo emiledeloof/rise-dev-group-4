@@ -48,9 +48,23 @@ public partial class RoomCard
     [Parameter] public string? PhotoUrl { get; set; }
 
     /// <summary>
-    /// called when the guest clicks select, the page decides what happens next
+    /// id of the rate chosen for this room, null when the room is not in the selection
+    /// the page owns the selection, the card only shows it
+    /// </summary>
+    [Parameter] public int? SelectedRateId { get; set; }
+
+    /// <summary>
+    /// called with the id of the rate the guest picks, the page updates its selection
     /// same idea as CheckInChanged in DateRangePicker, the card only tells the page
     /// </summary>
-    [Parameter] public EventCallback OnSelect { get; set; }
+    [Parameter] public EventCallback<int> OnRateSelected { get; set; }
+
+    /// <summary>
+    /// called when the guest takes the room out of the selection
+    /// </summary>
+    [Parameter] public EventCallback OnRemove { get; set; }
+
+    // select btn, picks the cheapest rate, the 1st one since the server sorts them
+    private Task SelectCheapestAsync() => OnRateSelected.InvokeAsync(Rates.First().Id);
 
 }

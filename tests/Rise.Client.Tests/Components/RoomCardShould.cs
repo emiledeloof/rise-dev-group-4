@@ -170,22 +170,95 @@ public class RoomCardShould : BunitContext
         cut.FindAll(".is-placeholder").Count.ShouldBe(1);
     }
 
+    // renders a card with 2 rates, remembers what the card tells the page
+    private IRenderedComponent<RoomCard> RenderSelectableCard(List<int> picked, Action onRemove, int? selectedRateId = null,
+        RateDto.Available[]? rates = null) =>
+        Render<RoomCard>(p => p
+            .Add(x => x.Name, "Double Room")
+            .Add(x => x.Nights, 3)
+            .Add(x => x.Rates, rates ?? SampleRates())
+            .Add(x => x.SelectedRateId, selectedRateId)
+            .Add(x => x.OnRateSelected, rateId => picked.Add(rateId))
+            .Add(x => x.OnRemove, onRemove));
+
     /// <summary>
-    /// the select btn calls OnSelect
+    /// select picks the cheapest rate, the 1st one of the list
     /// </summary>
     [Fact]
-    public void CallOnSelectWhenSelectIsClicked()
+    public void PickTheCheapestRateWithSelect()
     {
-        // arrange, a counter that goes up each time OnSelect is called
-        var clicks = 0;
-        var cut = Render<RoomCard>(p => p
-            .Add(x => x.Name, "Double Room")
-            .Add(x => x.OnSelect, () => { clicks++; }));
+        // arrange, picked collects the rate ids the card sends to the page
+        var picked = new List<int>();
+        var cut = RenderSelectableCard(picked, () => { });
 
         // act
-        cut.Find("button").Click();
+        cut.Find(".select-btn").Click();
+
+        // assert, rate 1 is the non-refundable one, the cheapest
+        picked.ShouldBe(new[] { 1 });
+    }
+
+    /// <summary>
+    /// a click on the radio of a rate sends its id to the page
+    /// </summary>
+    [Fact]
+    public void PickARateWithItsRadio()
+    {
+        // arrange
+        var picked = new List<int>();
+        var cut = RenderSelectableCard(picked, () => { });
+
+        // act, Change simulates the radio being checked
+        cut.FindAll(".room-card-rate-radio")[1].Change(true);
+
+        // assert, rate 2 is the fully refundable one
+        picked.ShouldBe(new[] { 2 });
+    }
+
+    /// <summary>
+    /// the rate of the selection is the checked radio
+    /// </summary>
+    [Fact]
+    public void CheckTheSelectedRate()
+    {
+        // arrange and act, the page says rate 2 is chosen for this room
+        var cut = RenderSelectableCard([], () => { }, selectedRateId: 2);
+
+        // assert, only the 2nd radio has the checked attr
+        var radios = cut.FindAll(".room-card-rate-radio");
+        radios[0].HasAttribute("checked").ShouldBeFalse();
+        radios[1].HasAttribute("checked").ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// a room in the selection shows remove instead of select, and remove calls OnRemove
+    /// </summary>
+    [Fact]
+    public void ShowRemoveWhenTheRoomIsSelected()
+    {
+        // arrange, a counter that goes up each time OnRemove is called
+        var removed = 0;
+        var cut = RenderSelectableCard([], () => removed++, selectedRateId: 1);
+
+        // act
+        var button = cut.Find(".select-btn");
+        button.TextContent.Trim().ShouldBe("Remove");
+        button.Click();
 
         // assert
-        clicks.ShouldBe(1);
+        removed.ShouldBe(1);
+    }
+
+    /// <summary>
+    /// a room without rates can't be selected, so no select btn
+    /// </summary>
+    [Fact]
+    public void HideSelectWhenTheRoomHasNoRates()
+    {
+        // arrange and act
+        var cut = RenderSelectableCard([], () => { }, rates: []);
+
+        // assert
+        cut.FindAll(".select-btn").ShouldBeEmpty();
     }
 }
