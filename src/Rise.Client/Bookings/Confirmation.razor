@@ -1,14 +1,27 @@
 ﻿@page "/booking/confirmation"
+@using Rise.Shared.Bookings
 
 <PageTitle>Booking Confirmation</PageTitle>
 
+@if (booking is null && errorMessage is null)
+{
+    <p>Loading your booking...</p>
+}
+else if (errorMessage is not null)
+{
+    <div class="confirmation-page">
+        <p class="notification is-danger">@errorMessage</p>
+    </div>
+}
+else if (booking is not null)
+{
 <div class="confirmation-page">
     <header class="confirmation-header">
-        <span class="confirmation-status">Confirmed</span>
-        <p class="booking-number">Booking @bookingNumber</p>
+        <span class="confirmation-status">@(IsPaid ? "Confirmed" : "Payment processing")</span>
+        <p class="booking-number">Booking @booking.BookingNumber</p>
         <h1 class="title">Thank you, your stay is confirmed</h1>
         <p class="booking-email">
-            A confirmation email is on its way to @guestEmail.
+            A confirmation email is on its way to @booking.Guest.Email.
         </p>
     </header>
 
@@ -20,23 +33,27 @@
         <dl class="booking-details-list">
             <div class="booking-detail-row">
                 <dt>Booking ID</dt>
-                <dd>@bookingNumber</dd>
+                <dd>@booking.BookingNumber</dd>
             </div>
             <div class="booking-detail-row">
                 <dt>Stay</dt>
                 <dd>
-                    @checkInDate.ToString("dd MMM yyyy") –
-                    @checkOutDate.ToString("dd MMM yyyy") · 
+                    @booking.CheckIn.ToString("dd MMM yyyy") –
+                    @booking.CheckOut.ToString("dd MMM yyyy") · 
                     @numberOfNights @(numberOfNights == 1 ? "night" : "nights")
                 </dd>
             </div>
             <div class="booking-detail-row">
                 <dt>Room</dt>
-                <dd>@roomName · @guestCount guests</dd>
+                <dd>@roomName · @guestCount @(guestCount == 1 ? "guest" : "guests")</dd>
             </div>
             <div class="booking-detail-row">
                 <dt>Rate</dt>
-                <dd>@FormatAmount(roomRate)</dd>
+                <dd>@FormatAmount(paymentAmount)</dd>
+            </div>
+            <div class="booking-detail-row">
+                <dt>Payment</dt>
+                <dd>@(IsPaid ? "Paid" : "Pending")</dd>
             </div>
         </dl>
 
@@ -46,21 +63,42 @@
     <div class="buttons">
         <Button Variant="ButtonVariant.Secondary" Href="">Back to home</Button>
     </div>
-    
 </div>
+}
 
 
 
 @code {
-    private string bookingNumber = "XYZ123";
-    protected DateOnly checkInDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7));
-    private DateOnly checkOutDate = DateOnly.FromDateTime(DateTime.Now.AddDays(10));
-    private int numberOfNights => (checkOutDate.DayNumber - checkInDate.DayNumber);
-    private int guestCount = 2;
-    private string guestName = "John Doe";
-    private string guestEmail = "john.doe@example.com";
-    private string roomName = "Deluxe Suite";
-    private decimal roomRate = 100;
-    private string adminEmail = "admin@example.com";
-    private string adminPhone = "+1 234 567 890";
+    private BookingDto.Detail? booking;
+    private string? errorMessage;
+    private decimal paymentAmount => booking?.Payments.FirstOrDefault()?.Amount ?? 0;
+    private bool IsPaid => booking?.Payments.Any(x => x.PaidAt is not null) == true;
+    private int numberOfNights => booking is null
+        ? 0
+        : booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
+    private int guestCount => booking?.Rooms.Count ?? 0;
+    private string roomName => booking is null
+        ? string.Empty
+        : string.Join(", ", booking.Rooms.Select(x => x.RoomNumber));
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(SessionId))
+        {
+            errorMessage = "The Stripe Checkout Session is missing from the URL.";
+            return;
+        }
+
+        var result = await BookingService.GetDetailByCheckoutSessionAsync(SessionId);
+        if (!result.IsSuccess)
+        {
+            errorMessage = "We could not load your booking details.";
+            return;
+        }
+
+        booking = result.Value;
+    }
+
+    [Inject]
+    private IBookingService BookingService { get; set; } = default!;
 }

@@ -6,8 +6,9 @@ namespace Rise.Client.Bookings;
 
 public partial class Confirmation : ComponentBase
 {
-    private IEnumerable<BookingDto.Index>? bookings;
-    private string? errorMessage;
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "session_id")]
+    public string? SessionId { get; set; }
     
     private static string FormatAmount(decimal amount)
         => $"€{amount.ToString("0.00", CultureInfo.InvariantCulture)}";   

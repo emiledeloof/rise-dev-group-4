@@ -134,7 +134,39 @@ public sealed class BookingService(
             return Result.NotFound($"Booking with ID '{bookingId}' was not found.");
         }
 
-        return Result.Success(new BookingDto.Detail
+        return Result.Success(ToDetailDto(booking));
+    }
+
+    public async Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
+        string checkoutSessionId,
+        CancellationToken ctx = default)
+    {
+        if (string.IsNullOrWhiteSpace(checkoutSessionId))
+        {
+            return Result.Invalid(new ValidationError("A Stripe Checkout Session is required."));
+        }
+
+        var booking = await dbContext.Bookings
+            .AsNoTracking()
+            .Include(x => x.Guest)
+            .Include(x => x.Rooms)
+                .ThenInclude(x => x.Room)
+            .Include(x => x.Payments)
+            .SingleOrDefaultAsync(
+                x => x.Payments.Any(payment => payment.StripeCheckoutSession == checkoutSessionId),
+                ctx);
+
+        if (booking is null)
+        {
+            return Result.NotFound("No booking was found for this Stripe Checkout Session.");
+        }
+
+        return Result.Success(ToDetailDto(booking));
+    }
+
+    private static BookingDto.Detail ToDetailDto(Booking booking)
+    {
+        return new BookingDto.Detail
         {
             Id = booking.Id,
             BookingNumber = booking.BookingNumber,
@@ -160,7 +192,7 @@ public sealed class BookingService(
                 Amount = x.Amount,
                 PaidAt = x.PaidAt,
             }).ToList(),
-        });
+        };
     }
 
     private async Task<string> GenerateBookingNumberAsync(CancellationToken ctx)

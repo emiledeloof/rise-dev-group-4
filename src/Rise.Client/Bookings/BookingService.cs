@@ -14,6 +14,16 @@ public class BookingService(HttpClient httpClient) : IBookingService
             cancellationToken))!;
     }
 
+    public async Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
+        string checkoutSessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var encodedSessionId = Uri.EscapeDataString(checkoutSessionId);
+        return (await httpClient.GetFromJsonAsync<Result<BookingDto.Detail>>(
+            $"/api/bookings/checkout-session/{encodedSessionId}",
+            cancellationToken))!;
+    }
+
     public async Task<Result<BookingResponse.Create>> CreateAsync(
         BookingRequest.Create request,
         CancellationToken cancellationToken = default)

@@ -12,4 +12,7 @@ public interface IBookingService
         CancellationToken cancellationToken = default);
     Task<Result<BookingResponse.Create>> CreateAsync(BookingRequest.Create request, CancellationToken ctx = default);
     Task<Result<BookingDto.Detail>> GetDetailAsync(int bookingId, CancellationToken ctx = default);
+    Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
+        string checkoutSessionId,
+        CancellationToken ctx = default);
 }
