@@ -40,4 +40,17 @@ public partial class InvoiceList
 
     private static string FormatDate(DateTime date)
         => date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
+
+    // Stripe sends lowercase brands like "visa" or "mastercard", eg Visa •••• 4242
+    private static string FormatCard(string? brand, string last4)
+    {
+        var name = string.IsNullOrWhiteSpace(brand)
+            ? "Card"
+            : char.ToUpperInvariant(brand[0]) + brand[1..];
+        return $"{name} •••• {last4}";
+    }
+
+    // TODO: drop "/test" once we use live Stripe keys
+    private static string StripeDashboardUrl(string paymentIntent)
+        => $"https://dashboard.stripe.com/test/payments/{paymentIntent}";
 }

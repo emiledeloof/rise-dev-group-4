@@ -42,6 +42,13 @@
     color: var(--color-text-muted);
 }
 
+/* card + Stripe links of a paid payment */
+.invoice-stripe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
 .invoice-amount {
     display: flex;
     align-items: center;
