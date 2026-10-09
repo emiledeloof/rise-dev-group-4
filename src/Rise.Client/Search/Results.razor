@@ -36,22 +36,28 @@
     }
     else
     {
-        @* one card per room, styles of the list in Results.razor.css *@
-        <div class="room-list">
-            @foreach (var room in _rooms)
-            {
-                <RoomCard Name="@room.Name"
-                    Description="@room.Description"
-                    MaxGuests="@room.MaxGuests"
-                    PricePerNight="@room.PricePerNight"
-                    Nights="@room.Nights"
-                    TotalPrice="@room.TotalPrice"
-                    Rates="@room.Rates"
-                    PhotoUrl="@room.PhotoUrl"
-                    SelectedRateId="@SelectedRateOf(room.Id)"
-                    OnRateSelected="rateId => SelectRate(room.Id, rateId)"
-                    OnRemove="() => RemoveRoom(room.Id)"/>
-            }
+        @* cards on the left and the selection summary on the right, styles in Results.razor.css *@
+        <div class="results-layout">
+            @* one card per room, styles of the list in Results.razor.css *@
+            <div class="room-list">
+                @foreach (var room in _rooms)
+                {
+                    <RoomCard Name="@room.Name"
+                        Description="@room.Description"
+                        MaxGuests="@room.MaxGuests"
+                        PricePerNight="@room.PricePerNight"
+                        Nights="@room.Nights"
+                        TotalPrice="@room.TotalPrice"
+                        Rates="@room.Rates"
+                        PhotoUrl="@room.PhotoUrl"
+                        SelectedRateId="@SelectedRateOf(room.Id)"
+                        OnRateSelected="rateId => SelectRate(room.Id, rateId)"
+                        OnRemove="() => RemoveRoom(room.Id)"/>
+                }
+            </div>
+
+            @* picked rooms and total, on the right on big screens, under the cards on phones *@
+            <SelectionSummary Rooms="@SelectedRooms" Nights="@Stay.Nights" />
         </div>
     }
 </div>
