@@ -1,0 +1,15 @@
+using Rise.Shared.Search;
+
+namespace Rise.Shared.Rooms;
+
+/// <summary>
+/// contract for the room features, the server implements it and later the client too
+/// same idea as IInvoiceService
+/// </summary>
+public interface IRoomService
+{
+    // gets the rooms that are free for the given stay
+    // takes the stay period from the search, returns a Result with the room list inside
+    Task<Result<RoomResponse.Available>> GetAvailableAsync(SearchRequest.StayPeriod request, CancellationToken ctx = default);
+
+}

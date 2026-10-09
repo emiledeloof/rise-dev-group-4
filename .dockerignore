@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/Logs/
+**/*.user
+.vs/
+.idea/
+.git/
+.github/
+.env
+tests/
+docker/
+Dockerfile
+docker-compose*.yml
+*.md

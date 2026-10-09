@@ -20,12 +20,15 @@ dotnet test --filter "FullyQualifiedName~ProjectServiceShould.EditProjectWhenTec
 dotnet watch --non-interactive
 dotnet run
 
+# Local test deployment: production image (Dockerfile) + own DB, http://localhost:8080 (independent of the dev compose)
+docker compose -f docker-compose.local.yml up -d --build
+
 # EF Core migrations (from src/, needs `dotnet tool install --global dotnet-ef`)
 dotnet ef migrations add <Name> --startup-project Rise.Server --project Rise.Persistence
 dotnet ef database update --startup-project Rise.Server --project Rise.Persistence
 ```
 
-In Development, the server applies migrations and runs `DbSeeder` on startup. The database is PostgreSQL in Docker (`docker-compose.yml`, db/user `rise`, password from the git-ignored `.env`). No passwords are committed: `appsettings.json` only holds an empty `DatabaseConnection` placeholder; the dev connection string comes from User Secrets (`ConnectionStrings:DatabaseConnection`, `UserSecretsId` in `Rise.Server.csproj`), non-dev environments must supply `ConnectionStrings__DatabaseConnection`. Seeded users (`user@`, `technician1@`, `technician2@`, `secretary@`, `admin@example.com`) all use the password `A1b2C3!`. The roles are Technician, Secretary and Administrator.
+In Development, the server applies migrations and runs `DbSeeder` on startup (after `EnsureDeleted`). In other environments, it only does so when `Database:MigrateOnStartup` / `Database:Seed` are true (the Docker compose files set them). `docker-compose.prod.yml` prepares the real deployment; `deploy.yaml` still uses `dotnet publish`. The Blazor client calls the API on its own origin (`HostEnvironment.BaseAddress`). The database is PostgreSQL in Docker (`docker-compose.yml`, db/user `rise`, password from the git-ignored `.env`). No passwords are committed: `appsettings.json` only holds an empty `DatabaseConnection` placeholder; the dev connection string comes from User Secrets (`ConnectionStrings:DatabaseConnection`, `UserSecretsId` in `Rise.Server.csproj`), non-dev environments must supply `ConnectionStrings__DatabaseConnection`. Seeded users (`user@`, `technician1@`, `technician2@`, `secretary@`, `admin@example.com`) all use the password `A1b2C3!`. The roles are Technician, Secretary and Administrator.
 
 ## Architecture
 
