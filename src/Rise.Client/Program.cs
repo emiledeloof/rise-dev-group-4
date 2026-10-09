@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
+using Rise.Client.Guests;
 using Rise.Client.Identity;
 using Rise.Client.Invoice;
 using Rise.Client.Products;
+using Rise.Shared.Guests;
 using Rise.Shared.Invoice;
 using Rise.Shared.Products;
 
@@ -39,6 +41,11 @@ try
         .AddHttpMessageHandler<CookieHandler>();
 
     builder.Services.AddHttpClient<IProductService, ProductService>(client =>
+    {
+        client.BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "https://localhost:5001");
+    });
+
+    builder.Services.AddHttpClient<IGuestService, GuestService>(client =>
     {
         client.BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "https://localhost:5001");
     });

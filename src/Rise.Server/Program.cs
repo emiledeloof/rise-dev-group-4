@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Rise.Persistence;
 using Rise.Persistence.Triggers;
-using Rise.Server.Endpoints;
 using Rise.Server.Identity;
 using Rise.Server.Processors;
 using Rise.Services;
@@ -96,7 +95,6 @@ try
             };
         })
         .UseSwaggerGen();
-    app.MapGuestEndpoints(); // Maps the Guest endpoints to the API.
     app.MapFallbackToFile("index.html"); // Serves the Blazor app from the API, when no routes match.
     app.Run();
 }

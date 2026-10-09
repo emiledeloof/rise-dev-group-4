@@ -2,16 +2,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Rise.Persistence;
 
 using Rise.Services.Bookings;
+using Rise.Services.Guests;
 using Rise.Services.Invoice;
 using Rise.Services.Payments;
 using Rise.Services.Products;
 using Rise.Services.Projects;
 using Rise.Shared.Bookings;
+using Rise.Shared.Guests;
 using Rise.Shared.Invoice;
 using Rise.Shared.Products;
 using Rise.Shared.Projects;
-using Rise.Services.Invoice;
-using Rise.Shared.Invoice;
 
 namespace Rise.Services;
 
@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProductService, ProductService>();        
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IBookingService, BookingService>();
+        services.AddScoped<IGuestService, GuestService>();
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IStripePaymentGateway, StripePaymentGateway>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
