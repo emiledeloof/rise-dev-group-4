@@ -23,7 +23,7 @@ internal class IdentityConfiguration :
     //     builder.ToTable("Users", "auth");
     // PostgreSQL supports schemas, but SQLite does NOT, so keep that in mind if the provider ever changes.
     // The default below uses the default schema (public) and works on any provider.
-    
+
     public void Configure(EntityTypeBuilder<IdentityUser> builder)
         => builder.ToTable("Users");
 

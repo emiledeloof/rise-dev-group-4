@@ -50,23 +50,6 @@ namespace Rise.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Product",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
-                    Description = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Product", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Roles",
                 columns: table => new
                 {
@@ -97,24 +80,6 @@ namespace Rise.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Room", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Technician",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    FirstName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    LastName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    AccountId = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Technician", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -236,33 +201,6 @@ namespace Rise.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Project",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
-                    TechnicianId = table.Column<int>(type: "integer", nullable: false),
-                    Addressline1 = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
-                    Addressline2 = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
-                    City = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    PostalCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Project", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Project_Technician_TechnicianId",
-                        column: x => x.TechnicianId,
-                        principalTable: "Technician",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "UserClaims",
                 columns: table => new
                 {
@@ -359,6 +297,10 @@ namespace Rise.Persistence.Migrations
                     StripeInvoice = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
                     InvoiceNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     PaidAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    StripePaymentIntent = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    StripeReceiptUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CardBrand = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CardLast4 = table.Column<string>(type: "character varying(4)", maxLength: 4, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
@@ -461,11 +403,6 @@ namespace Rise.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Project_TechnicianId",
-                table: "Project",
-                column: "TechnicianId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Rate_RoomId",
                 table: "Rate",
                 column: "RoomId");
@@ -491,12 +428,6 @@ namespace Rise.Persistence.Migrations
                 name: "IX_RoomPhoto_RoomId",
                 table: "RoomPhoto",
                 column: "RoomId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Technician_AccountId",
-                table: "Technician",
-                column: "AccountId",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserClaims_UserId",
@@ -538,12 +469,6 @@ namespace Rise.Persistence.Migrations
                 name: "Payment");
 
             migrationBuilder.DropTable(
-                name: "Product");
-
-            migrationBuilder.DropTable(
-                name: "Project");
-
-            migrationBuilder.DropTable(
                 name: "RoleClaims");
 
             migrationBuilder.DropTable(
@@ -566,9 +491,6 @@ namespace Rise.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "Booking");
-
-            migrationBuilder.DropTable(
-                name: "Technician");
 
             migrationBuilder.DropTable(
                 name: "Roles");

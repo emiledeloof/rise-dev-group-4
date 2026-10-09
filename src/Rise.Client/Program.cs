@@ -4,9 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
 using Rise.Client.Identity;
 using Rise.Client.Invoice;
-using Rise.Client.Products;
 using Rise.Shared.Invoice;
-using Rise.Shared.Products;
 using Rise.Client.Rooms;
 using Rise.Shared.Rooms;
 
@@ -16,37 +14,32 @@ try
 
     builder.RootComponents.Add<App>("#app");
     builder.RootComponents.Add<HeadOutlet>("head::after");
-    
+
 
     Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Information()
-        .WriteTo.BrowserConsole(outputTemplate:"[{Timestamp:HH:mm:ss}{Level:u3}]{Message:lj} {NewLine}{Exception}")
+        .WriteTo.BrowserConsole(outputTemplate: "[{Timestamp:HH:mm:ss}{Level:u3}]{Message:lj} {NewLine}{Exception}")
         .CreateLogger();
-    
+
     Log.Information("Starting web application");
 
-// register the cookie handler
+    // register the cookie handler
     builder.Services.AddTransient<CookieHandler>();
 
-// set up authorization
+    // set up authorization
     builder.Services.AddAuthorizationCore();
 
-// register the custom state provider
+    // register the custom state provider
     builder.Services.AddScoped<AuthenticationStateProvider, CookieAuthenticationStateProvider>();
-// register the account management interface
+    // register the account management interface
     builder.Services.AddScoped(sp => (IAccountManager)sp.GetRequiredService<AuthenticationStateProvider>());
 
-// the API is served from the same origin as the client (also in Docker), "BackendUrl" in wwwroot/appsettings.json can override it
+    // the API is served from the same origin as the client (also in Docker), "BackendUrl" in wwwroot/appsettings.json can override it
     var backendUrl = new Uri(builder.Configuration["BackendUrl"] ?? builder.HostEnvironment.BaseAddress);
 
-// configure client for auth interactions
-    builder.Services.AddHttpClient("SecureApi",opt => opt.BaseAddress = backendUrl)
+    // configure client for auth interactions
+    builder.Services.AddHttpClient("SecureApi", opt => opt.BaseAddress = backendUrl)
         .AddHttpMessageHandler<CookieHandler>();
-
-    builder.Services.AddHttpClient<IProductService, ProductService>(client =>
-    {
-        client.BaseAddress = backendUrl;
-    });
 
     // the room search is public, no auth cookie needed
     builder.Services.AddHttpClient<IRoomService, RoomService>(client =>
@@ -61,7 +54,7 @@ try
     }).AddHttpMessageHandler<CookieHandler>();
 
     await builder.Build().RunAsync();
-}           
+}
 catch (Exception ex)
 {
     Log.Fatal(ex, "An exception occurred while creating the WASM host");

@@ -6,4 +6,5 @@ namespace Rise.Client.Search;
 /// </summary>
 public partial class Index
 {
+
 }
