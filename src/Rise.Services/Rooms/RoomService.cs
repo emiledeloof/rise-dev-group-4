@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Rise.Persistence;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
+using Rise.Services.Pricing;
 
 namespace Rise.Services.Rooms;
 
@@ -20,6 +21,9 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         // take them out of the nullable with .Value, ! tells the compiler we know it's not null
         var checkIn = request.CheckIn!.Value;
         var checkOut = request.CheckOut!.Value;
+
+        // nb of nights, same calculation as the search page
+        var nights = request.Nights;
 
         // start from the rooms that are not deleted
         // keep a room only if NO booking of that room overlaps the stay
@@ -44,8 +48,10 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                 Description = r.Description,
                 MaxGuests = r.MaxGuests,
                 PricePerNight = r.Rates.Select(x => x.PricePerNight).FirstOrDefault(),
-                PhotoUrl = r.Photos.Select(p => p.Url).FirstOrDefault()
-            })
+                PhotoUrl = r.Photos.Select(p => p.Url).FirstOrDefault(),
+                Nights = nights,
+                TotalPrice = PriceCalculator.Total(r.Rates.Select(x => x.PricePerNight).FirstOrDefault(), nights)
+            })  
             .ToListAsync(ctx);
 
         // wrap the list in a RoomResponse.Available and send it back as a success

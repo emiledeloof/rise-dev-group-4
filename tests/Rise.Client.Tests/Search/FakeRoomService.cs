@@ -17,8 +17,8 @@ public class FakeRoomService : IRoomService
     {
         Rooms =
         [
-            new RoomDto.Available { Id = 1, Name = "Double Room", MaxGuests = 2, PricePerNight = 109m },
-            new RoomDto.Available { Id = 2, Name = "Single Room", MaxGuests = 1, PricePerNight = 79m },
+            new RoomDto.Available { Id = 1, Name = "Double Room", MaxGuests = 2, PricePerNight = 109m, Nights = 3, TotalPrice = 327m },
+            new RoomDto.Available { Id = 2, Name = "Single Room", MaxGuests = 1, PricePerNight = 79m, Nights = 3, TotalPrice = 237m },
         ],
     });
 
