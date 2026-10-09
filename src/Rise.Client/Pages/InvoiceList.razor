@@ -46,12 +46,30 @@ else
                                     <text>Awaiting payment</text>
                                 }
                             </p>
+                            @if (invoice.IsPaid && invoice.StripePaymentIntent is not null)
+                            {
+                                <p class="invoice-muted invoice-stripe">
+                                    @if (invoice.CardLast4 is not null)
+                                    {
+                                        <span>@FormatCard(invoice.CardBrand, invoice.CardLast4)</span>
+                                    }
+                                    @if (invoice.StripeReceiptUrl is not null)
+                                    {
+                                        <a href="@invoice.StripeReceiptUrl" target="_blank" rel="noopener">Stripe receipt ↗</a>
+                                    }
+                                    <a href="@StripeDashboardUrl(invoice.StripePaymentIntent)" target="_blank" rel="noopener">View in Stripe ↗</a>
+                                </p>
+                            }
                         </div>
                         <div class="invoice-amount">
                             <span>@FormatAmount(invoice.Amount)</span>
                             @if (invoice.IsPaid)
                             {
                                 <span class="tag is-primary is-light">Paid</span>
+                                @if (invoice.StripePaymentIntent is not null)
+                                {
+                                    <span class="tag is-info is-light">via Stripe</span>
+                                }
                             }
                             else
                             {

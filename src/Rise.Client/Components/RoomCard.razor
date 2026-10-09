@@ -23,8 +23,14 @@
         @* capacity, eg up to 2 guests *@
         <p class="room-card-meta">Up to @MaxGuests @(MaxGuests == 1 ? "guest" : "guests")</p>
 
-        @* price for one night, eg €160 per night *@
-        <p class="room-card-price">€@PricePerNight.ToString("0") per night</p>
+        @* price breakdown of the stay, eg €160 × 3 nights then €480 total, styles in RoomCard.razor.css *@
+        <div class="room-card-prices">
+            @* price per night times the nb of nights, night or nights like on the results page *@
+            <p class="room-card-price-detail">€@PricePerNight.ToString("0") × @Nights @(Nights == 1 ? "night" : "nights")</p>
+
+            @* total of the stay, the main number of the block *@
+            <p class="room-card-total">€@TotalPrice.ToString("0") total <span class="room-card-vat">incl. VAT</span></p>
+        </div>
 
         @* select btn, tells the page that this room was chosen *@
         <Button OnClick="@OnSelect" Class="select-btn">Select</Button>

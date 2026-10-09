@@ -27,5 +27,11 @@ public static class RoomDto
 
         // url of the first photo, a room can have none
         public string? PhotoUrl { get; set; }
+
+        // nb of nights of the searched stay
+        public required int Nights { get; set; }
+
+        // price for the whole stay, nights times price per night
+        public required decimal TotalPrice { get; set; }
     }
 }

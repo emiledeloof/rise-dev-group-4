@@ -4,22 +4,12 @@
 
 <PageTitle>Find your stay</PageTitle>
 
-<span class="eyebrow">Book a room</span>
-<h1>Find your stay</h1>
-<p class="subtitle">Choose your arrival and departure dates to see the available rooms.</p>
+@* centered frame, see .page in theme.css *@
+<div class="page">
+    <span class="eyebrow">Book a room</span>
+    <h1>Find your stay</h1>
+    <p class="subtitle">Choose your arrival and departure dates to see the available rooms.</p>
 
-@* search form, SearchAsync is only called when every rule of the validator passes *@
-<EditForm Model="@_stay" OnValidSubmit="@SearchAsync">
-    @* plugs the StayPeriod validator from shared into the form *@
-    <FluentValidationValidator/>
-
-    @* check in and check out picker, both dates go into _stay *@
-    <DateRangePicker @bind-CheckIn="_stay.CheckIn" @bind-CheckOut="_stay.CheckOut" />
-
-    @* error messages for the check in and check out dates *@
-    <ValidationMessage For="() => _stay.CheckIn" class="has-text-danger"/>
-    <ValidationMessage For="() => _stay.CheckOut" class="has-text-danger"/>
-
-    @* submit btn, Type submit sends the form so the validator runs *@
-    <Button Type="submit" Class="mt-4">Search</Button>
-</EditForm>
+    @* same search bar as the home and results pages, it goes to the results page on submit *@
+    <SearchBar />
+</div>

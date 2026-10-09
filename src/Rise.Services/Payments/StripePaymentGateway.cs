@@ -68,4 +68,31 @@ public sealed class StripePaymentGateway : IStripePaymentGateway
 
         return new StripeCheckoutSession(session.Id, session.Url);
     }
+
+    public async Task<StripePaymentDetails?> GetPaymentDetailsAsync(
+        string sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var options = new SessionGetOptions
+        {
+            Expand = ["payment_intent.latest_charge"]
+        };
+
+        var service = stripeClient.V1.Checkout.Sessions;
+        var session = await service.GetAsync(sessionId, options, cancellationToken: cancellationToken);
+
+        var paymentIntent = session.PaymentIntent;
+        if (paymentIntent is null)
+            return null;
+
+        var charge = paymentIntent.LatestCharge;
+        var card = charge?.PaymentMethodDetails?.Card;
+
+        return new StripePaymentDetails(
+            paymentIntent.Id,
+            charge?.ReceiptUrl,
+            card?.Brand,
+            card?.Last4,
+            charge?.Created);
+    }
 }

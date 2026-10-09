@@ -20,6 +20,10 @@ public class FakeInvoiceService : IInvoiceService
                 Amount = i * 100m,
                 InvoiceNumber = i == 1 ? "INV-2026-0001" : null,
                 PaidAt = i == 1 ? new DateTime(2026, 10, 1) : null,
+                StripePaymentIntent = i == 1 ? "pi_test_1" : null,
+                StripeReceiptUrl = i == 1 ? "https://pay.stripe.com/receipts/test_1" : null,
+                CardBrand = i == 1 ? "visa" : null,
+                CardLast4 = i == 1 ? "4242" : null,
             });
 
         var wrapper = new InvoiceResponse.Index

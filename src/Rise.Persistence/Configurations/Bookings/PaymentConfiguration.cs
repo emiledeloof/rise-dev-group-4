@@ -17,6 +17,10 @@ internal class PaymentConfiguration : EntityConfiguration<Payment>
         builder.HasIndex(x => x.StripeCheckoutSession).IsUnique();
         builder.Property(x => x.StripeInvoice).HasMaxLength(250);
         builder.Property(x => x.InvoiceNumber).HasMaxLength(50);
+        builder.Property(x => x.StripePaymentIntent).HasMaxLength(250);
+        builder.Property(x => x.StripeReceiptUrl).HasMaxLength(500);
+        builder.Property(x => x.CardBrand).HasMaxLength(50);
+        builder.Property(x => x.CardLast4).HasMaxLength(4);
         builder.Ignore(x => x.IsPaid);
     }
 }

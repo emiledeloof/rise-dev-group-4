@@ -19,16 +19,20 @@ public class RoomCardShould : BunitContext
     }
 
     // renders a card with sample values, each test only changes what it checks
-    private IRenderedComponent<RoomCard> RenderCard(int maxGuests = 2, string? photoUrl = null, string? description = "Spacious room.") =>
+    // 109 per night for 3 nights by default, so a total of 327
+    private IRenderedComponent<RoomCard> RenderCard(int maxGuests = 2, string? photoUrl = null, string? description = "Spacious room.",
+        int nights = 3, decimal totalPrice = 327m) =>
         Render<RoomCard>(p => p
             .Add(x => x.Name, "Double Room")
             .Add(x => x.Description, description)
             .Add(x => x.MaxGuests, maxGuests)
             .Add(x => x.PricePerNight, 109m)
+            .Add(x => x.Nights, nights)
+            .Add(x => x.TotalPrice, totalPrice)
             .Add(x => x.PhotoUrl, photoUrl));
 
     /// <summary>
-    /// name, description and price per night are shown
+    /// name and description are shown
     /// </summary>
     [Fact]
     public void ShowTheRoomDetails()
@@ -39,7 +43,33 @@ public class RoomCardShould : BunitContext
         // assert, Markup is the html of the card as text
         cut.Find("h3").TextContent.ShouldBe("Double Room");
         cut.Find(".room-card-description").TextContent.ShouldBe("Spacious room.");
-        cut.Find(".room-card-price").TextContent.ShouldBe("€109 per night");
+    }
+
+    /// <summary>
+    /// the price block shows the price per night, the nb of nights and the total
+    /// </summary>
+    [Fact]
+    public void ShowThePriceBreakdown()
+    {
+        // arrange and act, 109 per night for 3 nights
+        var cut = RenderCard();
+
+        // assert, the detail line then the total with the vat note
+        cut.Find(".room-card-price-detail").TextContent.ShouldBe("€109 × 3 nights");
+        cut.Find(".room-card-total").TextContent.ShouldBe("€327 total incl. VAT");
+    }
+
+    /// <summary>
+    /// night is singular for a 1 night stay
+    /// </summary>
+    [Fact]
+    public void WriteNightInSingularForOneNight()
+    {
+        // arrange and act, 1 night so the total is the price of 1 night
+        var cut = RenderCard(nights: 1, totalPrice: 109m);
+
+        // assert
+        cut.Find(".room-card-price-detail").TextContent.ShouldBe("€109 × 1 night");
     }
 
     /// <summary>

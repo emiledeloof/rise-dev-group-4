@@ -1,15 +1,21 @@
 /* compact search bar styles, scoped to SearchBar.razor */
 
-/* white bar with a border, dates and btn on one row like the mockup */
+/* white box with a border like the mockup, holds the row and the error messages */
 .search-bar {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
     padding: var(--space-sm);
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     margin-bottom: var(--space-lg);
+    /* dark text even on the green home hero, which sets white text */
+    color: var(--color-text);
+}
+
+/* dates and btn on one row */
+.search-bar-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
 }
 
 /* the picker takes all the free space, the btn keeps its own size */
@@ -20,9 +26,16 @@
     max-width: none;
 }
 
+/* error messages a bit smaller, with some space above */
+/* ::deep because they come from the ValidationMessage component */
+.search-bar ::deep .has-text-danger {
+    margin: var(--space-xs) var(--space-xs) 0;
+    font-size: 0.875rem;
+}
+
 /* phones, the btn goes under the dates and takes the full width */
 @media (max-width: 768px) {
-    .search-bar {
+    .search-bar-row {
         flex-direction: column;
         align-items: stretch;
     }
