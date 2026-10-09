@@ -38,7 +38,7 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
             && br.Booking.CheckIn < checkOut
             && br.Booking.CheckOut > checkIn));
 
-        // turn each room into a RoomDto.Available, price from the first rate and url from the first photo
+        // turn each room into a RoomDto.Available, "from" price = cheapest rate, all rates listed, url from the first photo
         var rooms = await query.AsNoTracking()
             .OrderBy(r => r.Name)
             .Select(r => new RoomDto.Available
@@ -47,10 +47,21 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                 Name = r.Name,
                 Description = r.Description,
                 MaxGuests = r.MaxGuests,
-                PricePerNight = r.Rates.Select(x => x.PricePerNight).FirstOrDefault(),
+                PricePerNight = r.Rates.OrderBy(x => x.PricePerNight).Select(x => x.PricePerNight).FirstOrDefault(),
                 PhotoUrl = r.Photos.Select(p => p.Url).FirstOrDefault(),
                 Nights = nights,
-                TotalPrice = PriceCalculator.Total(r.Rates.Select(x => x.PricePerNight).FirstOrDefault(), nights)
+                TotalPrice = PriceCalculator.Total(r.Rates.OrderBy(x => x.PricePerNight).Select(x => x.PricePerNight).FirstOrDefault(), nights),
+                Rates = r.Rates
+                    .Where(x => !x.IsDeleted)
+                    .OrderBy(x => x.PricePerNight)
+                    .Select(x => new RateDto.Available
+                    {
+                        Id = x.Id,
+                        Name = x.Name,
+                        Description = x.Description,
+                        PricePerNight = x.PricePerNight,
+                        TotalPrice = PriceCalculator.Total(x.PricePerNight, nights)
+                    }).ToList()
             })  
             .ToListAsync(ctx);
 
