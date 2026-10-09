@@ -1,0 +1,52 @@
+name: rise-local
+
+# Local test deployment: the app as a production container (Release build, Production environment) + its own database.
+# Independent of the development stack in docker-compose.yml, both can run side by side.
+#   docker compose -f docker-compose.local.yml up -d --build   -> http://localhost:8080
+#   docker compose -f docker-compose.local.yml down -v         -> stop and reset the database
+# Reads `.env` (copy `.env.example`), POSTGRES_PASSWORD is required.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: rise-local-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rise}
+      POSTGRES_USER: ${POSTGRES_USER:-rise}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (copy .env.example)}
+    # No published port, only the app reaches the database. To inspect it, add e.g. "5434:5432".
+    volumes:
+      - rise-local-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rise-server:local
+    container_name: rise-local-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DatabaseConnection: Host=db;Port=5432;Database=${POSTGRES_DB:-rise};Username=${POSTGRES_USER:-rise};Password=${POSTGRES_PASSWORD}
+      Database__MigrateOnStartup: "true"
+      Database__Seed: ${APP_SEED:-true} # test data incl. the seeded users (password A1b2C3!)
+      Stripe__SecretKey: ${STRIPE_SECRET_KEY:-sk_test_not_configured} # required at startup, payments only work with a real test key
+      Stripe__WebhookSecret: ${STRIPE_WEBHOOK_SECRET:-}
+      Stripe__SuccessUrl: ${STRIPE_SUCCESS_URL:-http://localhost:${APP_PORT:-8080}/}
+      Stripe__CancelUrl: ${STRIPE_CANCEL_URL:-http://localhost:${APP_PORT:-8080}/}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - rise-local-logs:/app/Logs
+
+volumes:
+  rise-local-db-data:
+  rise-local-logs:

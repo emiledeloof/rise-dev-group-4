@@ -1,0 +1,48 @@
+name: rise
+
+# Preparation for the real deployment (deploy.yaml still uses `dotnet publish` for now).
+# On the server: build the image (`docker build -t rise-server:latest .`), provide a `.env` with the production values
+# and run `docker compose -f docker-compose.prod.yml up -d`.
+# The app only listens on 127.0.0.1, a reverse proxy (nginx, Caddy, ...) terminates TLS and forwards
+# X-Forwarded-For / X-Forwarded-Proto to it.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: rise-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rise}
+      POSTGRES_USER: ${POSTGRES_USER:-rise}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - rise-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: ${RISE_IMAGE:-rise-server:latest}
+    container_name: rise-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DatabaseConnection: Host=db;Port=5432;Database=${POSTGRES_DB:-rise};Username=${POSTGRES_USER:-rise};Password=${POSTGRES_PASSWORD}
+      Database__MigrateOnStartup: "true"
+      Database__Seed: ${APP_SEED:-false}
+      Stripe__SecretKey: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY in .env}
+      Stripe__WebhookSecret: ${STRIPE_WEBHOOK_SECRET:?Set STRIPE_WEBHOOK_SECRET in .env}
+      Stripe__SuccessUrl: ${STRIPE_SUCCESS_URL:?Set STRIPE_SUCCESS_URL in .env}
+      Stripe__CancelUrl: ${STRIPE_CANCEL_URL:?Set STRIPE_CANCEL_URL in .env}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    volumes:
+      - rise-logs:/app/Logs
+
+volumes:
+  rise-db-data:
+  rise-logs:
