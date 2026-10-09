@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Rise.Shared.Rooms;
 
 namespace Rise.Client.Components;
 
@@ -37,6 +38,10 @@ public partial class RoomCard
     /// </summary>
     [Parameter] public decimal TotalPrice { get; set; }
 
+    /// <summary>
+    /// all rates of the room for the stay, cheapest first, from RoomDto.Available
+    /// </summary>
+    [Parameter] public IEnumerable<RateDto.Available> Rates { get; set; } = [];
     /// <summary>
     /// url of the main photo of the room, can be empty if the room has no photo yet
     /// </summary>

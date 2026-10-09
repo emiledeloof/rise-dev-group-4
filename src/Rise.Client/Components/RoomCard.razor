@@ -23,13 +23,33 @@
         @* capacity, eg up to 2 guests *@
         <p class="room-card-meta">Up to @MaxGuests @(MaxGuests == 1 ? "guest" : "guests")</p>
 
-        @* price breakdown of the stay, eg €160 × 3 nights then €480 total, styles in RoomCard.razor.css *@
+        @* rates of the room for the stay, cheapest first, styles in RoomCard.razor.css *@
         <div class="room-card-prices">
-            @* price per night times the nb of nights, night or nights like on the results page *@
-            <p class="room-card-price-detail">€@PricePerNight.ToString("0") × @Nights @(Nights == 1 ? "night" : "nights")</p>
+            @* nb of nights once for all the rates, night or nights like on the results page *@
+            <p class="room-card-price-detail">@Nights @(Nights == 1 ? "night" : "nights") · prices include VAT</p>
 
-            @* total of the stay, the main number of the block *@
-            <p class="room-card-total">€@TotalPrice.ToString("0") total <span class="room-card-vat">incl. VAT</span></p>
+            @* one line per rate, name and conditions on the left, prices on the right *@
+            <ul class="room-card-rates">
+                @foreach (var rate in Rates)
+                {
+                    <li class="room-card-rate">
+
+                        @* left side, the name in room-card-rate-name *@
+                        @* then the conditions in room-card-rate-conditions, only when there are some *@
+                        <span class="room-card-rate-name">@rate.Name</span>
+                        @if (!string.IsNullOrWhiteSpace(rate.Description))
+                        {
+                            <span class="room-card-rate-conditions">@rate.Description</span>
+                        }
+
+                        @* right side, the total in room-card-total *@
+                        @* then the detail eg €109 × 3 nights in room-card-rate-detail *@
+                        <span class="room-card-total">€@rate.TotalPrice.ToString("0")</span>
+                        <span class="room-card-rate-detail">€@rate.PricePerNight.ToString("0") × @Nights @(Nights == 1 ? "night" : "nights")</span>
+
+                    </li>
+                }
+            </ul>
         </div>
 
         @* select btn, tells the page that this room was chosen *@
