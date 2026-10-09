@@ -169,4 +169,23 @@ public class RoomServiceShould
         // no photo means a null url, the card shows its placeholder then
         rooms.Single(r => r.Name == SingleRoom).PhotoUrl.ShouldBeNull();
     }
+
+    /// <summary>
+    /// each room gets the nb of nights and the total of the stay
+    /// </summary>
+    [Fact]
+    public async Task FillTheTotalPriceOfTheStay()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(FillTheTotalPriceOfTheStay));
+
+        // act, oct 20 to 23 is 3 nights
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 23));
+
+        // assert, 109 x 3 for the double room and 79 x 3 for the single one
+        var rooms = result.Value.Rooms.ToList();
+        rooms.ShouldAllBe(r => r.Nights == 3);
+        rooms.Single(r => r.Name == DoubleRoom).TotalPrice.ShouldBe(327m);
+        rooms.Single(r => r.Name == SingleRoom).TotalPrice.ShouldBe(237m);
+    }
 }
