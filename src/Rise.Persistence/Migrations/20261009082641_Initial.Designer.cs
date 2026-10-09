@@ -12,7 +12,7 @@ using Rise.Persistence;
 namespace Rise.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261009075306_Initial")]
+    [Migration("20261009082641_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -389,6 +389,14 @@ namespace Rise.Persistence.Migrations
                     b.Property<int>("BookingId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("CardBrand")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CardLast4")
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -413,6 +421,14 @@ namespace Rise.Persistence.Migrations
                     b.Property<string>("StripeInvoice")
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
+
+                    b.Property<string>("StripePaymentIntent")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("StripeReceiptUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()

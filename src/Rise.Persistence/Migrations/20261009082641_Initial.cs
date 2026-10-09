@@ -297,6 +297,10 @@ namespace Rise.Persistence.Migrations
                     StripeInvoice = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
                     InvoiceNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     PaidAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    StripePaymentIntent = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    StripeReceiptUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CardBrand = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CardLast4 = table.Column<string>(type: "character varying(4)", maxLength: 4, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
