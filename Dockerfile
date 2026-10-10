@@ -1,4 +1,6 @@
 # Production image of Rise.Server (API + Blazor WASM client).
+# Local test deployment: `docker compose -f docker-compose.local.yml up -d --build` (see README).
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
@@ -11,23 +13,19 @@ COPY src/Rise.Client/Rise.Client.csproj           src/Rise.Client/
 COPY src/Rise.Server/Rise.Server.csproj           src/Rise.Server/
 RUN dotnet restore src/Rise.Server/Rise.Server.csproj
 
-# Copy source and publish
 COPY src/ src/
 # Publishing the server also publishes the referenced Blazor client into wwwroot.
 RUN dotnet publish src/Rise.Server/Rise.Server.csproj -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
-# Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     ASPNETCORE_ENVIRONMENT=Production \
     UseHttpsRedirection=false
 EXPOSE 8080
 
 COPY --from=build /app/publish .
-
-# Serilog file sink writes to /app/Logs, app runs under unprivileged $APP_UID
+# Serilog's file sink writes to /app/Logs, the app runs as the image's non-root user.
 RUN mkdir -p /app/Logs && chown $APP_UID /app/Logs
 USER $APP_UID
 
