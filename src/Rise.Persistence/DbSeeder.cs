@@ -71,40 +71,31 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         if (dbContext.Rooms.Any())
             return;
 
-        // 3 rates per room, the non-refundable one first because the seeded bookings below use Rates[0]
-        var single = new Room("101", "Single Room", 1, "Cosy room with a single bed.");
-        single.AddRate("Non-refundable", 79m, "No refund after booking");
-        single.AddRate("Partially refundable", 89m, "50% refund until 3 days before");
-        single.AddRate("Fully refundable", 99m, "100% refund until 7 days before");
-        single.AddPhoto("https://picsum.photos/seed/room101/800/600");
+        // the 3 real rooms of the estate, texts and photos from the current booking site
+        // photos in Rise.Client/wwwroot/images/rooms, the 1st photo is the one on the room card
+        // only the non-refundable rate for now, the seeded bookings below use Rates[0]
+        // deluxe price = "from" price of the current booking site
+        // TODO: refundable rates (50% until 3 days, 100% until 7 days) once the client gives their prices
+        // TODO: real standard room price from the client
+        var standard = new Room("101", "Standard Room", 2,
+            "Twin room with a private bathroom with shower, hairdryer and bidet. Air conditioning, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Breakfast included, baby cot available, non-smoking.");
+        standard.AddRate("Non-refundable", 133m, "No refund after booking");
+        for (var i = 1; i <= 4; i++)
+            standard.AddPhoto($"images/rooms/standard-room-{i}.jpg");
 
-        var doubleRoom = new Room("102", "Double Room", 2, "Spacious room with a double bed.");
-        doubleRoom.AddRate("Non-refundable", 109m, "No refund after booking");
-        doubleRoom.AddRate("Partially refundable", 125m, "50% refund until 3 days before");
-        doubleRoom.AddRate("Fully refundable", 139m, "100% refund until 7 days before");
-        doubleRoom.AddPhoto("https://picsum.photos/seed/room102a/800/600");
-        doubleRoom.AddPhoto("https://picsum.photos/seed/room102b/800/600");
+        var deluxe = new Room("102", "Deluxe Room", 2,
+            "Bright room with a California king bed and a high ceiling. Private bathroom with shower, bathrobes, hairdryer and vanity mirror. Air conditioning, central heating, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Non-smoking.");
+        deluxe.AddRate("Non-refundable", 175m, "No refund after booking");
+        for (var i = 1; i <= 5; i++)
+            deluxe.AddPhoto($"images/rooms/deluxe-room-{i}.jpg");
 
-        var twin = new Room("103", "Twin Room", 2, "Room with two single beds.");
-        twin.AddRate("Non-refundable", 99m, "No refund after booking");
-        twin.AddRate("Partially refundable", 115m, "50% refund until 3 days before");
-        twin.AddRate("Fully refundable", 125m, "100% refund until 7 days before");
-        twin.AddPhoto("https://picsum.photos/seed/room103/800/600");
+        var deluxeBathtub = new Room("103", "Deluxe Room with bathtub", 2,
+            "Room with a California king bed, a high ceiling and sound-proofed windows. Private bathroom with bathtub, bathrobes, hairdryer and vanity mirror. Desk, iron, air conditioning, central heating, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Non-smoking.");
+        deluxeBathtub.AddRate("Non-refundable", 175m, "No refund after booking");
+        for (var i = 1; i <= 4; i++)
+            deluxeBathtub.AddPhoto($"images/rooms/deluxe-room-bathtub-{i}.jpg");
 
-        var family = new Room("201", "Family Room", 4, "Large room with a double bed and a bunk bed.");
-        family.AddRate("Non-refundable", 159m, "No refund after booking");
-        family.AddRate("Partially refundable", 179m, "50% refund until 3 days before");
-        family.AddRate("Fully refundable", 199m, "100% refund until 7 days before");
-        family.AddPhoto("https://picsum.photos/seed/room201a/800/600");
-        family.AddPhoto("https://picsum.photos/seed/room201b/800/600");
-
-        var suite = new Room("301", "Suite", 2, "Suite with a separate living room and a view over the city.");
-        suite.AddRate("Non-refundable", 249m, "No refund after booking");
-        suite.AddRate("Partially refundable", 285m, "50% refund until 3 days before");
-        suite.AddRate("Fully refundable", 315m, "100% refund until 7 days before");
-        suite.AddPhoto("https://picsum.photos/seed/room301/800/600");
-
-        dbContext.Rooms.AddRange(single, doubleRoom, twin, family, suite);
+        dbContext.Rooms.AddRange(standard, deluxe, deluxeBathtub);
         await dbContext.SaveChangesAsync();
     }
 
@@ -132,7 +123,8 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         var guests = await dbContext.Guests.OrderBy(x => x.Id).ToListAsync();
         var rooms = await dbContext.Rooms.Include(x => x.Rates).OrderBy(x => x.Id).ToListAsync();
 
-        if (guests.Count < 3 || rooms.Count < 5)
+        // the estate has 3 rooms, rooms[0] standard, rooms[1] deluxe, rooms[2] deluxe with bathtub
+        if (guests.Count < 3 || rooms.Count < 3)
             return;
 
         var paidBooking = new Booking("20261001-0001", guests[0], new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
@@ -146,16 +138,16 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         openBooking.AddPayment(3 * (rooms[0].Rates[0].PricePerNight + rooms[2].Rates[0].PricePerNight), "cs_test_seed_0002");
 
         var familyBooking = new Booking("20261004-0003", guests[2], new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 20));
-        familyBooking.AddRoom(rooms[3], rooms[3].Rates[0]);
-        var familyPayment = familyBooking.AddPayment(3 * rooms[3].Rates[0].PricePerNight, "cs_test_seed_0003");
+        familyBooking.AddRoom(rooms[2], rooms[2].Rates[0]);
+        var familyPayment = familyBooking.AddPayment(3 * rooms[2].Rates[0].PricePerNight, "cs_test_seed_0003");
         familyPayment.MarkAsPaid(new DateTime(2026, 10, 4, 9, 15, 0, DateTimeKind.Utc), "in_test_seed_0003", "INV-2026-0002");
 
         // Deposit is paid, the remaining amount is still open.
         var suiteBooking = new Booking("20261005-0004", guests[0], new DateOnly(2026, 12, 23), new DateOnly(2026, 12, 27));
-        suiteBooking.AddRoom(rooms[4], rooms[4].Rates[0]);
+        suiteBooking.AddRoom(rooms[0], rooms[0].Rates[0]);
         var deposit = suiteBooking.AddPayment(300m, "cs_test_seed_0004");
         deposit.MarkAsPaid(new DateTime(2026, 10, 5, 11, 0, 0, DateTimeKind.Utc), "in_test_seed_0004", "INV-2026-0003");
-        suiteBooking.AddPayment(4 * rooms[4].Rates[0].PricePerNight - 300m, "cs_test_seed_0005");
+        suiteBooking.AddPayment(4 * rooms[0].Rates[0].PricePerNight - 300m, "cs_test_seed_0005");
 
         var shortBooking = new Booking("20261006-0005", guests[1], new DateOnly(2026, 10, 24), new DateOnly(2026, 10, 25));
         shortBooking.AddRoom(rooms[1], rooms[1].Rates[0]);
