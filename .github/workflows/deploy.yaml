@@ -77,51 +77,51 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.sha_short }}
             ${{ env.IMAGE_NAME }}:latest
 
-  deploy:
-    name: Deploy to Production
-    needs: build
-    runs-on: [self-hosted, prod-server]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  # deploy:
+  #   name: Deploy to Production
+  #   needs: build
+  #   runs-on: [self-hosted, prod-server]
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
-    steps:
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PROD_TOKEN }}
+  #   steps:
+  #     - name: Log in to Docker Hub
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
+  #         password: ${{ secrets.DOCKERHUB_PROD_TOKEN }}
 
-      - name: Deploy container
-        env:
-          TAG: ${{ needs.build.outputs.image_tag }}
-          DB_CONN: ${{ secrets.DB_CONNECTION_STRING }}
-        run: |
-          echo "Pulling image: $IMAGE_NAME:$TAG"
-          docker pull "$IMAGE_NAME:$TAG"
+  #     - name: Deploy container
+  #       env:
+  #         TAG: ${{ needs.build.outputs.image_tag }}
+  #         DB_CONN: ${{ secrets.DB_CONNECTION_STRING }}
+  #       run: |
+  #         echo "Pulling image: $IMAGE_NAME:$TAG"
+  #         docker pull "$IMAGE_NAME:$TAG"
 
-          # Stop and remove existing container if running
-          if docker ps -a --format '{{.Names}}' | grep -Eq "^${CONTAINER_NAME}\$"; then
-            echo "Stopping and removing existing container..."
-            docker stop "$CONTAINER_NAME"
-            docker rm "$CONTAINER_NAME"
-          fi
+  #         # Stop and remove existing container if running
+  #         if docker ps -a --format '{{.Names}}' | grep -Eq "^${CONTAINER_NAME}\$"; then
+  #           echo "Stopping and removing existing container..."
+  #           docker stop "$CONTAINER_NAME"
+  #           docker rm "$CONTAINER_NAME"
+  #         fi
 
-          # Start new container
-          echo "Starting container: $CONTAINER_NAME"
-          docker run -d \
-            --name "$CONTAINER_NAME" \
-            --restart unless-stopped \
-            -p 80:8080 \
-            -v /var/log/rise-app:/app/Logs \
-            -e ConnectionStrings__DefaultConnection="$DB_CONN" \
-            "$IMAGE_NAME:$TAG"
+  #         # Start new container
+  #         echo "Starting container: $CONTAINER_NAME"
+  #         docker run -d \
+  #           --name "$CONTAINER_NAME" \
+  #           --restart unless-stopped \
+  #           -p 80:8080 \
+  #           -v /var/log/rise-app:/app/Logs \
+  #           -e ConnectionStrings__DefaultConnection="$DB_CONN" \
+  #           "$IMAGE_NAME:$TAG"
 
-          # Verify container started properly
-          sleep 3
-          if docker ps --filter "name=${CONTAINER_NAME}" --filter "status=running" | grep -q "$CONTAINER_NAME"; then
-            echo "Deployment succeeded."
-            docker image prune -f
-          else
-            echo "Deployment failed! Outputting logs:"
-            docker logs "$CONTAINER_NAME"
-            exit 1
-          fi
+  #         # Verify container started properly
+  #         sleep 3
+  #         if docker ps --filter "name=${CONTAINER_NAME}" --filter "status=running" | grep -q "$CONTAINER_NAME"; then
+  #           echo "Deployment succeeded."
+  #           docker image prune -f
+  #         else
+  #           echo "Deployment failed! Outputting logs:"
+  #           docker logs "$CONTAINER_NAME"
+  #           exit 1
+  #         fi
