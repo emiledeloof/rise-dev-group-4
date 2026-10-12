@@ -30,12 +30,43 @@ public class FakeBookingService : IBookingService
         return Task.FromResult(CreateAnswer);
     }
 
+    /// <summary>
+    /// what CreateCheckoutSessionAsync sends back, a Stripe checkout session by default
+    /// </summary>
+    public Result<BookingResponse.CheckoutSession> CheckoutAnswer { get; set; } = Result.Success(new BookingResponse.CheckoutSession
+    {
+        CheckoutUrl = "https://checkout.stripe.com/c/pay/cs_test_123",
+        SessionId = "cs_test_123",
+    });
+
+    /// <summary>
+    /// every checkout session the page asked for
+    /// </summary>
+    public List<BookingRequest.CreateCheckoutSession> CheckoutRequests { get; } = [];
+
+    /// <summary>
+    /// answers of GetDetailByCheckoutSessionAsync in order, the last one is repeated
+    /// </summary>
+    public Queue<Result<BookingDto.Detail>> DetailAnswers { get; } = new();
+
+    /// <summary>
+    /// nb of times the page loaded the booking of a checkout session
+    /// </summary>
+    public int DetailRequests { get; private set; }
+
     public Task<Result<BookingResponse.CheckoutSession>> CreateCheckoutSessionAsync(BookingRequest.CreateCheckoutSession request, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
+    {
+        CheckoutRequests.Add(request);
+        return Task.FromResult(CheckoutAnswer);
+    }
 
     public Task<Result<BookingDto.Detail>> GetDetailAsync(int bookingId, CancellationToken ctx = default)
         => throw new NotImplementedException();
 
     public Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(string checkoutSessionId, CancellationToken ctx = default)
-        => throw new NotImplementedException();
+    {
+        DetailRequests++;
+        var answer = DetailAnswers.Count > 1 ? DetailAnswers.Dequeue() : DetailAnswers.Peek();
+        return Task.FromResult(answer);
+    }
 }

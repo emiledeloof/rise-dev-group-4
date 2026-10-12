@@ -19,10 +19,22 @@ else if (booking is not null)
     <header class="confirmation-header">
         <span class="confirmation-status">@(IsPaid ? "Confirmed" : "Payment processing")</span>
         <p class="booking-number">Booking @booking.BookingNumber</p>
-        <h1 class="title">Thank you, your stay is confirmed</h1>
-        <p class="booking-email">
-            A confirmation email is on its way to @booking.Guest.Email.
-        </p>
+        @if (IsPaid)
+        {
+            <h1 class="title">Thank you, your stay is confirmed</h1>
+            <p class="booking-email">
+                A confirmation email is on its way to @booking.Guest.Email.
+            </p>
+        }
+        else
+        {
+            <h1 class="title">We're confirming your payment…</h1>
+            <p class="booking-email">
+                @(isPolling
+                    ? "This usually takes a few seconds."
+                    : $"We will send a confirmation email to {booking.Guest.Email} once the payment is processed.")
+            </p>
+        }
     </header>
 
     <section class="box booking-details" aria-labelledby="booking-details-title">
@@ -64,41 +76,4 @@ else if (booking is not null)
         <Button Variant="ButtonVariant.Secondary" Href="">Back to home</Button>
     </div>
 </div>
-}
-
-
-
-@code {
-    private BookingDto.Detail? booking;
-    private string? errorMessage;
-    private decimal paymentAmount => booking?.Payments.FirstOrDefault()?.Amount ?? 0;
-    private bool IsPaid => booking?.Payments.Any(x => x.PaidAt is not null) == true;
-    private int numberOfNights => booking is null
-        ? 0
-        : booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
-    private int guestCount => booking?.Rooms.Count ?? 0;
-    private string roomName => booking is null
-        ? string.Empty
-        : string.Join(", ", booking.Rooms.Select(x => x.RoomNumber));
-
-    protected override async Task OnInitializedAsync()
-    {
-        if (string.IsNullOrWhiteSpace(SessionId))
-        {
-            errorMessage = "The Stripe Checkout Session is missing from the URL.";
-            return;
-        }
-
-        var result = await BookingService.GetDetailByCheckoutSessionAsync(SessionId);
-        if (!result.IsSuccess)
-        {
-            errorMessage = "We could not load your booking details.";
-            return;
-        }
-
-        booking = result.Value;
-    }
-
-    [Inject]
-    private IBookingService BookingService { get; set; } = default!;
 }

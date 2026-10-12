@@ -43,7 +43,7 @@ public sealed class BookingService(
             return Result.Conflict("The booking has already been paid.");
 
         var nights = booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
-        var amount = booking.Rooms.Sum(x => x.PricePerNight * nights);
+        var amount = booking.Rooms.Sum(x => PriceCalculator.Total(x.PricePerNight, nights));
 
         if (amount <= 0)
             return Result.Invalid(new ValidationError("The booking amount must be greater than zero."));
