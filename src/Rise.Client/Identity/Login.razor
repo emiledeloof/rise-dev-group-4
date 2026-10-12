@@ -25,9 +25,10 @@
             {
                 <div class="notification is-danger">@error</div>
             }
-            <hr>
-            <div class="columns is-centered">
+            <div class="columns is-centered is-vcentered login-row">
                 <section class="column is-one-third">
+                    <h2 class="title">Admin Login</h2>
+                    <hr class="login-divider"/>
                     <EditForm Model="Model" OnValidSubmit="LoginUser" Context="formContext">
                         <FluentValidationValidator/>
                         <div class="field">

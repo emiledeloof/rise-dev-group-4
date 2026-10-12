@@ -1,7 +1,18 @@
+.login-divider {
+    border: none;
+    height: 2px;
+    background-color: var(--color-primary);
+    margin: 0.75rem 0 1.5rem;
+}
+
+.login-row {
+    min-height: 70vh;
+}
+
 .btn-login {
     display: inline-block;
     padding: 12px 24px;
-    background-color: #5c6b3a;
+    background-color: var(--color-primary);
     color: #ffffff;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size: 18px;
@@ -16,7 +27,7 @@
 }
 
 .btn-login:hover {
-    background-color: #4e5c31;
+    background-color: var(--color-primary-dark);
 }
 
 .btn-login:active {
