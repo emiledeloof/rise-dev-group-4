@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Rise.Persistence;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
+using Rise.Services.Pricing;
 
 namespace Rise.Services.Rooms;
 
@@ -21,6 +22,9 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         var checkIn = request.CheckIn!.Value;
         var checkOut = request.CheckOut!.Value;
 
+        // nb of nights, same calculation as the search page
+        var nights = request.Nights;
+
         // start from the rooms that are not deleted
         // keep a room only if NO booking of that room overlaps the stay
         // overlap rule, an existing booking overlaps when it starts before our check out AND ends after our check in
@@ -34,7 +38,7 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
             && br.Booking.CheckIn < checkOut
             && br.Booking.CheckOut > checkIn));
 
-        // turn each room into a RoomDto.Available, price from the first rate and url from the first photo
+        // turn each room into a RoomDto.Available, "from" price = cheapest rate, all rates listed, url from the first photo
         var rooms = await query.AsNoTracking()
             .OrderBy(r => r.Name)
             .Select(r => new RoomDto.Available
@@ -43,9 +47,22 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                 Name = r.Name,
                 Description = r.Description,
                 MaxGuests = r.MaxGuests,
-                PricePerNight = r.Rates.Select(x => x.PricePerNight).FirstOrDefault(),
-                PhotoUrl = r.Photos.Select(p => p.Url).FirstOrDefault()
-            })
+                PricePerNight = r.Rates.OrderBy(x => x.PricePerNight).Select(x => x.PricePerNight).FirstOrDefault(),
+                PhotoUrl = r.Photos.Select(p => p.Url).FirstOrDefault(),
+                Nights = nights,
+                TotalPrice = PriceCalculator.Total(r.Rates.OrderBy(x => x.PricePerNight).Select(x => x.PricePerNight).FirstOrDefault(), nights),
+                Rates = r.Rates
+                    .Where(x => !x.IsDeleted)
+                    .OrderBy(x => x.PricePerNight)
+                    .Select(x => new RateDto.Available
+                    {
+                        Id = x.Id,
+                        Name = x.Name,
+                        Description = x.Description,
+                        PricePerNight = x.PricePerNight,
+                        TotalPrice = PriceCalculator.Total(x.PricePerNight, nights)
+                    }).ToList()
+            })  
             .ToListAsync(ctx);
 
         // wrap the list in a RoomResponse.Available and send it back as a success

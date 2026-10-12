@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
+using Rise.Client.Components;
 
 namespace Rise.Client.Search;
 
@@ -35,6 +36,10 @@ public partial class Results
     // msg shown when the api call fails, null when all is fine
     private string? _errorMessage;
 
+    // rooms the guest picked, key = id of the room, value = id of the chosen rate
+    // a dictionary so a room can only be there once, with one rate
+    private readonly Dictionary<int, int> _selection = [];
+
     /// <summary>
     /// runs when the page opens and each time the dates in the url change, checks the dates then loads the free rooms
     /// </summary>
@@ -43,6 +48,9 @@ public partial class Results
         // reset so the page shows loading again for the new dates
         _rooms = null;
         _errorMessage = null;
+
+        // new dates mean new prices, so the old selection is not valid anymore
+        _selection.Clear();
 
         // same validator as the search form, so the rules are written only once
         // Validate checks every rule on Stay and returns a result
@@ -73,4 +81,30 @@ public partial class Results
         // all good, keep the rooms so the page can show them
         _rooms = result.Value.Rooms.ToList();
     }
+
+    // called by a card when the guest picks a rate, adds the room or changes its rate
+    private void SelectRate(int roomId, int rateId)
+    {
+        _selection[roomId] = rateId;
+    }
+
+    // called by a card when the guest clicks remove
+    private void RemoveRoom(int roomId)
+    {
+        _selection.Remove(roomId);
+    }
+
+    // lines of the summary, built from the selection and the rooms of the api
+    private IReadOnlyList<SelectedRoom> SelectedRooms => _rooms is null ? [] :
+        _selection.Select(s =>
+        {
+            // the room and the rate behind the 2 ids of the selection
+            var room = _rooms.First(r => r.Id == s.Key);
+            var rate = room.Rates.First(x => x.Id == s.Value);
+            return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice);
+    }).ToList();
+
+    // rate chosen for a room, null when the room is not in the selection
+    // TryGetValue gives true and the value when the key is there, false otherwise
+    private int? SelectedRateOf(int roomId) => _selection.TryGetValue(roomId, out var rateId) ? rateId : null;
 }

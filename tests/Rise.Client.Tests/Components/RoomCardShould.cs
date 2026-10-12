@@ -1,3 +1,4 @@
+using Rise.Shared.Rooms;
 using Shouldly;
 using Xunit.Abstractions;
 
@@ -18,17 +19,28 @@ public class RoomCardShould : BunitContext
         Services.AddXunitLogger(outputHelper);
     }
 
+    // 2 sample rates for 3 nights, the 2nd one has no conditions on purpose
+    private static RateDto.Available[] SampleRates(int nights = 3) =>
+    [
+        new() { Id = 1, Name = "Non-refundable", Description = "No refund after booking", PricePerNight = 109m, TotalPrice = 109m * nights },
+        new() { Id = 2, Name = "Fully refundable", Description = null, PricePerNight = 139m, TotalPrice = 139m * nights },
+    ];
+
     // renders a card with sample values, each test only changes what it checks
-    private IRenderedComponent<RoomCard> RenderCard(int maxGuests = 2, string? photoUrl = null, string? description = "Spacious room.") =>
+    private IRenderedComponent<RoomCard> RenderCard(int maxGuests = 2, string? photoUrl = null, string? description = "Spacious room.",
+        int nights = 3) =>
         Render<RoomCard>(p => p
             .Add(x => x.Name, "Double Room")
             .Add(x => x.Description, description)
             .Add(x => x.MaxGuests, maxGuests)
             .Add(x => x.PricePerNight, 109m)
+            .Add(x => x.Nights, nights)
+            .Add(x => x.TotalPrice, 109m * nights)
+            .Add(x => x.Rates, SampleRates(nights))
             .Add(x => x.PhotoUrl, photoUrl));
 
     /// <summary>
-    /// name, description and price per night are shown
+    /// name and description are shown
     /// </summary>
     [Fact]
     public void ShowTheRoomDetails()
@@ -39,7 +51,66 @@ public class RoomCardShould : BunitContext
         // assert, Markup is the html of the card as text
         cut.Find("h3").TextContent.ShouldBe("Double Room");
         cut.Find(".room-card-description").TextContent.ShouldBe("Spacious room.");
-        cut.Find(".room-card-price").TextContent.ShouldBe("€109 per night");
+    }
+
+    /// <summary>
+    /// the nb of nights is written once above the rates, with the vat note
+    /// </summary>
+    [Fact]
+    public void ShowTheNightsOnceAboveTheRates()
+    {
+        // arrange and act
+        var cut = RenderCard();
+
+        // assert
+        cut.Find(".room-card-price-detail").TextContent.ShouldBe("3 nights · prices include VAT");
+    }
+
+    /// <summary>
+    /// one line per rate with its name, conditions, total and price per night
+    /// </summary>
+    [Fact]
+    public void ShowOneLinePerRate()
+    {
+        // arrange and act
+        var cut = RenderCard();
+
+        // assert, 2 rates so 2 lines, the 1st one checked in detail
+        var lines = cut.FindAll(".room-card-rate");
+        lines.Count.ShouldBe(2);
+
+        var first = lines[0];
+        first.QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Non-refundable");
+        first.QuerySelector(".room-card-rate-conditions")!.TextContent.ShouldBe("No refund after booking");
+        first.QuerySelector(".room-card-total")!.TextContent.ShouldBe("€327");
+        first.QuerySelector(".room-card-rate-detail")!.TextContent.ShouldBe("€109 × 3 nights");
+    }
+
+    /// <summary>
+    /// a rate without conditions has no empty conditions line
+    /// </summary>
+    [Fact]
+    public void HideTheConditionsWhenARateHasNone()
+    {
+        // arrange and act
+        var cut = RenderCard();
+
+        // assert, QuerySelector gives null when nothing matches inside the 2nd line
+        cut.FindAll(".room-card-rate")[1].QuerySelector(".room-card-rate-conditions").ShouldBeNull();
+    }
+
+    /// <summary>
+    /// night is singular for a 1 night stay
+    /// </summary>
+    [Fact]
+    public void WriteNightInSingularForOneNight()
+    {
+        // arrange and act
+        var cut = RenderCard(nights: 1);
+
+        // assert, in the line above the rates and in the detail of each rate
+        cut.Find(".room-card-price-detail").TextContent.ShouldBe("1 night · prices include VAT");
+        cut.Find(".room-card-rate-detail").TextContent.ShouldBe("€109 × 1 night");
     }
 
     /// <summary>
@@ -99,22 +170,95 @@ public class RoomCardShould : BunitContext
         cut.FindAll(".is-placeholder").Count.ShouldBe(1);
     }
 
+    // renders a card with 2 rates, remembers what the card tells the page
+    private IRenderedComponent<RoomCard> RenderSelectableCard(List<int> picked, Action onRemove, int? selectedRateId = null,
+        RateDto.Available[]? rates = null) =>
+        Render<RoomCard>(p => p
+            .Add(x => x.Name, "Double Room")
+            .Add(x => x.Nights, 3)
+            .Add(x => x.Rates, rates ?? SampleRates())
+            .Add(x => x.SelectedRateId, selectedRateId)
+            .Add(x => x.OnRateSelected, rateId => picked.Add(rateId))
+            .Add(x => x.OnRemove, onRemove));
+
     /// <summary>
-    /// the select btn calls OnSelect
+    /// select picks the cheapest rate, the 1st one of the list
     /// </summary>
     [Fact]
-    public void CallOnSelectWhenSelectIsClicked()
+    public void PickTheCheapestRateWithSelect()
     {
-        // arrange, a counter that goes up each time OnSelect is called
-        var clicks = 0;
-        var cut = Render<RoomCard>(p => p
-            .Add(x => x.Name, "Double Room")
-            .Add(x => x.OnSelect, () => { clicks++; }));
+        // arrange, picked collects the rate ids the card sends to the page
+        var picked = new List<int>();
+        var cut = RenderSelectableCard(picked, () => { });
 
         // act
-        cut.Find("button").Click();
+        cut.Find(".select-btn").Click();
+
+        // assert, rate 1 is the non-refundable one, the cheapest
+        picked.ShouldBe(new[] { 1 });
+    }
+
+    /// <summary>
+    /// a click on the radio of a rate sends its id to the page
+    /// </summary>
+    [Fact]
+    public void PickARateWithItsRadio()
+    {
+        // arrange
+        var picked = new List<int>();
+        var cut = RenderSelectableCard(picked, () => { });
+
+        // act, Change simulates the radio being checked
+        cut.FindAll(".room-card-rate-radio")[1].Change(true);
+
+        // assert, rate 2 is the fully refundable one
+        picked.ShouldBe(new[] { 2 });
+    }
+
+    /// <summary>
+    /// the rate of the selection is the checked radio
+    /// </summary>
+    [Fact]
+    public void CheckTheSelectedRate()
+    {
+        // arrange and act, the page says rate 2 is chosen for this room
+        var cut = RenderSelectableCard([], () => { }, selectedRateId: 2);
+
+        // assert, only the 2nd radio has the checked attr
+        var radios = cut.FindAll(".room-card-rate-radio");
+        radios[0].HasAttribute("checked").ShouldBeFalse();
+        radios[1].HasAttribute("checked").ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// a room in the selection shows remove instead of select, and remove calls OnRemove
+    /// </summary>
+    [Fact]
+    public void ShowRemoveWhenTheRoomIsSelected()
+    {
+        // arrange, a counter that goes up each time OnRemove is called
+        var removed = 0;
+        var cut = RenderSelectableCard([], () => removed++, selectedRateId: 1);
+
+        // act
+        var button = cut.Find(".select-btn");
+        button.TextContent.Trim().ShouldBe("Remove");
+        button.Click();
 
         // assert
-        clicks.ShouldBe(1);
+        removed.ShouldBe(1);
+    }
+
+    /// <summary>
+    /// a room without rates can't be selected, so no select btn
+    /// </summary>
+    [Fact]
+    public void HideSelectWhenTheRoomHasNoRates()
+    {
+        // arrange and act
+        var cut = RenderSelectableCard([], () => { }, rates: []);
+
+        // assert
+        cut.FindAll(".select-btn").ShouldBeEmpty();
     }
 }

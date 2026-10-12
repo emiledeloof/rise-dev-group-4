@@ -225,7 +225,7 @@ Authentication and authorization are included.
 
 User accounts are hosted and maintained in the application's own database without requiring an external identity provider.
 
-You can log in using the following test users with the password:
+You can log in as the seeded administrator with the password:
 
 ```text
 A1b2C3!
@@ -233,23 +233,16 @@ A1b2C3!
 
 ### Users
 
-- user@example.com
-- technician1@example.com
-- technician2@example.com
-- secretary@example.com
 - admin@example.com
 
 ### Roles
 
-There are three built-in roles, but these can be adjusted as needed:
+There is one built-in role:
 
-- Technician
-- Secretary
 - Administrator
 
 ### Use Cases
 
-- Register
 - Login
 - Logout
 - GetInfo
@@ -284,7 +277,7 @@ It defines business rules independently from the UI, database and external techn
 
 **Typical Contents:**
 
-- **Entities**: Classes representing core concepts such as `Order`, `Customer` or `Product`.
+- **Entities**: Classes representing core concepts such as `Room`, `Guest` or `Booking`.
 - **Value Objects**: Immutable objects representing concepts such as `Money` or `Address`.
 
 > Value Objects are currently not provided in the template. You can read more in the [Domain-Driven Design course material](https://hogent-web.github.io/csharp/chapters/03/slides/index.html#75).
@@ -374,7 +367,7 @@ This processor runs after endpoints and is responsible for creating the final HT
 
 For example:
 
-- `Result<ProductDto>` → `200 OK`
+- `Result<RoomDto>` → `200 OK`
 - `Result.Invalid(errors)` → `400 Bad Request`
 - `Result.NotFound()` → `404 Not Found`
 

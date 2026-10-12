@@ -4,9 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Admins;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
-using Rise.Domain.Products;
 using Rise.Domain.Rooms;
-using Rise.Domain.Projects;
 
 namespace Rise.Persistence;
 
@@ -21,10 +19,6 @@ namespace Rise.Persistence;
 /// <param name="opts"></param>
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> opts) : IdentityDbContext<IdentityUser>(opts)
 {
-    public DbSet<Product> Products => Set<Product>();
-    public DbSet<Project> Projects => Set<Project>();
-    public DbSet<Technician> Technicians => Set<Technician>();
-
     public DbSet<Admin> Admins => Set<Admin>();
     public DbSet<Guest> Guests => Set<Guest>();
     public DbSet<Room> Rooms => Set<Room>();

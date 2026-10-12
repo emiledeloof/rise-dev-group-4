@@ -9,7 +9,7 @@ namespace Rise.Server.Endpoints.Invoice
         public override void Configure()
         {
             Get("/api/invoices");
-            Roles(AppRoles.Administrator); 
+            Roles(AppRoles.Administrator);
         }
 
         public override Task<Result<InvoiceResponse.Index>> ExecuteAsync(QueryRequest.SkipTake req, CancellationToken ct)

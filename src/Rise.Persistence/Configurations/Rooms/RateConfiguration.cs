@@ -13,5 +13,6 @@ internal class RateConfiguration : EntityConfiguration<Rate>
         base.Configure(builder);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(100);
         builder.Property(x => x.PricePerNight).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(500);
     }
 }

@@ -29,78 +29,9 @@
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* ---------- home page: booking bar ---------- */
-
-.booking-bar {
-    display: flex;
-    align-items: center;
-    padding: var(--space-sm) var(--space-md);
-    background: var(--color-surface);
-    border-radius: var(--radius);
-    color: var(--color-text);
-}
-
-.booking-field {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1 1 0;
-    min-width: 0;
-    padding: var(--space-xs) var(--space-md);
-    border-right: 1px solid var(--color-border);
-}
-
-/* the first field has no left padding so it lines up with the bar edge */
-.booking-field:first-child {
-    padding-left: var(--space-xs);
-}
-
-.booking-field-dates {
-    flex: 1.4 1 0;
-}
-
-.booking-field label {
-    font-size: 0.65rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-}
-
-.booking-dates {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-}
-
-.booking-dates-sep {
-    color: var(--color-text-muted);
-}
-
-/* borderless inputs, they look like plain text like in the mockup */
-.booking-input {
-    width: 100%;
-    padding: 0;
-    font-family: var(--font-body);
-    font-size: 0.9rem;
-    color: var(--color-text);
-    background: transparent;
-    border: 0;
-}
-
-.booking-input:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-    border-radius: 2px;
-}
-
-.booking-submit {
-    flex: 0 0 auto;
-    padding-left: var(--space-md);
-}
-
-.booking-submit .button {
-    white-space: nowrap;
+/* the shared search bar has a bottom margin for the other pages, not needed at the bottom of the hero */
+.hero ::deep .search-bar {
+    margin-bottom: 0;
 }
 
 /* ---------- home page: small screens ---------- */
@@ -109,27 +40,8 @@
     .hero {
         padding: var(--space-lg) var(--space-md);
     }
-
-    .booking-bar {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .booking-field,
-    .booking-field:first-child {
-        padding: var(--space-sm) 0;
-        border-right: 0;
-        border-bottom: 1px solid var(--color-border);
-    }
-
-    .booking-submit {
-        padding: var(--space-sm) 0 var(--space-xs);
-    }
-
-    .booking-submit .button {
-        width: 100%;
-    }
 }
+
 /* ---------- home page: sections ---------- */
 
 .home-section {

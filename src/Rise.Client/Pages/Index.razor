@@ -8,42 +8,9 @@
     <h1 class="hero-title">Slow days among vines and granite</h1>
     <p class="hero-text">A small, quiet guesthouse with gardens, vineyards and a wood full of granite rocks</p>
 
-    <form class="booking-bar" @onsubmit="CheckAvailability" @onsubmit:preventDefault>
-        <div class="booking-field booking-field-dates">
-            <label for="check-in">Dates</label>
-            <div class="booking-dates">
-                <input id="check-in" type="date" class="booking-input" min="@Today"
-                       @bind="checkIn" @bind:event="onchange" aria-label="Check-in date" />
-                <span class="booking-dates-sep" aria-hidden="true">–</span>
-                <input id="check-out" type="date" class="booking-input" min="@MinCheckOut"
-                       @bind="checkOut" @bind:event="onchange" aria-label="Check-out date" />
-            </div>
-        </div>
-
-        <div class="booking-field">
-            <label for="guests">Guests</label>
-            <select id="guests" class="booking-input" @bind="guests">
-                @for (var i = 1; i <= MaxGuests; i++)
-                {
-                    <option value="@i">@i @(i == 1 ? "guest" : "guests")</option>
-                }
-            </select>
-        </div>
-
-        <div class="booking-field">
-            <label for="rooms">Rooms</label>
-            <select id="rooms" class="booking-input" @bind="rooms">
-                @for (var i = 1; i <= MaxRooms; i++)
-                {
-                    <option value="@i">@i @(i == 1 ? "room" : "rooms")</option>
-                }
-            </select>
-        </div>
-
-        <div class="booking-submit">
-            <Button Variant="ButtonVariant.Primary" Type="submit">Check availability</Button>
-        </div>
-    </form>
+    @* shared search bar, same as on the search and results pages, goes to the results page *@
+    @* TODO: guests and rooms fields of the mockup, when a story asks for them *@
+    <SearchBar />
 </div>
 
 @* ---------- the estate ---------- *@
@@ -107,26 +74,6 @@
 </section>
 
 @code {
-    private const int MaxGuests = 6;
-    private const int MaxRooms = 3;
-
-    private DateOnly? checkIn;
-    private DateOnly? checkOut;
-    private int guests = 2;
-    private int rooms = 1;
-
-    private string Today => DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
-
-    // check-out can't be before the day after check-in
-    private string MinCheckOut =>
-        (checkIn?.AddDays(1) ?? DateOnly.FromDateTime(DateTime.Today).AddDays(1)).ToString("yyyy-MM-dd");
-
-    private void CheckAvailability()
-    {
-        // TODO: navigate to the rooms/book page with the search values once that page exists
-        // eg Navigation.NavigateTo($"rooms?from={checkIn:yyyy-MM-dd}&to={checkOut:yyyy-MM-dd}&guests={guests}&rooms={rooms}");
-    }
-
     // TODO: replace with real data from the api, placeholder colors stand in for the room photos
     private record RoomItem(string Name, int Price, string Color);
     private record ReviewItem(string Text, string Author, string Source);

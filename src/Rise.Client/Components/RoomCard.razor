@@ -23,10 +23,54 @@
         @* capacity, eg up to 2 guests *@
         <p class="room-card-meta">Up to @MaxGuests @(MaxGuests == 1 ? "guest" : "guests")</p>
 
-        @* price for one night, eg €160 per night *@
-        <p class="room-card-price">€@PricePerNight.ToString("0") per night</p>
+        @* rates of the room for the stay, cheapest first, styles in RoomCard.razor.css *@
+        <div class="room-card-prices">
+            @* nb of nights once for all the rates, night or nights like on the results page *@
+            <p class="room-card-price-detail">@Nights @(Nights == 1 ? "night" : "nights") · prices include VAT</p>
 
-        @* select btn, tells the page that this room was chosen *@
-        <Button OnClick="@OnSelect" Class="select-btn">Select</Button>
+            @* one line per rate, a radio btn to pick it, name and conditions in the middle, prices on the right *@
+            <ul class="room-card-rates">
+                @foreach (var rate in Rates)
+                {
+                    @* the whole line is a label so a click anywhere on it picks the rate *@
+                    <li>
+                    <label class="room-card-rate">
+
+                        @* radio btn of the rate, same name for all the rates of this room so only one can be checked *@
+                        @* checked when this rate is the one in the selection, picking it tells the page with OnRateSelected *@
+                        <input type="radio" class="room-card-rate-radio"
+                            name="rate-@Name"
+                            checked="@(rate.Id == SelectedRateId)"
+                            @onchange="() => OnRateSelected.InvokeAsync(rate.Id)" />
+
+                        @* left side, the name in room-card-rate-name *@
+                        @* then the conditions in room-card-rate-conditions, only when there are some *@
+                        <span class="room-card-rate-name">@rate.Name</span>
+                        @if (!string.IsNullOrWhiteSpace(rate.Description))
+                        {
+                            <span class="room-card-rate-conditions">@rate.Description</span>
+                        }
+
+                        @* right side, the total in room-card-total *@
+                        @* then the detail eg €109 × 3 nights in room-card-rate-detail *@
+                        <span class="room-card-total">€@rate.TotalPrice.ToString("0")</span>
+                        <span class="room-card-rate-detail">€@rate.PricePerNight.ToString("0") × @Nights @(Nights == 1 ? "night" : "nights")</span>
+
+                    </label>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        @* not in the selection yet, select adds the room with its cheapest rate *@
+        @* already in the selection, remove takes it out *@
+        @if ((SelectedRateId == null) && Rates.Any())
+        {
+            <Button OnClick="SelectCheapestAsync" Class="select-btn">Select</Button>
+        }
+        else if ((SelectedRateId != null))
+        {
+            <Button Variant="ButtonVariant.Secondary" OnClick="OnRemove" Class="select-btn">Remove</Button>
+        }
     </div>
 </article>

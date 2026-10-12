@@ -1,0 +1,36 @@
+@* "your selection" box of the results page, styles in SelectionSummary.razor.css *@
+<aside class="selection-summary" aria-label="Your selection">
+    <h2 class="selection-summary-title">Your selection</h2>
+    <p class="selection-summary-meta">@Nights @(Nights == 1 ? "night" : "nights")</p>
+
+    @if (Rooms.Count == 0)
+    {
+        @* nothing picked yet, short hint instead of an empty box *@
+        <p class="selection-summary-empty">Choose a rate on a room to add it here.</p>
+    }
+    else
+    {
+        @* one line per picked room, room and rate on the left, price on the right *@
+        <ul class="selection-summary-list">
+            @foreach (var room in Rooms)
+            {
+                <li class="selection-summary-room">
+                    <span class="selection-summary-room-name">@room.RoomName</span>
+                    <span class="selection-summary-rate-name">@room.RateName</span>
+                    <span class="selection-summary-price">€@room.TotalPrice.ToString("0")</span>
+                </li>
+            }
+        </ul>
+
+        @* total of all the rooms *@
+        <p class="selection-summary-total">
+            <span>Total</span>
+            <span>€@Total.ToString("0")</span>
+        </p>
+    }
+
+    <p class="selection-summary-vat">Prices include VAT</p>
+
+    @* next step of the booking, navigates to the guest details page *@
+    <Button IsFullWidth="true" IsDisabled="Rooms.Count == 0" Href="/guests/create">Continue</Button>
+</aside>

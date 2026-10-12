@@ -1,21 +1,27 @@
-@* compact search bar on top of the results page, styles in SearchBar.razor.css *@
+@* compact search bar used on the home, search and results pages, styles in SearchBar.razor.css *@
 
-@* same form as the search page, Search is only called when the validator passes *@
-<EditForm Model="_stay" OnValidSubmit="Search">
+@* same form as before, Search is only called when the validator passes *@
+@* EditContext instead of Model so the code behind can ask for a new check when the dates change *@
+<EditForm EditContext="_editContext" OnValidSubmit="Search">
 
     @* plugs the StayPeriod validator from shared into the form *@
     <FluentValidationValidator/>
 
-    @* one row, dates on the left and the btn on the right, stacks on small screens *@
+    @* white box, the row on top and the error messages inside it so they stay readable on the green hero *@
     <div class="search-bar">
-        @* check in and check out picker, both dates go into _stay *@
-        <DateRangePicker @bind-CheckIn="_stay.CheckIn" @bind-CheckOut="_stay.CheckOut" />
-        @* submit btn, label from the mockup *@
-        <Button Type="submit" Class="search-btn">Check Availability</Button>
+        @* one row, dates on the left and the btn on the right, stacks on small screens *@
+        <div class="search-bar-row">
+            @* check in and check out picker, both dates go into _stay *@
+            @* :after runs DatesChanged right after a date is written into _stay *@
+            <DateRangePicker @bind-CheckIn="_stay.CheckIn" @bind-CheckIn:after="DatesChanged"
+                             @bind-CheckOut="_stay.CheckOut" @bind-CheckOut:after="DatesChanged" />
+
+            @* submit btn, label from the mockup *@
+            <Button Type="submit" Class="search-btn">Check availability</Button>
+        </div>
+
+        @* error messages under the row *@
+        <ValidationMessage For="@(() => _stay.CheckIn)" class="has-text-danger"/>
+        <ValidationMessage For="@(() => _stay.CheckOut)" class="has-text-danger"/>
     </div>
-
-    @* error messages under the bar *@
-    <ValidationMessage For="@(() => _stay.CheckIn)" class="has-text-danger"/>
-    <ValidationMessage For="@(() => _stay.CheckOut)" class="has-text-danger"/>
-
 </EditForm>
