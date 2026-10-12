@@ -6,6 +6,7 @@ using Rise.Client.Bookings;
 using Rise.Client.Guests;
 using Rise.Client.Identity;
 using Rise.Client.Invoice;
+using Rise.Shared.Invoice;
 using Rise.Client.Rooms;
 using Rise.Shared.Bookings;
 using Rise.Shared.Guests;
