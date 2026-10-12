@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
+using Rise.Client.Bookings;
 using Rise.Client.Guests;
 using Rise.Client.Identity;
 using Rise.Client.Invoice;
 using Rise.Client.Rooms;
+using Rise.Shared.Bookings;
 using Rise.Shared.Guests;
 using Rise.Shared.Invoice;
 using Rise.Shared.Rooms;
@@ -45,6 +47,12 @@ try
 
     // the room search is public, no auth cookie needed
     builder.Services.AddHttpClient<IRoomService, RoomService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    });
+
+    // booking creation, checkout and confirmation are public, no auth cookie needed
+    builder.Services.AddHttpClient<IBookingService, BookingService>(client =>
     {
         client.BaseAddress = backendUrl;
     });
