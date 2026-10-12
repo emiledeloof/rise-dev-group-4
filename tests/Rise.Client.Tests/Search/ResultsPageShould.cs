@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Bookings;
 using Rise.Shared.Rooms;
 using Shouldly;
 using Xunit.Abstractions;
@@ -18,6 +19,9 @@ public class ResultsPageShould : BunitContext
     // fake api, the page gets it instead of the real RoomService
     private readonly FakeRoomService _roomService = new();
 
+    // booking draft the continue btn fills
+    private readonly BookingDraft _draft = new();
+
     /// <summary>
     /// sets up the logger and plugs the fake room service
     /// </summary>
@@ -27,6 +31,7 @@ public class ResultsPageShould : BunitContext
 
         // AddSingleton gives this exact object to the page, so the test can read it after
         Services.AddSingleton<IRoomService>(_roomService);
+        Services.AddSingleton(_draft);
     }
 
     // bunit fake NavigationManager, its Uri is the current page
@@ -233,5 +238,63 @@ public class ResultsPageShould : BunitContext
 
         // assert, retried a bit because the page reloads on its own
         cut.WaitForAssertion(() => cut.FindAll(".selection-summary-room").ShouldBeEmpty());
+    }
+
+    /// <summary>
+    /// continue stores the stay and the picked room with its rate in the draft, then goes to the guest details
+    /// </summary>
+    [Fact]
+    public void StoreTheSelectionInTheDraftOnContinue()
+    {
+        // arrange, the double room with its fully refundable rate
+        var cut = RenderWithDates(2, 5);
+        cut.Find(".select-btn").Click();
+        cut.FindAll(".room-card-rate-radio")[1].Change(true);
+
+        // act
+        cut.Find(".selection-summary button").Click();
+
+        // assert
+        _draft.CheckIn.ShouldBe(Today.AddDays(2));
+        _draft.CheckOut.ShouldBe(Today.AddDays(5));
+        var room = _draft.Rooms.Single();
+        room.RoomId.ShouldBe(1);
+        room.RateId.ShouldBe(2);
+        room.TotalPrice.ShouldBe(417m);
+        Navigation.Uri.ShouldEndWith("/guests/create");
+    }
+
+    /// <summary>
+    /// back from the next steps with the same dates, the rooms picked before are selected again
+    /// </summary>
+    [Fact]
+    public void RestoreTheSelectionOfTheDraftForTheSameDates()
+    {
+        // arrange
+        _draft.SetRooms(Today.AddDays(2), Today.AddDays(5),
+            [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 417m)]);
+
+        // act
+        var cut = RenderWithDates(2, 5);
+
+        // assert
+        cut.Find(".selection-summary-rate-name").TextContent.ShouldBe("Fully refundable");
+    }
+
+    /// <summary>
+    /// other dates mean other prices, the draft selection is not restored
+    /// </summary>
+    [Fact]
+    public void NotRestoreTheSelectionOfTheDraftForOtherDates()
+    {
+        // arrange
+        _draft.SetRooms(Today.AddDays(10), Today.AddDays(12),
+            [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 278m)]);
+
+        // act
+        var cut = RenderWithDates(2, 5);
+
+        // assert
+        cut.Find(".selection-summary-empty");
     }
 }

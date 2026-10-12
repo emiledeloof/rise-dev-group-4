@@ -57,6 +57,9 @@ try
         client.BaseAddress = backendUrl;
     });
 
+    // the booking the guest is putting together, kept until "Pay now"
+    builder.Services.AddScoped<BookingDraft>();
+
     builder.Services.AddHttpClient<IGuestService, GuestService>(client =>
     {
         client.BaseAddress = backendUrl;

@@ -139,6 +139,58 @@ h1, h2, h3 {
     border-color: var(--color-text-muted);
 }
 
+/* ---------- forms ---------- */
+
+/* blazor adds the invalid class to inputs that fail validation, a burgundy border and tint make them stand out */
+.input.invalid,
+.textarea.invalid,
+.select select.invalid {
+    border-color: var(--color-accent);
+    background-color: #fbf3f3;
+}
+
+.input.invalid:focus,
+.textarea.invalid:focus,
+.select select.invalid:focus {
+    box-shadow: 0 0 0 0.125em rgba(122, 46, 46, 0.25);
+}
+
+/* error text under a field, readable size with a warning icon in front */
+.help.is-danger {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.help.is-danger::before {
+    content: "\f06a";
+    margin-right: 0.35em;
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+}
+
+/* star after the label of a required field, explained by .form-required-hint */
+.label.is-required::after,
+.form-required-mark {
+    color: var(--color-accent);
+}
+
+.label.is-required::after {
+    content: " *";
+}
+
+.form-required-hint {
+    margin-top: calc(-1 * var(--space-sm));
+    margin-bottom: var(--space-md);
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+/* list of errors shown next to the submit btn after a failed submit */
+.form-error-summary .validation-errors {
+    margin: var(--space-xs) 0 0 1.25em;
+    list-style: disc;
+}
+
 /* ---------- cards ---------- */
 
 /* white rounded blocks used for forms, summaries and room cards */

@@ -1,0 +1,105 @@
+@page "/booking/overview"
+@* last step of the booking, everything the guest picked before paying, styles in Overview.razor.css *@
+@* TODO: translate the texts with the languages task *@
+
+<PageTitle>Booking overview</PageTitle>
+
+@if (Draft.IsComplete)
+{
+    var guest = Draft.Guest!;
+
+    <div class="page">
+        <span class="eyebrow">Book a room</span>
+        <h1>Review your booking</h1>
+        <p class="subtitle">Check the details below, then continue to the payment.</p>
+
+        @if (_conflictMessage is not null)
+        {
+            @* a room was booked by someone else while the guest filled in the form *@
+            <div class="notification is-danger overview-error">
+                <p>@_conflictMessage</p>
+                <Button Variant="ButtonVariant.Secondary" Href="@RoomsUrl" Class="mt-3">Choose other rooms</Button>
+            </div>
+        }
+        else if (_errors.Count > 0)
+        {
+            <div class="notification is-danger overview-error">
+                @foreach (var error in _errors)
+                {
+                    <p>@error</p>
+                }
+            </div>
+        }
+
+        <div class="overview-layout">
+            <div class="overview-sections">
+                <section class="overview-section overview-stay" aria-labelledby="overview-stay-title">
+                    <header class="overview-section-header">
+                        <h2 id="overview-stay-title" class="overview-section-title">Your stay</h2>
+                        <a class="overview-edit" href="/search">Edit</a>
+                    </header>
+                    <p>
+                        @Draft.CheckIn!.Value.ToString("ddd d MMM yyyy") – @Draft.CheckOut!.Value.ToString("ddd d MMM yyyy")
+                    </p>
+                    <p class="overview-muted">@Draft.Nights @(Draft.Nights == 1 ? "night" : "nights")</p>
+                </section>
+
+                <section class="overview-section overview-rooms" aria-labelledby="overview-rooms-title">
+                    <header class="overview-section-header">
+                        <h2 id="overview-rooms-title" class="overview-section-title">Rooms</h2>
+                        <a class="overview-edit" href="@RoomsUrl">Edit</a>
+                    </header>
+                    <ul class="overview-room-list">
+                        @foreach (var room in Draft.Rooms)
+                        {
+                            <li class="overview-room">
+                                <div>
+                                    <p class="overview-room-name">@room.RoomName</p>
+                                    <p class="overview-rate-name">@room.RateName · €@room.PricePerNight.ToString("0") / night</p>
+                                    @if (!string.IsNullOrWhiteSpace(room.RateDescription))
+                                    {
+                                        <p class="overview-rate-description">@room.RateDescription</p>
+                                    }
+                                </div>
+                                <span class="overview-room-price">€@room.TotalPrice.ToString("0")</span>
+                            </li>
+                        }
+                    </ul>
+                </section>
+
+                <section class="overview-section overview-guest" aria-labelledby="overview-guest-title">
+                    <header class="overview-section-header">
+                        <h2 id="overview-guest-title" class="overview-section-title">Guest details</h2>
+                        <a class="overview-edit" href="/guests/create">Edit</a>
+                    </header>
+                    <dl class="overview-guest-list">
+                        <div><dt>Name</dt><dd>@guest.FirstName @guest.LastName</dd></div>
+                        <div><dt>Email</dt><dd>@guest.Email</dd></div>
+                        <div><dt>Phone</dt><dd>@guest.PhoneNumber</dd></div>
+                        <div>
+                            <dt>Address</dt>
+                            <dd>
+                                @guest.AddressLine1
+                                @if (!string.IsNullOrWhiteSpace(guest.AddressLine2))
+                                {
+                                    <br />@guest.AddressLine2
+                                }
+                                <br />@guest.Country
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
+            </div>
+
+            @* total and pay btn, on the right on big screens, under the details on phones *@
+            <aside class="overview-summary" aria-label="Total">
+                <p class="overview-total">
+                    <span>Total</span>
+                    <span>€@Draft.Total.ToString("0")</span>
+                </p>
+                <p class="overview-muted">Prices include VAT</p>
+                <Button IsFullWidth="true" IsLoading="_isPaying" OnClick="PayAsync" Class="pay-btn">Pay now</Button>
+            </aside>
+        </div>
+    </div>
+}

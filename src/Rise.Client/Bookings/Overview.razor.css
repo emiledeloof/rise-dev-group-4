@@ -1,0 +1,141 @@
+/* booking overview styles, scoped to Overview.razor */
+
+/* details on the left and the total on the right, same idea as the results page */
+.overview-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 18rem;
+    gap: var(--space-lg);
+    align-items: start;
+    margin-top: var(--space-lg);
+}
+
+.overview-sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+/* white boxes like the room cards and the selection summary */
+.overview-section,
+.overview-summary {
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+}
+
+/* the total stays visible while the guest scrolls */
+.overview-summary {
+    position: sticky;
+    top: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+/* title on the left, edit link on the right */
+.overview-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: var(--space-sm);
+}
+
+.overview-section-title {
+    margin-bottom: 0;
+    font-size: 1.25rem;
+}
+
+.overview-edit {
+    font-size: 0.875rem;
+}
+
+.overview-muted,
+.overview-rate-name,
+.overview-rate-description {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+/* one room per line, thin line between them */
+.overview-room-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.overview-room {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.overview-room:last-child {
+    border-bottom: none;
+}
+
+.overview-room-name {
+    font-weight: 500;
+}
+
+.overview-room-price {
+    white-space: nowrap;
+}
+
+/* label on the left, value on the right */
+.overview-guest-list div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-xs) 0;
+}
+
+.overview-guest-list dt {
+    color: var(--color-text-muted);
+}
+
+.overview-guest-list dd {
+    margin: 0;
+    text-align: right;
+}
+
+/* total of the stay, the main number of the page, in the title font */
+.overview-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--font-title);
+    font-size: 1.5rem;
+}
+
+/* ::deep because the btn comes from the Button child component */
+.overview-summary ::deep .button {
+    margin-top: var(--space-sm);
+}
+
+.overview-error {
+    margin-top: var(--space-md);
+}
+
+/* tablets and phones, one column, the total goes under the details */
+@media (max-width: 1024px) {
+    .overview-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .overview-summary {
+        position: static;
+    }
+}
+
+@media (max-width: 600px) {
+    .overview-guest-list div {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .overview-guest-list dd {
+        text-align: left;
+    }
+}
