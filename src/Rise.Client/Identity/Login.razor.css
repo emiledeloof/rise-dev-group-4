@@ -1,0 +1,45 @@
+.login-divider {
+    border: none;
+    height: 2px;
+    background-color: var(--color-primary);
+    margin: 0.75rem 0 1.5rem;
+}
+
+.login-row {
+    min-height: 70vh;
+}
+
+.btn-login {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: var(--color-primary);
+    color: #ffffff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-login:hover {
+    background-color: var(--color-primary-dark);
+}
+
+.btn-login:active {
+    transform: translateY(1px);
+}
+
+.btn-login:focus-visible {
+    outline: 3px solid #a9b87a;
+    outline-offset: 2px;
+}
+
+.btn-login:disabled {
+    background-color: #9aa585;
+    cursor: not-allowed;
+}
