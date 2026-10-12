@@ -34,14 +34,7 @@ try
     // set up authorization
     builder.Services.AddAuthorizationCore();
 
-// register the booking service with the backend URL
-    
-    builder.Services.AddHttpClient<IBookingService, BookingService>(client =>
-    {
-        client.BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "https://localhost:5001");
-    });
-    
-// register the custom state provider
+    // register the custom state provider
     builder.Services.AddScoped<AuthenticationStateProvider, CookieAuthenticationStateProvider>();
     // register the account management interface
     builder.Services.AddScoped(sp => (IAccountManager)sp.GetRequiredService<AuthenticationStateProvider>());
@@ -58,6 +51,15 @@ try
     {
         client.BaseAddress = backendUrl;
     });
+
+    // booking creation, checkout and confirmation are public, no auth cookie needed
+    builder.Services.AddHttpClient<IBookingService, BookingService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    });
+
+    // the booking the guest is putting together, kept until "Pay now"
+    builder.Services.AddScoped<BookingDraft>();
 
     builder.Services.AddHttpClient<IGuestService, GuestService>(client =>
     {

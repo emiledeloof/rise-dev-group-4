@@ -8,7 +8,8 @@ public class Create(IBookingService bookingService)
     public override void Configure()
     {
         Post("/api/bookings");
-        // Choose authorization appropriate to your booking flow.
+        // guests book without an account
+        AllowAnonymous();
     }
 
     public override Task<Result<BookingResponse.Create>> ExecuteAsync(

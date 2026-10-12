@@ -3,9 +3,13 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Bookings;
+using Rise.Domain.Guests;
+using Rise.Domain.Rooms;
 using Rise.Persistence;
 using Rise.Services.Payments;
+using Rise.Services.Pricing;
 using Rise.Shared.Bookings;
+using Rise.Shared.Guests;
 
 namespace Rise.Services.Bookings;
 
@@ -77,46 +81,104 @@ public sealed class BookingService(
         });
     }
     
+    /// <summary>
+    /// Saves the booking when the guest clicks "Pay now": checks the rooms and rates, checks availability,
+    /// creates or updates the guest and stores everything in one SaveChanges.
+    /// </summary>
     public async Task<Result<BookingResponse.Create>> CreateAsync(BookingRequest.Create request, CancellationToken ctx = default)
     {
-        var guest = await dbContext.Guests.SingleOrDefaultAsync(x => x.Id == request.GuestId, ctx);
-        if (guest is null)
-        {
-            return Result.NotFound($"Guest with ID '{request.GuestId}' was not found.");
-        }
+        var roomIds = request.Rooms.Select(x => x.RoomId).ToList();
 
         var rooms = await dbContext.Rooms
             .Include(x => x.Rates)
-            .Where(x => request.RoomIds.Contains(x.Id))
+            .Where(x => !x.IsDeleted && roomIds.Contains(x.Id))
             .ToListAsync(ctx);
 
-        if (rooms.Count != request.RoomIds.Count)
+        if (rooms.Count != roomIds.Count)
         {
             return Result.NotFound("One or more selected rooms were not found.");
         }
 
+        // pair every room with the rate the guest chose, the rate must belong to that room
+        var selections = new List<(Room Room, Rate Rate)>();
+        foreach (var selection in request.Rooms)
+        {
+            var room = rooms.Single(x => x.Id == selection.RoomId);
+            var rate = room.Rates.SingleOrDefault(x => x.Id == selection.RateId && !x.IsDeleted);
+            if (rate is null)
+            {
+                return Result.Invalid(new ValidationError(
+                    $"The selected rate is not available for room '{room.Name}'."));
+            }
+
+            selections.Add((room, rate));
+        }
+
+        // same overlap rule as RoomService.GetAvailableAsync
+        // TODO: two simultaneous requests can both pass this check, add a Postgres exclusion constraint
+        // or a serializable transaction once bookings get a status (InMemory tests don't support transactions)
+        var takenRoomIds = await dbContext.BookingRooms
+            .Where(br => roomIds.Contains(br.Room.Id)
+                && !br.IsDeleted
+                && !br.Booking.IsDeleted
+                && br.Booking.CheckIn < request.CheckOut
+                && br.Booking.CheckOut > request.CheckIn)
+            .Select(br => br.Room.Id)
+            .Distinct()
+            .ToListAsync(ctx);
+
+        if (takenRoomIds.Count > 0)
+        {
+            var takenNames = rooms.Where(x => takenRoomIds.Contains(x.Id)).Select(x => x.Name);
+            return Result.Conflict(
+                $"{string.Join(", ", takenNames)} is no longer available for these dates.");
+        }
+
+        var guest = await UpsertGuestAsync(request.Guest, ctx);
+
         var bookingNumber = await GenerateBookingNumberAsync(ctx);
         var booking = new Booking(bookingNumber, guest, request.CheckIn, request.CheckOut);
 
-        foreach (var room in rooms)
+        foreach (var (room, rate) in selections)
         {
-            var rate = room.Rates.FirstOrDefault();
-            if (rate is null)
-            {
-                return Result.Error($"Room '{room.RoomNumber}' does not have a rate configured.");
-            }
-
+            // the booking copies the price per night of the rate, so the server price is used, not the client one
             booking.AddRoom(room, rate);
         }
 
+        // guest and booking are saved together, one SaveChanges is atomic
         dbContext.Bookings.Add(booking);
         await dbContext.SaveChangesAsync(ctx);
+
+        var nights = request.CheckOut.DayNumber - request.CheckIn.DayNumber;
 
         return Result.Created(new BookingResponse.Create
         {
             BookingId = booking.Id,
             BookingNumber = booking.BookingNumber,
+            TotalAmount = booking.Rooms.Sum(x => PriceCalculator.Total(x.PricePerNight, nights)),
         });
+    }
+
+    /// <summary>
+    /// Reuses the guest with the same email and updates the details with the latest ones, or creates a new guest.
+    /// </summary>
+    private async Task<Guest> UpsertGuestAsync(GuestRequest.Create request, CancellationToken ctx)
+    {
+        var email = request.Email.Trim();
+        var name = $"{request.FirstName.Trim()} {request.LastName.Trim()}";
+        var phone = request.PhoneNumber.Trim();
+        var address = new GuestAddress(request.AddressLine1, request.AddressLine2, request.Country);
+
+        var guest = await dbContext.Guests.SingleOrDefaultAsync(x => x.Email == email, ctx);
+        if (guest is null)
+        {
+            return new Guest(name, email, phone, address);
+        }
+
+        guest.Name = name;
+        guest.Phone = phone;
+        guest.ChangeAddress(address);
+        return guest;
     }
 
     public async Task<Result<BookingDto.Detail>> GetDetailAsync(int bookingId, CancellationToken ctx = default)

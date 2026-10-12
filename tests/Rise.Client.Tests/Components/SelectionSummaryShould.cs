@@ -94,23 +94,26 @@ public class SelectionSummaryShould : BunitContext
         var cut = RenderSummary();
 
         // assert
-        var link = cut.Find("a");
-        link.GetAttribute("aria-disabled").ShouldBe("true");
-        link.HasAttribute("href").ShouldBeFalse();
+        cut.Find("button").HasAttribute("disabled").ShouldBeTrue();
     }
 
     /// <summary>
-    /// the continue button links to the guest registration page when rooms are selected
+    /// the continue button tells the page, the page stores the selection and moves on
     /// </summary>
     [Fact]
-    public void EnableContinueButtonWithGuestRegistrationLinkWhenRoomsSelected()
+    public void CallOnContinueWhenRoomsSelected()
     {
-        // arrange and act
-        var cut = RenderSummary(new SelectedRoom("Double Room", "Standard", 150m));
+        // arrange
+        var continued = false;
+        var cut = Render<SelectionSummary>(p => p
+            .Add(x => x.Rooms, [new SelectedRoom("Double Room", "Standard", 150m)])
+            .Add(x => x.Nights, 3)
+            .Add(x => x.OnContinue, () => continued = true));
+
+        // act
+        cut.Find("button").Click();
 
         // assert
-        var link = cut.Find("a");
-        link.GetAttribute("href").ShouldBe("/guests/create");
-        link.HasAttribute("aria-disabled").ShouldBeFalse();
+        continued.ShouldBeTrue();
     }
 }

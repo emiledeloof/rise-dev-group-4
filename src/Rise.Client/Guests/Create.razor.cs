@@ -1,23 +1,23 @@
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Bookings;
 using Rise.Shared.Guests;
 
 namespace Rise.Client.Guests;
 
 /// <summary>
-/// Code-behind class for the guest registration page (<see cref="Create"/>).
-/// Encapsulates view logic, dependency injection, and user interaction.
+/// Code-behind class for the guest details page (<see cref="Create"/>), a step of the booking flow.
+/// The details are kept in the <see cref="BookingDraft"/>; they are only saved with the booking on "Pay now".
 /// </summary>
 public partial class Create
 {
     /// <summary>
-    /// Service used to send guest registration data to the backend API.
-    /// Injected via Dependency Injection (can be swapped with a test fake in bUnit tests).
+    /// The booking the guest is putting together, holds the picked rooms and receives the guest details.
     /// </summary>
     [Inject]
-    public required IGuestService GuestService { get; set; }
+    public required BookingDraft Draft { get; set; }
 
     /// <summary>
-    /// Navigation manager used to redirect the user upon successful registration.
+    /// Navigation manager used to go to the next step of the booking.
     /// </summary>
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
@@ -28,37 +28,59 @@ public partial class Create
     protected GuestRequest.Create Model { get; set; } = new();
 
     /// <summary>
-    /// Holds the result returned by <see cref="IGuestService.CreateAsync"/>.
-    /// Used by the Razor view to render error alerts if the operation fails.
+    /// True once the guest tried to continue with invalid fields, shows the error summary next to the button.
     /// </summary>
-    protected Result<GuestResponse.Create>? Result { get; set; }
+    protected bool IsErrorSummaryVisible { get; set; }
 
     /// <summary>
-    /// Flag indicating whether the submission is currently in flight.
-    /// Disables the submit button to prevent accidental double-clicks.
+    /// Link back to the results page with the dates of the draft, so the picked rooms are shown again.
     /// </summary>
-    protected bool IsSubmitting { get; set; }
+    protected string BackToRoomsUrl =>
+        $"/search/results?checkIn={Draft.CheckIn:yyyy-MM-dd}&checkOut={Draft.CheckOut:yyyy-MM-dd}";
+
+    /// <summary>
+    /// Sends the guest back to the search when no rooms are picked (e.g. after a page refresh),
+    /// otherwise prefills the form with the details entered before.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        if (!Draft.HasRooms)
+        {
+            NavigationManager.NavigateTo("/search");
+            return;
+        }
+
+        if (Draft.Guest is { } guest)
+        {
+            // a copy, so unsaved edits don't change the draft
+            Model = new GuestRequest.Create
+            {
+                FirstName = guest.FirstName,
+                LastName = guest.LastName,
+                Email = guest.Email,
+                PhoneNumber = guest.PhoneNumber,
+                AddressLine1 = guest.AddressLine1,
+                AddressLine2 = guest.AddressLine2,
+                Country = guest.Country,
+            };
+        }
+    }
+
+    /// <summary>
+    /// Called when the user submits the form and a FluentValidation rule fails.
+    /// </summary>
+    protected void ShowErrorSummary()
+    {
+        IsErrorSummaryVisible = true;
+    }
 
     /// <summary>
     /// Called when the user submits the form and all client-side FluentValidation rules pass.
-    /// Calls the guest service and navigates home upon success.
+    /// Stores the details in the draft and continues to the booking overview.
     /// </summary>
-    protected async Task CreateGuestAsync()
+    protected void Continue()
     {
-        IsSubmitting = true;
-        try
-        {
-            Result = await GuestService.CreateAsync(Model);
-
-            if (Result.IsSuccess)
-            {
-                // Navigate back to the home page or confirmation page
-                NavigationManager.NavigateTo("/");
-            }
-        }
-        finally
-        {
-            IsSubmitting = false;
-        }
+        Draft.SetGuest(Model);
+        NavigationManager.NavigateTo("/booking/overview");
     }
 }
