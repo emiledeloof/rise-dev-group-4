@@ -23,6 +23,7 @@ public class InvoiceServiceShould
 
         var deposit = booking.AddPayment(100m, "cs_test_1");
         deposit.MarkAsPaid(new DateTime(2026, 10, 1, 14, 30, 0, DateTimeKind.Utc), "in_test_1", "INV-2026-0001");
+        deposit.SetStripePaymentDetails("pi_test_1", "https://pay.stripe.com/receipts/test_1", "visa", "4242");
         booking.AddPayment(118m, "cs_test_2");
 
         dbContext.Guests.Add(guest);
@@ -51,6 +52,31 @@ public class InvoiceServiceShould
         var paid = invoices.Single(x => x.IsPaid);
         paid.Amount.ShouldBe(100m);
         paid.InvoiceNumber.ShouldBe("INV-2026-0001");
+    }
+
+    [Fact]
+    public async Task ReturnStripePaymentDetails()
+    {
+        // Arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnStripePaymentDetails));
+        var service = new InvoiceService(dbContext);
+
+        // Act
+        var result = await service.GetIndexAsync(new QueryRequest.SkipTake());
+
+        // Assert
+        result.IsSuccess.ShouldBeTrue();
+        var invoices = result.Value.Invoices.ToList();
+
+        var paid = invoices.Single(x => x.IsPaid);
+        paid.StripePaymentIntent.ShouldBe("pi_test_1");
+        paid.StripeReceiptUrl.ShouldBe("https://pay.stripe.com/receipts/test_1");
+        paid.CardBrand.ShouldBe("visa");
+        paid.CardLast4.ShouldBe("4242");
+
+        var open = invoices.Single(x => !x.IsPaid);
+        open.StripePaymentIntent.ShouldBeNull();
+        open.StripeReceiptUrl.ShouldBeNull();
     }
 
     [Fact]

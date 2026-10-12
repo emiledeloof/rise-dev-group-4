@@ -1,13 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Rise.Persistence;
 using Rise.Shared.Common;
+using Stripe;
 
 namespace Rise.Services.Payments;
 
 /// <summary>
 /// Updates local payments after Stripe has verified a completed Checkout Session.
 /// </summary>
-public sealed class StripeWebhookService(ApplicationDbContext dbContext) : IStripeWebhookService
+public sealed class StripeWebhookService(
+    ApplicationDbContext dbContext,
+    IStripePaymentGateway paymentGateway) : IStripeWebhookService
 {
     public async Task<Result> HandleCheckoutSessionCompletedAsync(
         StripeCheckoutSessionCompleted payment,
@@ -25,9 +28,30 @@ public sealed class StripeWebhookService(ApplicationDbContext dbContext) : IStri
         if (localPayment.IsPaid)
             return Result.Success();
 
-        localPayment.MarkAsPaid(payment.PaidAt);
+        var details = await TryGetPaymentDetailsAsync(payment.SessionId, cancellationToken);
+
+        localPayment.MarkAsPaid(details?.PaidAt ?? payment.PaidAt);
+        if (details is not null)
+            localPayment.SetStripePaymentDetails(details.PaymentIntentId, details.ReceiptUrl, details.CardBrand, details.CardLast4);
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// The verified webhook already proves the payment, so the extra Stripe details are optional.
+    /// </summary>
+    private async Task<StripePaymentDetails?> TryGetPaymentDetailsAsync(string sessionId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await paymentGateway.GetPaymentDetailsAsync(sessionId, cancellationToken);
+        }
+        catch (StripeException exception)
+        {
+            Log.Warning(exception, "Could not load the Stripe payment details for Checkout Session {SessionId}.", sessionId);
+            return null;
+        }
     }
 }

@@ -1,0 +1,100 @@
+@page "/guests/create"
+@page "/guest-registration"
+
+<div class="container my-5">
+    <h2 class="title is-3">Guest Registration</h2>
+    <p class="subtitle is-6">Please enter your personal details and address below.</p>
+
+    @* Error notification banner if API returns failure *@
+    @if (Result is not null && !Result.IsSuccess)
+    {
+        <div class="notification is-danger">
+            <button class="delete" @onclick="() => Result = null"></button>
+            @foreach (var error in Result.Errors)
+            {
+                <p>@error</p>
+            }
+        </div>
+    }
+
+    <EditForm Model="@Model" OnValidSubmit="@CreateGuestAsync">
+        @* Validates form fields against FluentValidation validator defined in Rise.Shared.Guests.GuestRequest.Create.Validator *@
+        <FluentValidationValidator />
+
+        <div class="columns">
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label">First Name</label>
+                    <div class="control">
+                        <InputText @bind-Value="Model.FirstName" class="input" placeholder="e.g. John" />
+                    </div>
+                    <ValidationMessage For="() => Model.FirstName" class="help is-danger" />
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label">Last Name</label>
+                    <div class="control">
+                        <InputText @bind-Value="Model.LastName" class="input" placeholder="e.g. Doe" />
+                    </div>
+                    <ValidationMessage For="() => Model.LastName" class="help is-danger" />
+                </div>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label">Email Address</label>
+                    <div class="control">
+                        <InputText @bind-Value="Model.Email" type="email" class="input" placeholder="e.g. john.doe@example.com" />
+                    </div>
+                    <ValidationMessage For="() => Model.Email" class="help is-danger" />
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label">Phone Number</label>
+                    <div class="control">
+                        <InputText @bind-Value="Model.PhoneNumber" class="input" placeholder="e.g. +32 123 456 789" />
+                    </div>
+                    <ValidationMessage For="() => Model.PhoneNumber" class="help is-danger" />
+                </div>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label">Address Line 1</label>
+            <div class="control">
+                <InputText @bind-Value="Model.AddressLine1" class="input" placeholder="Street and house number" />
+            </div>
+            <ValidationMessage For="() => Model.AddressLine1" class="help is-danger" />
+        </div>
+
+        <div class="field">
+            <label class="label">Address Line 2 (Optional)</label>
+            <div class="control">
+                <InputText @bind-Value="Model.AddressLine2" class="input" placeholder="Apartment, suite, unit, etc." />
+            </div>
+            <ValidationMessage For="() => Model.AddressLine2" class="help is-danger" />
+        </div>
+
+        <div class="field">
+            <label class="label">Country</label>
+            <div class="control">
+                <InputText @bind-Value="Model.Country" class="input" placeholder="e.g. Belgium" />
+            </div>
+            <ValidationMessage For="() => Model.Country" class="help is-danger" />
+        </div>
+
+        <div class="field is-grouped is-grouped-right mt-5">
+            <div class="control">
+                <button type="submit" class="button is-primary @(IsSubmitting ? "is-loading" : "")" disabled="@IsSubmitting">
+                    Register Guest
+                </button>
+            </div>
+        </div>
+    </EditForm>
+</div>

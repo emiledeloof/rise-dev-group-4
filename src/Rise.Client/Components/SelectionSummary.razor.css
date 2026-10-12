@@ -1,0 +1,88 @@
+/* selection summary styles, scoped to SelectionSummary.razor */
+
+/* white box like the room cards */
+.selection-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+}
+
+/* title in the title font, a bit smaller than the room names */
+.selection-summary-title {
+    margin-bottom: 0;
+    font-size: 1.25rem;
+}
+
+/* nb of nights and vat note, small and grey */
+.selection-summary-meta,
+.selection-summary-vat {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+}
+
+/* hint shown when nothing is picked yet */
+.selection-summary-empty {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+/* list of picked rooms, a thin line between them */
+.selection-summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-top: var(--space-xs);
+}
+
+/*
+  one picked room on 2 rows
+  room name and price on the 1st row, rate name under the room name
+*/
+.selection-summary-room {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+        "name price"
+        "rate price";
+    column-gap: var(--space-sm);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.selection-summary-room-name {
+    grid-area: name;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.selection-summary-rate-name {
+    grid-area: rate;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+}
+
+.selection-summary-price {
+    grid-area: price;
+    align-self: center;
+    font-size: 0.875rem;
+}
+
+/* total of the stay, the main number of the box, in the title font */
+.selection-summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: var(--space-xs);
+    font-family: var(--font-title);
+    font-size: 1.5rem;
+}
+
+/* continue btn with some space above */
+/* ::deep because the btn comes from the Button child component */
+.selection-summary ::deep .button {
+    margin-top: var(--space-sm);
+}

@@ -1,7 +1,7 @@
 @page "/login"
 
 <PageTitle>Login</PageTitle>
-<hr>
+
 <AuthorizeView>
     <Authorized Context="authContext">
         <div class="notification">You're logged in as @authContext.User.Identity?.Name.</div>
@@ -49,10 +49,7 @@
                     </div>
                     <div class="field is-grouped is-grouped-right">
                         <p class="control">
-                            <Button Variant="ButtonVariant.Primary">Login</Button>
-                        </p>
-                        <p class="control">
-                            <Button Variant="ButtonVariant.Secondary" href="register" >Register</Button>
+                            <button class="button is-light">Login</button>
                         </p>
                     </div>
                 </EditForm>

@@ -54,6 +54,19 @@ public class ResultsPageShould : BunitContext
     }
 
     /// <summary>
+    /// the rates sent by the api reach the cards, the double room has 2 and the single room none
+    /// </summary>
+    [Fact]
+    public void PassTheRatesToTheCards()
+    {
+        // arrange and act
+        var cut = RenderWithDates(2, 5);
+
+        // assert
+        cut.FindAll(".room-card-rate").Count.ShouldBe(2);
+    }
+
+    /// <summary>
     /// the page sends the dates of the url to the api
     /// </summary>
     [Fact]
@@ -134,5 +147,91 @@ public class ResultsPageShould : BunitContext
 
         // assert, WaitForAssertion retries a bit because the page reloads on its own
         cut.WaitForAssertion(() => _roomService.Requests.Last().CheckIn.ShouldBe(Today.AddDays(10)));
+    }
+
+    /// <summary>
+    /// nothing is picked when the page opens, the summary shows its hint
+    /// </summary>
+    [Fact]
+    public void StartWithAnEmptySelection()
+    {
+        // arrange and act
+        var cut = RenderWithDates(2, 5);
+
+        // assert
+        cut.Find(".selection-summary-empty").TextContent.ShouldBe("Choose a rate on a room to add it here.");
+    }
+
+    /// <summary>
+    /// select on a card adds the room with its cheapest rate to the summary
+    /// </summary>
+    [Fact]
+    public void AddARoomToTheSummaryWithSelect()
+    {
+        // arrange, the fake double room has 2 rates, the single room none so only 1 select btn
+        var cut = RenderWithDates(2, 5);
+
+        // act
+        cut.Find(".select-btn").Click();
+
+        // assert, one line with the cheapest rate and the total of the summary
+        var line = cut.Find(".selection-summary-room");
+        line.QuerySelector(".selection-summary-room-name")!.TextContent.ShouldBe("Double Room");
+        line.QuerySelector(".selection-summary-rate-name")!.TextContent.ShouldBe("Non-refundable");
+        cut.Find(".selection-summary-total").TextContent.ShouldContain("€327");
+    }
+
+    /// <summary>
+    /// picking another rate changes the line and the total, the room is not added twice
+    /// </summary>
+    [Fact]
+    public void ChangeTheRateOfARoom()
+    {
+        // arrange, the room is in the selection with its cheapest rate
+        var cut = RenderWithDates(2, 5);
+        cut.Find(".select-btn").Click();
+
+        // act, pick the fully refundable rate
+        cut.FindAll(".room-card-rate-radio")[1].Change(true);
+
+        // assert
+        cut.FindAll(".selection-summary-room").Count.ShouldBe(1);
+        cut.Find(".selection-summary-rate-name").TextContent.ShouldBe("Fully refundable");
+        cut.Find(".selection-summary-total").TextContent.ShouldContain("€417");
+    }
+
+    /// <summary>
+    /// remove takes the room out of the summary
+    /// </summary>
+    [Fact]
+    public void RemoveARoomFromTheSummary()
+    {
+        // arrange
+        var cut = RenderWithDates(2, 5);
+        cut.Find(".select-btn").Click();
+
+        // act, the same btn now says remove, Find again because the card was redrawn
+        cut.Find(".select-btn").Click();
+
+        // assert
+        cut.FindAll(".selection-summary-room").ShouldBeEmpty();
+        cut.Find(".selection-summary-empty");
+    }
+
+    /// <summary>
+    /// new dates empty the selection, the old prices are not valid anymore
+    /// </summary>
+    [Fact]
+    public void EmptyTheSelectionWhenTheDatesChange()
+    {
+        // arrange, one room picked
+        var cut = RenderWithDates(2, 5);
+        cut.Find(".select-btn").Click();
+
+        // act, the search bar sends the guest to the same page with other dates
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(10):yyyy-MM-dd}&checkOut={Today.AddDays(12):yyyy-MM-dd}");
+
+        // assert, retried a bit because the page reloads on its own
+        cut.WaitForAssertion(() => cut.FindAll(".selection-summary-room").ShouldBeEmpty());
     }
 }

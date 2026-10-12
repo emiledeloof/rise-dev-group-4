@@ -13,13 +13,13 @@ namespace Rise.Client.Identity
     /// Create a new instance of the auth provider.
     /// </remarks>
     /// <param name="httpClientFactory">Factory to retrieve auth client.</param>
-    public class CookieAuthenticationStateProvider(IHttpClientFactory httpClientFactory): AuthenticationStateProvider, IAccountManager
+    public class CookieAuthenticationStateProvider(IHttpClientFactory httpClientFactory) : AuthenticationStateProvider, IAccountManager
     {
         /// <summary>
         /// Special auth client.
         /// </summary>
         private readonly HttpClient httpClient = httpClientFactory.CreateClient("SecureApi");
-        
+
         /// <summary>
         /// Authentication state.
         /// </summary>
@@ -29,34 +29,6 @@ namespace Rise.Client.Identity
         /// Default principal for anonymous (not authenticated) users.
         /// </summary>
         private readonly ClaimsPrincipal unauthenticated = new(new ClaimsIdentity());
-
-        /// <summary>
-        /// Register a new user.
-        /// </summary>
-        /// <param name="email">The user's email address.</param>
-        /// <param name="password">The user's password.</param>
-        /// <returns>The result serialized to a <see cref="Result"/>.
-        /// </returns>
-        public async Task<Result> RegisterAsync(string email, string password, string confirmPassword)
-        {
-            try
-            {
-                var response = await httpClient.PostAsJsonAsync("/api/identity/accounts/register", new AccountRequest.Register
-                {
-                    Email = email,
-                    Password = password,
-                    ConfirmPassword = confirmPassword,
-                });
-            
-                var result = await response.Content.ReadFromJsonAsync<Result>();
-                return result!;
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Could not register user.");
-                return Result.Error("An unknown error prevented registration from succeeding.");
-            }
-         }
 
         /// <summary>
         /// User login.
@@ -73,7 +45,7 @@ namespace Rise.Client.Identity
                     Email = email,
                     Password = password,
                 });
-            
+
                 var result = await response.Content.ReadFromJsonAsync<Result>();
                 if (response.IsSuccessStatusCode)
                 {
@@ -107,7 +79,7 @@ namespace Rise.Client.Identity
             try
             {
                 var result = await httpClient.GetFromJsonAsync<Result<AccountResponse.Info>>("/api/identity/accounts/info");
-                
+
                 if (result!.IsSuccess)
                 {
                     var claims = new List<Claim>
@@ -115,15 +87,15 @@ namespace Rise.Client.Identity
                         new(ClaimTypes.Name, result.Value.Email),
                         new(ClaimTypes.Email, result.Value.Email)
                     };
-                
+
                     claims.AddRange(
                         result.Value.Claims
                             .Where(c => c.Key is not (ClaimTypes.Name or ClaimTypes.Email or ClaimTypes.Role))
                             .Select(c => new Claim(c.Key, c.Value))
                     );
-                
+
                     claims.AddRange(result.Value.Roles.Select(r => new Claim(ClaimTypes.Role, r)));
-                
+
                     var identity = new ClaimsIdentity(claims, nameof(CookieAuthenticationStateProvider));
                     user = new ClaimsPrincipal(identity);
                     authenticated = true;

@@ -108,6 +108,49 @@ dotnet --version
 
    To stop everything use `docker compose --profile tools down`. Add `-v` to also remove the database volume.
 
+## Docker Deployment
+
+The `Dockerfile` builds a production image of `Rise.Server`, which also serves the Blazor client. It is a Release build that runs in the `Production` environment, listens on plain HTTP port 8080 and runs as a non-root user. There are three compose files:
+
+| File | Purpose |
+| --- | --- |
+| `docker-compose.yml` | Development: only PostgreSQL (+ pgAdmin), the app runs with `dotnet run`. |
+| `docker-compose.local.yml` | Local test deployment: app container + its own database (project `rise-local`). |
+| `docker-compose.prod.yml` | Preparation for the real deployment (not used by `deploy.yaml` yet). |
+
+### Local test deployment
+
+```bash
+docker compose -f docker-compose.local.yml up -d --build   # http://localhost:8080
+docker compose -f docker-compose.local.yml logs -f app
+docker compose -f docker-compose.local.yml down -v         # stop and reset the database
+```
+
+- Uses the same `.env` as development (`POSTGRES_PASSWORD` is required). It has its own database volume and no published DB port, so it runs side by side with the dev stack and dev runs never wipe its data.
+- On startup the app applies the migrations and seeds the test data (`APP_SEED=true`, same users as in development). The seeder skips data that already exists, so restarts are safe.
+- Stripe: the app needs `Stripe:SecretKey` at startup. Without `STRIPE_SECRET_KEY` in `.env` it gets a placeholder, so the app starts but payments fail. To test payments, put your Stripe test keys in `.env` (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_SUCCESS_URL`, `STRIPE_CANCEL_URL`).
+
+### Configuration
+
+Outside Development, the database is only migrated or seeded when these settings are on (both default to `false` in `appsettings.json`):
+
+| Environment variable | Meaning |
+| --- | --- |
+| `ConnectionStrings__DatabaseConnection` | PostgreSQL connection string (required) |
+| `Database__MigrateOnStartup` | Apply EF migrations on startup (without deleting the database) |
+| `Database__Seed` | Run `DbSeeder` after migrating |
+| `Stripe__SecretKey`, `Stripe__WebhookSecret`, `Stripe__SuccessUrl`, `Stripe__CancelUrl`, `Stripe__Currency` | Stripe settings |
+| `UseHttpsRedirection` | `false` in the image, TLS is terminated by a reverse proxy |
+
+### Real deployment (preparation)
+
+`docker-compose.prod.yml` runs the image `${RISE_IMAGE:-rise-server:latest}` with migrations on and seeding off. The app is only bound to `127.0.0.1:${APP_PORT:-8080}`, and all Stripe variables are required. Put a reverse proxy (nginx, Caddy, …) in front of it that terminates TLS and forwards `X-Forwarded-For` and `X-Forwarded-Proto`; the app evaluates these headers. To switch `.github/workflows/deploy.yaml` over later, the runner would:
+
+```bash
+docker build -t rise-server:latest .
+docker compose -f docker-compose.prod.yml up -d
+```
+
 ## Creation of the Database
 
 The database is created by the application itself using Entity Framework Core migrations.
@@ -182,7 +225,7 @@ Authentication and authorization are included.
 
 User accounts are hosted and maintained in the application's own database without requiring an external identity provider.
 
-You can log in using the following test users with the password:
+You can log in as the seeded administrator with the password:
 
 ```text
 A1b2C3!
@@ -190,23 +233,16 @@ A1b2C3!
 
 ### Users
 
-- user@example.com
-- technician1@example.com
-- technician2@example.com
-- secretary@example.com
 - admin@example.com
 
 ### Roles
 
-There are three built-in roles, but these can be adjusted as needed:
+There is one built-in role:
 
-- Technician
-- Secretary
 - Administrator
 
 ### Use Cases
 
-- Register
 - Login
 - Logout
 - GetInfo
@@ -241,7 +277,7 @@ It defines business rules independently from the UI, database and external techn
 
 **Typical Contents:**
 
-- **Entities**: Classes representing core concepts such as `Order`, `Customer` or `Product`.
+- **Entities**: Classes representing core concepts such as `Room`, `Guest` or `Booking`.
 - **Value Objects**: Immutable objects representing concepts such as `Money` or `Address`.
 
 > Value Objects are currently not provided in the template. You can read more in the [Domain-Driven Design course material](https://hogent-web.github.io/csharp/chapters/03/slides/index.html#75).
@@ -331,7 +367,7 @@ This processor runs after endpoints and is responsible for creating the final HT
 
 For example:
 
-- `Result<ProductDto>` → `200 OK`
+- `Result<RoomDto>` → `200 OK`
 - `Result.Invalid(errors)` → `400 Bad Request`
 - `Result.NotFound()` → `404 Not Found`
 

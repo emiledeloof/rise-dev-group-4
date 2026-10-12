@@ -9,3 +9,32 @@
     grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
     gap: var(--space-lg);
 }
+
+/*
+  2 columns on big screens, the cards take the free space and the summary keeps a fixed width
+  minmax(0, 1fr) so long content can't push the summary out of the screen
+*/
+.results-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 18rem;
+    gap: var(--space-lg);
+    align-items: start;
+}
+
+/* the summary stays visible while the guest scrolls the cards */
+/* ::deep because the aside comes from the SelectionSummary child component */
+.results-layout ::deep .selection-summary {
+    position: sticky;
+    top: var(--space-lg);
+}
+
+/* tablets and phones, one column, the summary goes under the cards */
+@media (max-width: 1024px) {
+    .results-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .results-layout ::deep .selection-summary {
+        position: static;
+    }
+}
