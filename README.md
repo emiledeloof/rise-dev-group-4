@@ -20,7 +20,7 @@ docker compose up -d                    # database only (PostgreSQL on localhost
 docker compose --profile tools up -d    # or: database + pgAdmin at http://localhost:5050
 ```
 
-Then run `Rise.Server` (https://localhost:5001). See [Installation Instructions](#installation-instructions) for details.
+Then run `Rise.Server` (https://localhost:5001). See [Installation Instructions](#installation-instructions) for details. To test payments, see [Testing Stripe Payments Locally](#testing-stripe-payments-locally).
 
 > **Coming from the old setup** (password `rise` hard-coded)? After the one-time setup, run `docker compose down -v` once so the database is recreated with your new password.
 
@@ -150,6 +150,92 @@ Outside Development, the database is only migrated or seeded when these settings
 docker build -t rise-server:latest .
 docker compose -f docker-compose.prod.yml up -d
 ```
+
+## Testing Stripe Payments Locally
+
+Guests pay with [Stripe Checkout](https://docs.stripe.com/payments/checkout) in test mode, so no real money is involved. **Pay now** on the booking overview saves the booking and redirects to Stripe. After paying, Stripe sends the guest back to `/booking/confirmation`. If the guest cancels, Stripe sends them to `/payment/cancel`.
+
+The payment is only marked as paid when Stripe calls our webhook (`POST /api/payments/stripe-webhook`). Stripe can't reach `localhost`, so the Stripe CLI has to forward the webhook. **If `stripe listen` isn't running while you pay, the booking stays "Payment processing" forever.**
+
+### One-time setup
+
+1. Install the Stripe CLI, then open a **new** PowerShell window (restart Visual Studio / Rider if it was open). You don't need `stripe login`, because the CLI uses the test secret key from User Secrets.
+
+   ```powershell
+   winget install Stripe.StripeCli
+   stripe --version
+   ```
+
+2. Add the Stripe settings to User Secrets. Ask the team for the test secret key, and **never commit or share `sk_test_...` / `whsec_...` values**.
+
+   ```powershell
+   cd "<repo root>"
+   dotnet user-secrets set "Stripe:SecretKey"  "sk_test_..." --project .\src\Rise.Server
+   dotnet user-secrets set "Stripe:Currency"   "eur" --project .\src\Rise.Server
+   dotnet user-secrets set "Stripe:SuccessUrl" "https://localhost:5001/booking/confirmation?session_id={CHECKOUT_SESSION_ID}" --project .\src\Rise.Server
+   dotnet user-secrets set "Stripe:CancelUrl"  "https://localhost:5001/payment/cancel" --project .\src\Rise.Server
+   ```
+
+3. Store the webhook signing secret. `stripe listen` prints it, and it stays the same for your machine and Stripe account:
+
+   ```powershell
+   $key = (dotnet user-secrets list --project .\src\Rise.Server | Select-String '^Stripe:SecretKey = ').Line -replace '^Stripe:SecretKey = ', ''
+   $whsec = stripe listen --api-key $key --print-secret
+   dotnet user-secrets set "Stripe:WebhookSecret" $whsec --project .\src\Rise.Server
+   ```
+
+   To check which keys are set (names only, no values): `dotnet user-secrets list --project .\src\Rise.Server | % { ($_ -split ' = ')[0] }`. You need `Stripe:SecretKey`, `Stripe:Currency`, `Stripe:SuccessUrl`, `Stripe:CancelUrl` and `Stripe:WebhookSecret`.
+
+### Every test run
+
+Use PowerShell (not cmd) with two windows. **Start window 1 before you pay.**
+
+**Window 1: Stripe listener** (keep it open)
+
+```powershell
+cd "<repo root>"
+$key = (dotnet user-secrets list --project .\src\Rise.Server | Select-String '^Stripe:SecretKey = ').Line -replace '^Stripe:SecretKey = ', ''
+stripe listen --api-key $key --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed --forward-to https://localhost:5001/api/payments/stripe-webhook
+```
+
+**Window 2: database and server**
+
+```powershell
+cd "<repo root>"
+docker compose up -d
+dotnet run --project .\src\Rise.Server\Rise.Server.csproj
+```
+
+Wait for `Now listening on: https://localhost:5001`. The server reads User Secrets only at startup, so restart it after you change a secret.
+
+**In the browser**
+
+1. Open https://localhost:5001. Search for dates, pick a room, enter the guest details and click **Pay now**.
+2. On the Stripe page, pay with card `4242 4242 4242 4242`, any future date, any CVC and any name. Other test cards (declined, 3D Secure, …) are listed in the [Stripe docs](https://docs.stripe.com/testing).
+3. You land on `/booking/confirmation?session_id=cs_test_...`. The page shows "We're confirming your payment…" for a moment, then **Confirmed**.
+4. Window 1 shows `--> checkout.session.completed` followed by `<-- [200] POST https://localhost:5001/api/payments/stripe-webhook`.
+5. Optional: log in as `admin@example.com` / `A1b2C3!` and open `/invoice-list`. The booking shows **Paid**, via Stripe, with "Visa •••• 4242 · Stripe receipt ↗".
+
+**Cancel flow:** click the back arrow on the Stripe page. You land on `/payment/cancel`, and the booking stays unpaid.
+
+**Without the UI:** booking 2 (`20261003-0002`) is an open booking in the seed data. `curl.exe -k -X POST https://localhost:5001/api/bookings/2/checkout-session -H "Accept: application/json"` returns a `checkoutUrl` that you can open in the browser.
+
+Press Ctrl+C in both windows to stop. `docker compose down` stops the database.
+
+### Troubleshooting
+
+| Problem | Fix |
+| --- | --- |
+| Confirmation page stays on "Payment processing" | `stripe listen` wasn't running when you paid, so the webhook never arrived. Start window 1 and pay again. Alternatively, run `stripe events resend <evt_id> --api-key $key` (the event id is in the Stripe dashboard or `stripe events list --api-key $key`). Resending only works while the server is still in the same run, because a restart reseeds the database. |
+| Window 1 shows `[400]` for the webhook | `Stripe:WebhookSecret` doesn't match the secret `stripe listen` prints. Set it again (one-time setup, step 3) and restart the server. |
+| Window 1 shows `[404]` for the webhook | The payment doesn't exist anymore. In Development, every server start deletes and reseeds the database, so bookings from an earlier run are gone. |
+| `stripe` not found | Open a new terminal, or reload PATH: `$env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User")` |
+| `$key = ...` doesn't work | You're in cmd. Type `powershell` first. |
+| "You have not configured API keys" | `--api-key $key` is missing or `$key` is empty. Run the `$key = ...` line again in the same window. |
+| "Stripe:SecretKey is not configured" | That secret is missing from User Secrets. |
+| Database or connection error at startup | Docker isn't running, or the password in the connection string doesn't match `.env`. |
+| Migration error | Old database state. Run `docker compose down -v` (this deletes all local data), then `docker compose up -d`. |
+| Paid booking shows no card details | Only payments made after the Stripe details were added store them. Make a new test payment. |
 
 ## Creation of the Database
 

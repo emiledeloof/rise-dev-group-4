@@ -26,6 +26,9 @@ public partial class Overview
     // other errors sent back by the api
     private List<string> _errors = [];
 
+    // id of the booking once it is saved, set when only the checkout failed so a retry doesn't save it twice
+    private int? _createdBookingId;
+
     // results page with the dates of the draft, the picked rooms are shown again there
     private string RoomsUrl =>
         $"/search/results?checkIn={Draft.CheckIn:yyyy-MM-dd}&checkOut={Draft.CheckOut:yyyy-MM-dd}";
@@ -41,7 +44,7 @@ public partial class Overview
             Navigation.NavigateTo("/guests/create");
     }
 
-    // saves the booking, the payment itself comes later
+    // saves the booking, then opens the Stripe checkout page
     private async Task PayAsync()
     {
         if (_isPaying)
@@ -53,33 +56,56 @@ public partial class Overview
 
         try
         {
-            var result = await BookingService.CreateAsync(Draft.ToCreateRequest());
-
-            if (result.IsSuccess)
+            // a retry after a failed checkout reuses the saved booking, saving it again would conflict with itself
+            if (_createdBookingId is null)
             {
-                // TODO: create the Stripe checkout session and redirect to it instead
-                Draft.Clear();
-                Navigation.NavigateTo($"/booking/received?number={Uri.EscapeDataString(result.Value.BookingNumber)}");
+                var result = await BookingService.CreateAsync(Draft.ToCreateRequest());
+
+                if (!result.IsSuccess)
+                {
+                    if (result.Status == ResultStatus.Conflict)
+                    {
+                        _conflictMessage = result.Errors.FirstOrDefault()
+                            ?? "One of the rooms is no longer available for these dates.";
+                        return;
+                    }
+
+                    _errors = ToErrors(result, "Sorry, we could not save your booking. Please try again later.");
+                    return;
+                }
+
+                _createdBookingId = result.Value.BookingId;
+            }
+
+            var checkout = await BookingService.CreateCheckoutSessionAsync(
+                new BookingRequest.CreateCheckoutSession { BookingId = _createdBookingId.Value });
+
+            if (!checkout.IsSuccess)
+            {
+                _errors = ToErrors(checkout, "Your booking is saved but we could not start the payment. Please try again.");
                 return;
             }
 
-            if (result.Status == ResultStatus.Conflict)
-            {
-                _conflictMessage = result.Errors.FirstOrDefault()
-                    ?? "One of the rooms is no longer available for these dates.";
-                return;
-            }
-
-            _errors = result.ValidationErrors.Select(e => e.ErrorMessage)
-                .Concat(result.Errors)
-                .ToList();
-
-            if (_errors.Count == 0)
-                _errors.Add("Sorry, we could not save your booking. Please try again later.");
+            // Stripe is another site, forceLoad leaves the app, Stripe sends the guest back to the confirmation page
+            Draft.Clear();
+            Navigation.NavigateTo(checkout.Value.CheckoutUrl, forceLoad: true);
         }
         finally
         {
             _isPaying = false;
         }
+    }
+
+    // validation errors and other errors of the api, the fallback when it sent none
+    private static List<string> ToErrors(IResult result, string fallback)
+    {
+        var errors = result.ValidationErrors.Select(e => e.ErrorMessage)
+            .Concat(result.Errors)
+            .ToList();
+
+        if (errors.Count == 0)
+            errors.Add(fallback);
+
+        return errors;
     }
 }

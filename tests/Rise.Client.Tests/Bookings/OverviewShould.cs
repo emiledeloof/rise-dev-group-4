@@ -79,7 +79,7 @@ public class OverviewShould : BunitContext
     }
 
     [Fact]
-    public void SaveTheBookingAndShowTheReceivedPageOnPayNow()
+    public void SaveTheBookingAndOpenStripeCheckoutOnPayNow()
     {
         // arrange
         var draft = TestDrafts.WithRooms(withGuest: true);
@@ -88,14 +88,55 @@ public class OverviewShould : BunitContext
         // act
         cut.Find(".pay-btn").Click();
 
-        // assert, the request holds the picked room and rate, the draft is emptied
+        // assert, the request holds the picked room and rate, the checkout is for the saved booking, the draft is emptied
         var request = _bookingService.CreateRequests.Single();
         request.CheckIn.ShouldBe(TestDrafts.CheckIn);
         request.Rooms.Single().RoomId.ShouldBe(1);
         request.Rooms.Single().RateId.ShouldBe(1);
         request.Guest.Email.ShouldBe("marie@example.com");
+        _bookingService.CheckoutRequests.Single().BookingId.ShouldBe(1);
         draft.HasRooms.ShouldBeFalse();
-        Navigation.Uri.ShouldEndWith("/booking/received?number=20261012-SVM-000042");
+        Navigation.Uri.ShouldBe("https://checkout.stripe.com/c/pay/cs_test_123");
+    }
+
+    [Fact]
+    public void ShowAnErrorAndKeepTheDraftWhenTheCheckoutFails()
+    {
+        // arrange
+        _bookingService.CheckoutAnswer = Result.Error();
+        var draft = TestDrafts.WithRooms(withGuest: true);
+        var cut = RenderWith(draft);
+
+        // act
+        cut.Find(".pay-btn").Click();
+
+        // assert, the guest stays on the page and can try again
+        cut.Find(".overview-error").TextContent.ShouldContain("could not start the payment");
+        draft.HasRooms.ShouldBeTrue();
+        Navigation.Uri.ShouldEndWith("/booking/overview");
+    }
+
+    [Fact]
+    public void NotSaveTheBookingTwiceWhenRetryingTheCheckout()
+    {
+        // arrange, the 1st checkout fails
+        _bookingService.CheckoutAnswer = Result.Error();
+        var cut = RenderWith(TestDrafts.WithRooms(withGuest: true));
+        cut.Find(".pay-btn").Click();
+
+        // act, the 2nd one works
+        _bookingService.CheckoutAnswer = Result.Success(new BookingResponse.CheckoutSession
+        {
+            CheckoutUrl = "https://checkout.stripe.com/c/pay/cs_test_456",
+            SessionId = "cs_test_456",
+        });
+        cut.Find(".pay-btn").Click();
+
+        // assert, the booking is saved once and the checkout is asked twice for it
+        _bookingService.CreateRequests.Count.ShouldBe(1);
+        _bookingService.CheckoutRequests.Count.ShouldBe(2);
+        _bookingService.CheckoutRequests.ShouldAllBe(r => r.BookingId == 1);
+        Navigation.Uri.ShouldBe("https://checkout.stripe.com/c/pay/cs_test_456");
     }
 
     [Fact]
