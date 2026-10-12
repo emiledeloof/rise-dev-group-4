@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
+using Rise.Client.Guests;
 using Rise.Client.Identity;
 using Rise.Client.Invoice;
-using Rise.Shared.Invoice;
 using Rise.Client.Rooms;
+using Rise.Shared.Guests;
+using Rise.Shared.Invoice;
 using Rise.Shared.Rooms;
 
 try
@@ -43,6 +45,11 @@ try
 
     // the room search is public, no auth cookie needed
     builder.Services.AddHttpClient<IRoomService, RoomService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    });
+
+    builder.Services.AddHttpClient<IGuestService, GuestService>(client =>
     {
         client.BaseAddress = backendUrl;
     });
