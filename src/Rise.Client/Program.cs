@@ -38,11 +38,11 @@ try
     var backendUrl = new Uri(builder.Configuration["BackendUrl"] ?? builder.HostEnvironment.BaseAddress);
 
     // configure client for auth interactions
-    builder.Services.AddHttpClient("SecureApi",opt => opt.BaseAddress = backendUrl)
+    builder.Services.AddHttpClient("SecureApi", opt => opt.BaseAddress = backendUrl)
         .AddHttpMessageHandler<CookieHandler>();
 
     // the room search is public, no auth cookie needed
-    builder.Services.AddHttpClient<IProductService, ProductService>(client =>
+    builder.Services.AddHttpClient<IRoomService, RoomService>(client =>
     {
         client.BaseAddress = backendUrl;
     });
