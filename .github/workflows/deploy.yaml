@@ -43,6 +43,7 @@ jobs:
           dotnet test --no-build --configuration Release --verbosity normal
 
   build:
+    name: Build the container, don't push to docker hub
     runs-on: [self-hosted, build-server]
     needs: ci
     # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
