@@ -72,14 +72,30 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          push: true
+          push: false
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.sha_short }}
             ${{ env.IMAGE_NAME }}:latest
 
+  push:
+    name: Push to Docker Hub
+    needs: build
+    runs-on: [self-hosted, prod-server]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}
+            ${{ env.IMAGE_NAME }}:latest
+
   # deploy:
   #   name: Deploy to Production
-  #   needs: build
+  #   needs: push
   #   runs-on: [self-hosted, prod-server]
   #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
