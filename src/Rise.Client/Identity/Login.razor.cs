@@ -15,9 +15,9 @@ public partial class Login
     {
         _result = await AccountManager.LoginAsync(Model.Email!, Model.Password!);
 
-        if (_result.IsSuccess && !string.IsNullOrEmpty(ReturnUrl))
+        if (_result.IsSuccess)
         {
-            Navigation.NavigateTo(ReturnUrl);
+            Navigation.NavigateTo($"/admin/invoice-list");
         }
     }
 }

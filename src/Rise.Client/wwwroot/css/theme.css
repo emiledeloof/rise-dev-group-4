@@ -17,7 +17,7 @@
     --color-text: #2b2b2b;           /* main text and titles */
     --color-text-muted: #6b6b6b;     /* secondary text, eg descriptions and hints */
     --color-footer: #242428;         /* dark footer bg */
-    --color-warning-bg: #f6e7c4;     /* info boxes like refund notices */
+    --color-warning-bg: #fae5b6;     /* info boxes like refund notices */
 
     /* fonts, serif for titles and sans serif for body text */
     --font-title: 'Cormorant Garamond', Georgia, serif;
