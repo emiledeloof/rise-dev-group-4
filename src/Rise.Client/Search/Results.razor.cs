@@ -146,7 +146,7 @@ public partial class Results
             var room = _rooms.First(r => r.Id == s.Key);
             var rate = room.Rates.First(x => x.Id == s.Value);
             return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice);
-    }).ToList();
+        }).ToList();
 
     // rate chosen for a room, null when the room is not in the selection
     // TryGetValue gives true and the value when the key is there, false otherwise

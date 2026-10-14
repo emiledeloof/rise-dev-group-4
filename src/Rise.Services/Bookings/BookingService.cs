@@ -81,7 +81,7 @@ public sealed class BookingService(
             SessionId = stripeSession.SessionId
         });
     }
-    
+
     /// <summary>
     /// Saves the booking when the guest clicks "Pay now": checks the rooms and rates, checks availability,
     /// creates or updates the guest and stores everything in one SaveChanges.
