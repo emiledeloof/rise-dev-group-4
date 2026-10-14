@@ -1,0 +1,17 @@
+<section class="placeholder-page" aria-labelledby="placeholder-title">
+    <span class="eyebrow">@Eyebrow</span>
+    <h1 id="placeholder-title">@Title</h1>
+    <p class="placeholder-page-message">@Message</p>
+    <Button Variant="ButtonVariant.Secondary" Href="/">Back to home</Button>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Eyebrow { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Message { get; set; } = string.Empty;
+}
