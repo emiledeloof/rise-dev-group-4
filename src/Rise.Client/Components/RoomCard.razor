@@ -28,7 +28,7 @@
             @* nb of nights once for all the rates, night or nights like on the results page *@
             <p class="room-card-price-detail">@Nights @(Nights == 1 ? "night" : "nights") · prices include VAT</p>
 
-            @* one line per rate, a radio btn to pick it, name and conditions in the middle, prices on the right *@
+            @* one line per rate, a radio btn to pick it, the price per night next to it and the total on the right *@
             <ul class="room-card-rates">
                 @foreach (var rate in Rates)
                 {
@@ -43,16 +43,9 @@
                             checked="@(rate.Id == SelectedRateId)"
                             @onchange="() => OnRateSelected.InvokeAsync(rate.Id)" />
 
-                        @* left side, the name in room-card-rate-name *@
-                        @* then the conditions in room-card-rate-conditions, only when there are some *@
-                        <span class="room-card-rate-name">@rate.Name</span>
-                        @if (!string.IsNullOrWhiteSpace(rate.Description))
-                        {
-                            <span class="room-card-rate-conditions">@rate.Description</span>
-                        }
-
-                        @* right side, the total in room-card-total *@
-                        @* then the detail eg €109 × 3 nights in room-card-rate-detail *@
+                        @* only the price, no rate name and no conditions for now, there is only one rate per room *@
+                        @* TODO: show the name and conditions again when the rooms get several rates *@
+                        @* detail eg €109 × 3 nights in room-card-rate-detail, total on the right in room-card-total *@
                         <span class="room-card-total">€@rate.TotalPrice.ToString("0")</span>
                         <span class="room-card-rate-detail">€@rate.PricePerNight.ToString("0") × @Nights @(Nights == 1 ? "night" : "nights")</span>
 
