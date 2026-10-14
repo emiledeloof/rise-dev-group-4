@@ -1,0 +1,16 @@
+﻿@page "/admin"
+@layout AdminLayout
+@using Rise.Shared.Identity
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+
+<PageTitle>Admin</PageTitle>
+
+<AuthorizeView Context="authContext">
+    <Authorized>
+        <div class="page">
+            <h1 class="title">Overview</h1>
+            <h3 class="welcome-message">Welcome back, @authContext.User.Identity?.Name</h3>
+            <hr class="divider">
+        </div>
+    </Authorized>
+</AuthorizeView>

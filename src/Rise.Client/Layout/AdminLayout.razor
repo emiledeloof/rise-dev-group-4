@@ -1,0 +1,14 @@
+﻿@inherits LayoutComponentBase
+<div class="admin-shell">
+    <aside class="admin-sidebar">
+        <a class="admin-brand" href="/admin">Stazzu La Vigna di Maria</a>
+        <nav aria-label="Admin navigation">
+            <NavLink href="/admin" Match="NavLinkMatch.All">Landpage</NavLink>
+            <NavLink href="/admin/booking-list">Bookings</NavLink>
+            <NavLink href="/admin/invoice-list">Invoices</NavLink>
+        </nav>
+    </aside>
+    <main class="admin-content">
+        @Body
+    </main>
+</div>

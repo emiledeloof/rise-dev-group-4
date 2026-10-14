@@ -1,0 +1,12 @@
+﻿.divider {
+    border: none;
+    height: 2px;
+    background-color: var(--color-primary);
+    margin: 0.75rem 0 1.5rem;
+}
+
+.welcome-message {
+    font-family: var(--font-title);
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
