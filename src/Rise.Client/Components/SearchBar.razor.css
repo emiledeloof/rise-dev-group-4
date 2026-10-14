@@ -1,13 +1,21 @@
-/* compact search bar styles, scoped to SearchBar.razor */
+/* compact search bar styles, scoped to SearchBar.razor, same look on the home, search and results pages */
+/* the home hero makes the glass more transparent and the bar narrower, see Pages/Index.razor.css */
 
-/* white box with a border like the mockup, holds the row and the error messages */
+/* frosted glass box, a light veil with a white highlight on top and a soft shadow */
+/* full width of the page, holds the row and the error messages */
 .search-bar {
-    padding: var(--space-sm);
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-card);
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 14px;
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 0 0 1px rgba(43, 43, 43, 0.05),
+        0 10px 30px rgba(43, 43, 43, 0.08);
     margin-bottom: var(--space-lg);
-    /* dark text even on the green home hero, which sets white text */
+    /* dark text even on the home hero, which sets white text */
     color: var(--color-text);
 }
 
@@ -15,28 +23,125 @@
 .search-bar-row {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: 6px;
 }
 
+/* ---------- dates field ---------- */
+
 /* the picker takes all the free space, the btn keeps its own size */
-/* ::deep because .drp is inside the DateRangePicker child component */
+/* ::deep because the .drp classes are inside the DateRangePicker child component */
+/* .drp in the selectors so they win over the picker's own css */
 .search-bar ::deep .drp {
     flex: 1;
     /* the picker css caps it at 22rem, not wanted in the bar */
     max-width: none;
 }
 
-/* error messages a bit smaller, with some space above */
-/* ::deep because they come from the ValidationMessage component */
-.search-bar ::deep .has-text-danger {
-    margin: var(--space-xs) var(--space-xs) 0;
+/* compact field, almost white so it stands out on the glass, no border, the box around already has one */
+.search-bar ::deep .drp .drp-field {
+    padding: 0.4rem 0.9rem;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-color: transparent;
+}
+
+.search-bar ::deep .drp .drp-field:hover,
+.search-bar ::deep .drp .drp-field[aria-expanded="true"] {
+    border-color: var(--color-primary);
+}
+
+/* small spaced out label and small value, quiet luxury look */
+.search-bar ::deep .drp .drp-label {
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+}
+
+.search-bar ::deep .drp .drp-value {
     font-size: 0.875rem;
 }
 
-/* phones, the btn goes under the dates and takes the full width */
+/* ---------- btn ---------- */
+
+/* as high as the dates field, small uppercase spaced out text like on luxury hotel sites */
+.search-bar ::deep .search-btn {
+    align-self: stretch;
+    height: auto;
+    padding-inline: 1.25rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* ---------- calendar ---------- */
+
+/* compact panel under the bar with rounded corners and a soft shadow */
+.search-bar ::deep .drp .drp-panel {
+    padding: var(--space-md);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+/* smaller months, days and gaps than the default picker */
+.search-bar ::deep .drp .drp-months {
+    gap: var(--space-md);
+}
+
+.search-bar ::deep .drp .drp-month-title {
+    font-size: 1rem;
+}
+
+.search-bar ::deep .drp .drp-grid {
+    grid-template-columns: repeat(7, 2rem);
+}
+
+.search-bar ::deep .drp .drp-weekday {
+    font-size: 0.6875rem;
+}
+
+.search-bar ::deep .drp .drp-day {
+    height: 2rem;
+    font-size: 0.8125rem;
+}
+
+.search-bar ::deep .drp .drp-nav-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 1rem;
+}
+
+.search-bar ::deep .drp .drp-hint {
+    margin-top: var(--space-sm);
+    font-size: 0.75rem;
+}
+
+/* ---------- errors ---------- */
+
+/* error messages as small burgundy labels under the row, readable on white and on the glass of the home */
+/* !important because bulma puts it on has-text-danger */
+.search-bar ::deep .has-text-danger {
+    width: fit-content;
+    margin: var(--space-xs) var(--space-xs) 0;
+    padding: 2px var(--space-sm);
+    border-radius: var(--radius);
+    background-color: var(--color-accent);
+    color: #fff !important;
+    font-size: 0.8125rem;
+}
+
+/* ---------- small screens ---------- */
+
+/* phones, the btn goes under the dates and takes the full width, the days fill the width */
 @media (max-width: 768px) {
     .search-bar-row {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .search-bar ::deep .search-btn {
+        padding-block: 0.75rem;
+    }
+
+    .search-bar ::deep .drp .drp-grid {
+        grid-template-columns: repeat(7, 1fr);
     }
 }

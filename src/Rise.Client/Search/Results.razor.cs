@@ -49,6 +49,11 @@ public partial class Results
     /// </summary>
     protected override async Task OnParametersSetAsync()
     {
+        // the page is being left, eg continue went to the guest details, so nothing to load
+        // without this the bunit tests loop forever, there is no router to close the page so the empty dates redirect again and again
+        if (!Navigation.ToBaseRelativePath(Navigation.Uri).StartsWith("search/results"))
+            return;
+
         // reset so the page shows loading again for the new dates
         _rooms = null;
         _errorMessage = null;

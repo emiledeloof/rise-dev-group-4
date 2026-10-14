@@ -1,43 +1,137 @@
 /* ---------- home page: hero ---------- */
 
+/* full width hero, the photos fill it and the logo and search bar sit in the middle */
+/* no overflow hidden here, the date picker panel of the search bar must be able to go below the hero */
 .hero {
-    /* muted olive from the mockup, TODO: replace with the exact hex from the ba */
+    /* muted olive from the mockup, shown until the 1st photo is loaded */
     --color-hero: #7d866a;
 
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(34rem, 82vh, 52rem);
+    padding: var(--space-xl) var(--space-lg);
     background-color: var(--color-hero);
     color: #fff;
-    padding: var(--space-xl) var(--space-lg);
+    text-align: center;
 }
 
-.hero .hero-eyebrow {
-    color: rgba(255, 255, 255, 0.9);
-    letter-spacing: 0.1em;
+/* layer with the photos, behind the content, it cuts the slow zoom of the photos */
+.hero-slides {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
 }
 
+/* all photos on top of each other, invisible until their turn comes */
+.hero-slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    animation: hero-slide 30s linear infinite; /* 5 photos x 6 s, see HeroPhotos in Index.razor */
+}
+
+/* dark veil on the photos so the white logo and title stay readable, a bit darker at the bottom for the search bar */
+.hero-slides::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(20, 20, 16, 0.45) 0%, rgba(20, 20, 16, 0.25) 45%, rgba(20, 20, 16, 0.6) 100%);
+}
+
+/* logo, title and search bar, above the photos */
+.hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 52rem;
+}
+
+/* white version of the logo, with a soft shadow so it stays readable on light photos */
+.hero-logo {
+    width: clamp(14rem, 32vw, 24rem);
+    height: auto;
+    margin-bottom: var(--space-md);
+    filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.35));
+}
+
+/* tagline under the logo, light serif italic for the luxury look */
 .hero .hero-title {
     color: #fff;
-    font-size: clamp(2.5rem, 5vw, 3.75rem);
+    font-size: clamp(1.25rem, 2.2vw, 1.75rem);
     font-weight: 400;
-    margin-bottom: var(--space-md);
-}
-
-.hero .hero-text {
-    max-width: 48rem;
+    font-style: italic;
+    letter-spacing: 0.02em;
     margin-bottom: var(--space-lg);
-    font-size: 1rem;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* the shared search bar has a bottom margin for the other pages, not needed at the bottom of the hero */
+/* ---------- home page: search bar in glass on the hero ---------- */
+/* size, fonts and calendar come from SearchBar.razor.css, here only the glass look */
+
+/* the form of the search bar is centered and as wide as the bar, otherwise it shrinks to its content */
+.hero-content ::deep form {
+    width: 100%;
+    max-width: 38rem;
+}
+
+/* more transparent glass on the photo, no bottom margin in the hero */
 .hero ::deep .search-bar {
     margin-bottom: 0;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* each photo: fades in, stays, fades out while the next one fades in, and zooms slowly the whole time */
+/* 20% = 6 s of the 30 s loop, so the % only work for 5 photos */
+@keyframes hero-slide {
+    0% {
+        opacity: 0;
+        transform: scale(1);
+    }
+    4% {
+        opacity: 1;
+    }
+    20% {
+        opacity: 1;
+    }
+    24% {
+        opacity: 0;
+        transform: scale(1.08);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.08);
+    }
+}
+
+/* users who turned off animations in their system only get the 1st photo, without movement */
+@media (prefers-reduced-motion: reduce) {
+    .hero-slide {
+        animation: none;
+    }
+
+    .hero-slide:first-child {
+        opacity: 1;
+    }
 }
 
 /* ---------- home page: small screens ---------- */
 
 @media (max-width: 768px) {
     .hero {
+        min-height: 30rem;
         padding: var(--space-lg) var(--space-md);
     }
 }
@@ -76,14 +170,15 @@
     color: var(--color-primary-dark);
 }
 
-/* grey-green blocks that stand in for photos until we have real ones */
-.photo-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    color: #fff;
-    background-color: #b5bcad;
+/* frame of the estate carousel, rounded like the cards */
+.estate-photo {
+    overflow: hidden;
+}
+
+/* the carousel fills the frame instead of keeping its 4:3 ratio */
+.estate-photo ::deep .carousel {
+    height: 100%;
+    aspect-ratio: auto;
 }
 
 /* ---------- home page: the estate ---------- */
@@ -102,7 +197,8 @@
 }
 
 .estate-photo {
-    min-height: 20rem;
+    height: 26rem;
+    border-radius: var(--radius-card);
 }
 
 /* ---------- home page: rooms and reviews grid ---------- */
@@ -120,10 +216,6 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     overflow: hidden;
-}
-
-.room-photo {
-    height: 9rem;
 }
 
 .room-card-body {
@@ -170,6 +262,6 @@
     }
 
     .estate-photo {
-        min-height: 12rem;
+        height: 16rem;
     }
 }
