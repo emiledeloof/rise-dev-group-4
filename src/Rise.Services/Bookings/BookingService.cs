@@ -301,23 +301,41 @@ public sealed class BookingService(
             _ => query.OrderByDescending(b => b.Id), // default: newest first
         };
 
-        var bookings = await query
+        var rows = await query
             .AsNoTracking()
             .Skip(request.Skip)
             .Take(request.Take)
-            .Select(b => new BookingDto.Index
+            .Select(b => new
             {
-                Id = b.Id,
-                BookingNumber = b.BookingNumber,
-                CheckIn = b.CheckIn,
-                CheckOut = b.CheckOut,
+                b.Id,
+                b.BookingNumber,
+                b.CheckIn,
+                b.CheckOut,
                 GuestName = b.Guest.Name,
                 GuestEmail = b.Guest.Email,
-                TotalAmount = b.Rooms.Sum(r => r.PricePerNight),
+                RoomPrices = b.Rooms.Select(r => r.PricePerNight).ToList(),
                 RoomNumbers = b.Rooms.Select(r => r.Room.RoomNumber).ToList(),
                 Status = b.Payments.Any(p => p.PaidAt != null) ? "Paid" : "Pending",
             })
             .ToListAsync(ctx);
+
+        // PriceCalculator can't be translated to SQL, so the total is calculated after loading
+        var bookings = rows.Select(x =>
+        {
+            var nights = x.CheckOut.DayNumber - x.CheckIn.DayNumber;
+            return new BookingDto.Index
+            {
+                Id = x.Id,
+                BookingNumber = x.BookingNumber,
+                CheckIn = x.CheckIn,
+                CheckOut = x.CheckOut,
+                GuestName = x.GuestName,
+                GuestEmail = x.GuestEmail,
+                TotalAmount = x.RoomPrices.Sum(p => PriceCalculator.Total(p, nights)),
+                RoomNumbers = x.RoomNumbers,
+                Status = x.Status,
+            };
+        }).ToList();
 
         return Result.Success(new BookingResponse.Index
         {

@@ -289,4 +289,18 @@ public class BookingServiceShould
         // assert — seeded booking has the double room (102)
         result.Value.Bookings.Single().RoomNumbers.ShouldContain("102");
     }
+
+    [Fact]
+    public async Task GetIndexReturnsTotalAmountForAllNights()
+    {
+        // arrange — seeded booking: double room at 109 per night, 10 → 12 Oct = 2 nights
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetIndexReturnsTotalAmountForAllNights));
+        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.Bookings.Single().TotalAmount.ShouldBe(218m);
+    }
 }
