@@ -18,5 +18,19 @@
 .site-footer-right {
     display: flex;
     flex-wrap: wrap;
+    align-items: baseline;
     gap: var(--space-md);
+}
+
+/* admin login link, kept small and faint so guests barely notice it */
+.site-footer-admin {
+    font-size: 0.6875rem;
+    opacity: 0.35;
+    text-decoration: none;
+    color: inherit;
+}
+
+.site-footer-admin:hover,
+.site-footer-admin:focus-visible {
+    opacity: 0.8;
 }
