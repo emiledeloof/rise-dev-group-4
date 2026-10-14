@@ -17,7 +17,7 @@ public partial class Login
 
         if (_result.IsSuccess)
         {
-            Navigation.NavigateTo($"/admin");
+            Navigation.NavigateTo($"/admin/invoice-list");
         }
     }
 }
