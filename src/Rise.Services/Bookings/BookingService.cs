@@ -9,6 +9,7 @@ using Rise.Persistence;
 using Rise.Services.Payments;
 using Rise.Services.Pricing;
 using Rise.Shared.Bookings;
+using Rise.Shared.Common;
 using Rise.Shared.Guests;
 
 namespace Rise.Services.Bookings;
@@ -272,5 +273,56 @@ public sealed class BookingService(
                 return bookingNumber;
             }
         }
+    }
+
+    /// <summary>
+    /// Returns a paginated list of all bookings for the admin overview.
+    /// Status is "Paid" when at least one payment has been settled, otherwise "Pending".
+    /// </summary>
+    public async Task<Result<BookingResponse.Index>> GetIndexAsync(
+        QueryRequest.SkipTake request,
+        CancellationToken ctx = default)
+    {
+        var query = dbContext.Bookings.Where(b => !b.IsDeleted);
+
+        var totalCount = await query.CountAsync(ctx);
+
+        query = request.OrderBy switch
+        {
+            "CheckIn" => request.OrderDescending
+                ? query.OrderByDescending(b => b.CheckIn)
+                : query.OrderBy(b => b.CheckIn),
+            "CheckOut" => request.OrderDescending
+                ? query.OrderByDescending(b => b.CheckOut)
+                : query.OrderBy(b => b.CheckOut),
+            "GuestName" => request.OrderDescending
+                ? query.OrderByDescending(b => b.Guest.Name)
+                : query.OrderBy(b => b.Guest.Name),
+            _ => query.OrderByDescending(b => b.Id), // default: newest first
+        };
+
+        var bookings = await query
+            .AsNoTracking()
+            .Skip(request.Skip)
+            .Take(request.Take)
+            .Select(b => new BookingDto.Index
+            {
+                Id = b.Id,
+                BookingNumber = b.BookingNumber,
+                CheckIn = b.CheckIn,
+                CheckOut = b.CheckOut,
+                GuestName = b.Guest.Name,
+                GuestEmail = b.Guest.Email,
+                TotalAmount = b.Rooms.Sum(r => r.PricePerNight),
+                RoomNumbers = b.Rooms.Select(r => r.Room.RoomNumber).ToList(),
+                Status = b.Payments.Any(p => p.PaidAt != null) ? "Paid" : "Pending",
+            })
+            .ToListAsync(ctx);
+
+        return Result.Success(new BookingResponse.Index
+        {
+            Bookings = bookings,
+            TotalCount = totalCount,
+        });
     }
 }

@@ -1,5 +1,6 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using Rise.Shared.Bookings;
+using Rise.Shared.Common;
 
 namespace Rise.Client.Bookings;
 
@@ -48,5 +49,14 @@ public class BookingService(HttpClient httpClient) : IBookingService
         return (await response.Content
             .ReadFromJsonAsync<Result<BookingResponse.CheckoutSession>>(
                 cancellationToken: cancellationToken))!;
+    }
+
+    public async Task<Result<BookingResponse.Index>> GetIndexAsync(
+        QueryRequest.SkipTake request,
+        CancellationToken cancellationToken = default)
+    {
+        return (await httpClient.GetFromJsonAsync<Result<BookingResponse.Index>>(
+            $"/api/bookings{request}",
+            cancellationToken))!;
     }
 }

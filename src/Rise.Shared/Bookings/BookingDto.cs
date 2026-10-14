@@ -1,4 +1,4 @@
-﻿namespace Rise.Shared.Bookings;
+namespace Rise.Shared.Bookings;
 
 public static class BookingDto
 {
@@ -11,6 +11,14 @@ public static class BookingDto
         public required string GuestName { get; set; }
         public required string GuestEmail { get; set; }
         public required decimal TotalAmount { get; set; }
+        /// <summary>
+        /// Room numbers of all rooms in this booking, e.g. ["101", "102"].
+        /// </summary>
+        public required List<string> RoomNumbers { get; set; }
+        /// <summary>
+        /// Derived payment status: "Paid" when at least one payment is settled, otherwise "Pending".
+        /// </summary>
+        public required string Status { get; set; }
     }
 
     public class Detail

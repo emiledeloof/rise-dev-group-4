@@ -52,11 +52,11 @@ try
         client.BaseAddress = backendUrl;
     });
 
-    // booking creation, checkout and confirmation are public, no auth cookie needed
+    // booking creation, checkout, confirmation are public; the admin list needs the auth cookie — CookieHandler is ignored on anonymous endpoints
     builder.Services.AddHttpClient<IBookingService, BookingService>(client =>
     {
         client.BaseAddress = backendUrl;
-    });
+    }).AddHttpMessageHandler<CookieHandler>();
 
     // the booking the guest is putting together, kept until "Pay now"
     builder.Services.AddScoped<BookingDraft>();
