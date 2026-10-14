@@ -26,7 +26,7 @@ public class BookingListShould : BunitContext
     public void ShowARowForEachBooking()
     {
         var cut = Render<BookingList>();
-        cut.FindAll("tbody tr").Count.ShouldBe(3);
+        cut.FindAll("li.booking-row").Count.ShouldBe(3);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class BookingListShould : BunitContext
         var cut = Render<BookingList>();
 
         // first row (booking 1)
-        var firstRow = cut.FindAll("tbody tr")[0];
+        var firstRow = cut.FindAll("li.booking-row")[0];
         firstRow.QuerySelector(".booking-list-number")!.TextContent.ShouldContain("20261001-SVM-000001");
         firstRow.QuerySelector(".booking-list-guest")!.TextContent.ShouldBe("Guest 1");
         firstRow.QuerySelector(".booking-list-rooms")!.TextContent.ShouldBe("101");
@@ -48,7 +48,7 @@ public class BookingListShould : BunitContext
     public void ShowPaidTagForPaidBooking()
     {
         var cut = Render<BookingList>();
-        var firstRow = cut.FindAll("tbody tr")[0];
+        var firstRow = cut.FindAll("li.booking-row")[0];
         firstRow.QuerySelector(".tag.is-primary")!.TextContent.Trim().ShouldBe("Paid");
     }
 
@@ -56,7 +56,7 @@ public class BookingListShould : BunitContext
     public void ShowPendingTagForUnpaidBooking()
     {
         var cut = Render<BookingList>();
-        var secondRow = cut.FindAll("tbody tr")[1];
+        var secondRow = cut.FindAll("li.booking-row")[1];
         secondRow.QuerySelector(".tag.is-warning")!.TextContent.Trim().ShouldBe("Pending");
     }
 
@@ -72,7 +72,7 @@ public class BookingListShould : BunitContext
 
         var cut = Render<BookingList>();
 
-        cut.FindAll("tbody tr").ShouldBeEmpty();
+        cut.FindAll("li.booking-row").ShouldBeEmpty();
         cut.Markup.ShouldContain("No bookings yet.");
     }
 

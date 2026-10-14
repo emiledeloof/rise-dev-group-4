@@ -73,6 +73,10 @@ public partial class BookingList
         }
     }
 
+    // same format as the invoice list, eg €432.00
+    private static string FormatAmount(decimal amount)
+        => $"€{amount.ToString("0.00", CultureInfo.InvariantCulture)}";
+
     private static string FormatDate(DateOnly date)
         => date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
 }
