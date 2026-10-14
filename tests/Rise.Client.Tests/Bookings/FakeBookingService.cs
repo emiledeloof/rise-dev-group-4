@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Rise.Shared.Bookings;
+using Rise.Shared.Common;
 
 namespace Rise.Client.Bookings;
 
@@ -54,6 +55,26 @@ public class FakeBookingService : IBookingService
     /// </summary>
     public int DetailRequests { get; private set; }
 
+    /// <summary>
+    /// what GetIndexAsync sends back — 3 bookings by default
+    /// </summary>
+    public Result<BookingResponse.Index> IndexAnswer { get; set; } = Result.Success(new BookingResponse.Index
+    {
+        Bookings = Enumerable.Range(1, 3).Select(i => new BookingDto.Index
+        {
+            Id = i,
+            BookingNumber = $"20261001-SVM-00000{i}",
+            GuestName = $"Guest {i}",
+            GuestEmail = $"guest{i}@example.com",
+            CheckIn = new DateOnly(2026, 10, i + 1),
+            CheckOut = new DateOnly(2026, 10, i + 3),
+            TotalAmount = i * 100m,
+            RoomNumbers = [$"10{i}"],
+            Status = i == 1 ? "Paid" : "Pending",
+        }).ToList(),
+        TotalCount = 3,
+    });
+
     public Task<Result<BookingResponse.CheckoutSession>> CreateCheckoutSessionAsync(BookingRequest.CreateCheckoutSession request, CancellationToken cancellationToken = default)
     {
         CheckoutRequests.Add(request);
@@ -69,4 +90,7 @@ public class FakeBookingService : IBookingService
         var answer = DetailAnswers.Count > 1 ? DetailAnswers.Dequeue() : DetailAnswers.Peek();
         return Task.FromResult(answer);
     }
+
+    public Task<Result<BookingResponse.Index>> GetIndexAsync(QueryRequest.SkipTake request, CancellationToken ctx = default)
+        => Task.FromResult(IndexAnswer);
 }

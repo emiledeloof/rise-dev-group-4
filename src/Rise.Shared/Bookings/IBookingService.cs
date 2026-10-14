@@ -15,4 +15,8 @@ public interface IBookingService
     Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
         string checkoutSessionId,
         CancellationToken ctx = default);
+    /// <summary>
+    /// Returns a paginated list of all bookings for the admin overview.
+    /// </summary>
+    Task<Result<BookingResponse.Index>> GetIndexAsync(QueryRequest.SkipTake request, CancellationToken ctx = default);
 }

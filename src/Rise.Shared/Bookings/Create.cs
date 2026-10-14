@@ -76,4 +76,10 @@ public static partial class BookingResponse
         /// </summary>
         public decimal TotalAmount { get; set; }
     }
+
+    public class Index
+    {
+        public IEnumerable<BookingDto.Index> Bookings { get; set; } = [];
+        public int TotalCount { get; set; }
+    }
 }

@@ -9,6 +9,7 @@ using Rise.Persistence;
 using Rise.Services.Bookings;
 using Rise.Services.Payments;
 using Rise.Shared.Bookings;
+using Rise.Shared.Common;
 using Rise.Shared.Guests;
 
 namespace Rise.Services.Tests.Bookings;
@@ -203,5 +204,103 @@ public class BookingServiceShould
         // assert
         result.Status.ShouldBe(ResultStatus.Invalid);
         (await dbContext.Bookings.CountAsync()).ShouldBe(1);
+    }
+
+    // ── GetIndexAsync ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetIndexReturnsAllBookings()
+    {
+        // arrange — db has 1 seeded booking
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetIndexReturnsAllBookings));
+        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.Ok);
+        result.Value.TotalCount.ShouldBe(1);
+        result.Value.Bookings.Single().BookingNumber.ShouldContain("-SVM-");
+    }
+
+    [Fact]
+    public async Task GetIndexReturnsPaidStatusWhenPaymentIsPaid()
+    {
+        // arrange — booking has a paid payment
+        await using var dbContext = await CreateSeededDbContextAsync(
+            nameof(GetIndexReturnsPaidStatusWhenPaymentIsPaid),
+            booking =>
+            {
+                var payment = booking.AddPayment(327m);
+                payment.MarkAsPaid(DateTime.UtcNow);
+                payment.SetStripePaymentDetails("pi_test", "https://receipt", "visa", "4242");
+            });
+        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.Bookings.Single().Status.ShouldBe("Paid");
+    }
+
+    [Fact]
+    public async Task GetIndexReturnsPendingStatusWhenNoPayment()
+    {
+        // arrange — seeded booking has no payments
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetIndexReturnsPendingStatusWhenNoPayment));
+        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.Bookings.Single().Status.ShouldBe("Pending");
+    }
+
+    [Fact]
+    public async Task GetIndexRespectsPagination()
+    {
+        // arrange — add a second booking
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetIndexRespectsPagination));
+        var single = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        await CreateService(dbContext).CreateAsync(Request(20, 22, "marie@example.com", single));
+
+        // act — take only 1
+        var request = new QueryRequest.SkipTake { Skip = 0, Take = 1 };
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.TotalCount.ShouldBe(2);
+        result.Value.Bookings.Count().ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task GetIndexIncludesRoomNumbers()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetIndexIncludesRoomNumbers));
+        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert — seeded booking has the double room (102)
+        result.Value.Bookings.Single().RoomNumbers.ShouldContain("102");
+    }
+
+    [Fact]
+    public async Task GetIndexReturnsTotalAmountForAllNights()
+    {
+        // arrange — seeded booking: double room at 109 per night, 10 → 12 Oct = 2 nights
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetIndexReturnsTotalAmountForAllNights));
+        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.Bookings.Single().TotalAmount.ShouldBe(218m);
     }
 }
