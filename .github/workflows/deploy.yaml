@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - release
   pull_request:
     branches:
       - main
@@ -46,7 +47,6 @@ jobs:
     name: Build image
     runs-on: [self-hosted, build-server]
     needs: ci
-    # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     outputs:
       image_tag: ${{ steps.vars.outputs.sha_short }}
@@ -73,72 +73,63 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          push: false
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/release' }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.sha_short }}
             ${{ env.IMAGE_NAME }}:latest
 
-  push:
-    name: Push to Docker Hub
+  deploy:
+    name: Deploy to Production
     needs: build
     runs-on: [self-hosted, prod-server]
     if: github.event_name == 'push' && github.ref == 'refs/heads/release'
+
     steps:
-      - name: Build and push image
-        uses: docker/build-push-action@v5
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
         with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}
-            ${{ env.IMAGE_NAME }}:latest
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PROD_TOKEN }}
 
-  # deploy:
-  #   name: Deploy to Production
-  #   needs: push
-  #   runs-on: [self-hosted, prod-server]
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/release'
+      - name: Deploy container
+        env:
+          TAG: ${{ needs.build.outputs.image_tag }}
+          DB_CONN: ${{ secrets.DB_CONNECTION_STRING }}
+        run: |
+          echo "Pulling image: $IMAGE_NAME:$TAG"
+          docker pull "$IMAGE_NAME:$TAG"
 
-  #   steps:
-  #     - name: Log in to Docker Hub
-  #       uses: docker/login-action@v4
-  #       with:
-  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
-  #         password: ${{ secrets.DOCKERHUB_PROD_TOKEN }}
+          # Stop and remove existing container if running
+          if docker ps -a --format '{{.Names}}' | grep -Eq "^${CONTAINER_NAME}\$"; then
+            echo "Stopping and removing existing container..."
+            docker stop "$CONTAINER_NAME"
+            docker rm "$CONTAINER_NAME"
+          fi
 
-  #     - name: Deploy container
-  #       env:
-  #         TAG: ${{ needs.build.outputs.image_tag }}
-  #         DB_CONN: ${{ secrets.DB_CONNECTION_STRING }}
-  #       run: |
-  #         echo "Pulling image: $IMAGE_NAME:$TAG"
-  #         docker pull "$IMAGE_NAME:$TAG"
+          # Start new container (Fixed --name and image reference at the end)
+          echo "Starting container: $CONTAINER_NAME"
+          docker volume create rise-logs
+          docker run -d --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            -e ASPNETCORE_ENVIRONMENT=Production \
+            -e ConnectionStrings__DatabaseConnection="Host=10.11.2.113;Port=5432;Database=${POSTGRES_DB:-rise};Username=${POSTGRES_USER:-rise};Password=${POSTGRES_PASSWORD}" \
+            -e Database__MigrateOnStartup=true \
+            -e Database__Seed=${APP_SEED:-false} \
+            -e Stripe__SecretKey="${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY in .env}" \
+            -e Stripe__WebhookSecret="${STRIPE_WEBHOOK_SECRET:?Set STRIPE_WEBHOOK_SECRET in .env}" \
+            -e Stripe__SuccessUrl="${STRIPE_SUCCESS_URL:?Set STRIPE_SUCCESS_URL in .env}" \
+            -e Stripe__CancelUrl="${STRIPE_CANCEL_URL:?Set STRIPE_CANCEL_URL in .env}" \
+            -p 80:8080 \
+            -v rise-logs:/app/Logs \
+            "$IMAGE_NAME:$TAG"
 
-  #         # Stop and remove existing container if running
-  #         if docker ps -a --format '{{.Names}}' | grep -Eq "^${CONTAINER_NAME}\$"; then
-  #           echo "Stopping and removing existing container..."
-  #           docker stop "$CONTAINER_NAME"
-  #           docker rm "$CONTAINER_NAME"
-  #         fi
-
-  #         # Start new container
-  #         echo "Starting container: $CONTAINER_NAME"
-  #         docker run -d \
-  #           --name "$CONTAINER_NAME" \
-  #           --restart unless-stopped \
-  #           -p 80:8080 \
-  #           -v /var/log/rise-app:/app/Logs \
-  #           -e ConnectionStrings__DefaultConnection="$DB_CONN" \
-  #           "$IMAGE_NAME:$TAG"
-
-  #         # Verify container started properly
-  #         sleep 3
-  #         if docker ps --filter "name=${CONTAINER_NAME}" --filter "status=running" | grep -q "$CONTAINER_NAME"; then
-  #           echo "Deployment succeeded."
-  #           docker image prune -f
-  #         else
-  #           echo "Deployment failed! Outputting logs:"
-  #           docker logs "$CONTAINER_NAME"
-  #           exit 1
-  #         fi
+          # Verify container started properly
+          sleep 3
+          if docker ps --filter "name=^/${CONTAINER_NAME}$" --filter "status=running" | grep -q "$CONTAINER_NAME"; then
+            echo "Deployment succeeded."
+            docker image prune -f
+          else
+            echo "Deployment failed! Outputting logs:"
+            docker logs "$CONTAINER_NAME"
+            exit 1
+          fi
