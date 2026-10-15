@@ -82,7 +82,7 @@ jobs:
     name: Push to Docker Hub
     needs: build
     runs-on: [self-hosted, prod-server]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
     steps:
       - name: Build and push image
         uses: docker/build-push-action@v5
@@ -98,7 +98,7 @@ jobs:
   #   name: Deploy to Production
   #   needs: push
   #   runs-on: [self-hosted, prod-server]
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/release'
 
   #   steps:
   #     - name: Log in to Docker Hub
