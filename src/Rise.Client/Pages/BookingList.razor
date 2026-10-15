@@ -1,0 +1,99 @@
+@page "/admin/booking-list"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Shared.Identity
+
+<PageTitle>Bookings</PageTitle>
+
+<div class="page">
+    <h1 class="title">Bookings</h1>
+
+    @if (_bookings is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        @* same card style as the invoice list, styles in BookingList.razor.css *@
+        <div class="box booking-list">
+            <h2 class="booking-list-title">All bookings</h2>
+
+            @if (_errorMessage is not null)
+            {
+                <p class="notification is-danger is-light">@_errorMessage</p>
+            }
+            else if (!_bookings.Any())
+            {
+                <p class="booking-muted">No bookings yet.</p>
+            }
+            else
+            {
+                <ul>
+                    @foreach (var booking in _bookings)
+                    {
+                        <li @key="booking.Id" class="booking-row">
+                            <div>
+                                <p class="booking-main">
+                                    Booking <span class="booking-list-number">@booking.BookingNumber</span>
+                                    · <span class="booking-list-guest">@booking.GuestName</span>
+                                </p>
+                                <p class="booking-muted">
+                                    Room@(booking.RoomNumbers.Count == 1 ? "" : "s")
+                                    <span class="booking-list-rooms">@string.Join(", ", booking.RoomNumbers)</span>
+                                    · <span class="booking-list-checkin">@FormatDate(booking.CheckIn)</span>
+                                    – <span class="booking-list-checkout">@FormatDate(booking.CheckOut)</span>
+                                </p>
+                            </div>
+                            <div class="booking-amount">
+                                <span>@FormatAmount(booking.TotalAmount)</span>
+                                <span class="booking-list-status">
+                                    @if (booking.Status == "Paid")
+                                    {
+                                        <span class="tag is-primary is-light">Paid</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tag is-warning is-light">Pending</span>
+                                    }
+                                </span>
+                            </div>
+                        </li>
+                    }
+                </ul>
+
+                @if (TotalPages > 1)
+                {
+                    <nav class="pagination is-centered is-small mt-4" role="navigation" aria-label="pagination">
+                        <button class="pagination-previous"
+                                disabled="@(_currentPage <= 1)"
+                                @onclick="PreviousPageAsync">
+                            Previous
+                        </button>
+                        <button class="pagination-next"
+                                disabled="@(_currentPage >= TotalPages)"
+                                @onclick="NextPageAsync">
+                            Next
+                        </button>
+                        <ul class="pagination-list">
+                            @for (var page = 1; page <= TotalPages; page++)
+                            {
+                                var p = page; // capture for the lambda
+                                <li>
+                                    <button class="pagination-link @(p == _currentPage ? "is-current" : "")"
+                                            aria-label="Page @p"
+                                            aria-current="@(p == _currentPage ? "page" : null)"
+                                            @onclick="() => GoToPageAsync(p)">
+                                        @p
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+                <p class="booking-muted booking-count">
+                    Showing @_bookings.Count() of @_totalCount booking@(_totalCount == 1 ? "" : "s")
+                </p>
+            }
+        </div>
+    }
+</div>

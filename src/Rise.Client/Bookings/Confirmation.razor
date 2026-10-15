@@ -1,0 +1,79 @@
+﻿@page "/booking/confirmation"
+@using Rise.Shared.Bookings
+
+<PageTitle>Booking Confirmation</PageTitle>
+
+@if (booking is null && errorMessage is null)
+{
+    <p>Loading your booking...</p>
+}
+else if (errorMessage is not null)
+{
+    <div class="confirmation-page">
+        <p class="notification is-danger">@errorMessage</p>
+    </div>
+}
+else if (booking is not null)
+{
+<div class="confirmation-page">
+    <header class="confirmation-header">
+        <span class="confirmation-status">@(IsPaid ? "Confirmed" : "Payment processing")</span>
+        <p class="booking-number">Booking @booking.BookingNumber</p>
+        @if (IsPaid)
+        {
+            <h1 class="title">Thank you, your stay is confirmed</h1>
+            <p class="booking-email">
+                A confirmation email is on its way to @booking.Guest.Email.
+            </p>
+        }
+        else
+        {
+            <h1 class="title">We're confirming your payment…</h1>
+            <p class="booking-email">
+                @(isPolling
+                    ? "This usually takes a few seconds."
+                    : $"We will send a confirmation email to {booking.Guest.Email} once the payment is processed.")
+            </p>
+        }
+    </header>
+
+    <section class="box booking-details" aria-labelledby="booking-details-title">
+        <h2 id="booking-details-title" class="booking-details-title">
+            Booking details
+        </h2>
+
+        <dl class="booking-details-list">
+            <div class="booking-detail-row">
+                <dt>Booking ID</dt>
+                <dd>@booking.BookingNumber</dd>
+            </div>
+            <div class="booking-detail-row">
+                <dt>Stay</dt>
+                <dd>
+                    @booking.CheckIn.ToString("dd MMM yyyy") –
+                    @booking.CheckOut.ToString("dd MMM yyyy") · 
+                    @numberOfNights @(numberOfNights == 1 ? "night" : "nights")
+                </dd>
+            </div>
+            <div class="booking-detail-row">
+                <dt>Room</dt>
+                <dd>@roomName · @guestCount @(guestCount == 1 ? "guest" : "guests")</dd>
+            </div>
+            <div class="booking-detail-row">
+                <dt>Rate</dt>
+                <dd>@FormatAmount(paymentAmount)</dd>
+            </div>
+            <div class="booking-detail-row">
+                <dt>Payment</dt>
+                <dd>@(IsPaid ? "Paid" : "Pending")</dd>
+            </div>
+        </dl>
+
+        <p class="cancellation-note">Cancellation details go here.</p>
+    </section>
+    
+    <div class="buttons">
+        <Button Variant="ButtonVariant.Secondary" Href="">Back to home</Button>
+    </div>
+</div>
+}

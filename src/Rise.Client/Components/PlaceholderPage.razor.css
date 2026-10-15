@@ -1,0 +1,13 @@
+.placeholder-page {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-lg);
+    text-align: center;
+}
+
+.placeholder-page-message {
+    max-width: 36rem;
+    margin: 0 auto var(--space-lg);
+    color: var(--color-text-muted);
+    line-height: 1.6;
+}

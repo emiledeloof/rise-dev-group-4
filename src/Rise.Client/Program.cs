@@ -2,10 +2,14 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
+using Rise.Client.Bookings;
+using Rise.Client.Guests;
 using Rise.Client.Identity;
 using Rise.Client.Invoice;
 using Rise.Shared.Invoice;
 using Rise.Client.Rooms;
+using Rise.Shared.Bookings;
+using Rise.Shared.Guests;
 using Rise.Shared.Rooms;
 
 try
@@ -47,6 +51,20 @@ try
         client.BaseAddress = backendUrl;
     });
 
+    // booking creation, checkout, confirmation are public; the admin list needs the auth cookie — CookieHandler is ignored on anonymous endpoints
+    builder.Services.AddHttpClient<IBookingService, BookingService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
+    // the booking the guest is putting together, kept until "Pay now"
+    builder.Services.AddScoped<BookingDraft>();
+
+    builder.Services.AddHttpClient<IGuestService, GuestService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    });
+
     // the invoice endpoint needs the admin role, so send the auth cookie along
     builder.Services.AddHttpClient<IInvoiceService, InvoiceService>(client =>
     {
@@ -60,3 +78,4 @@ catch (Exception ex)
     Log.Fatal(ex, "An exception occurred while creating the WASM host");
     throw;
 }
+

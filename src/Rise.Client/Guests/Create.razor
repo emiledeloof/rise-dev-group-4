@@ -1,0 +1,103 @@
+@page "/guests/create"
+@page "/guest-registration"
+
+<PageTitle>Your details</PageTitle>
+
+<div class="container my-5">
+    <h2 class="title is-3">Guest Registration</h2>
+    <p class="subtitle is-6">Please enter your personal details and address below.</p>
+    <p class="form-required-hint">Fields marked with <span class="form-required-mark">*</span> are required.</p>
+
+    @* the details are kept in the booking draft, nothing is saved before "Pay now" on the overview *@
+    @* id, name and autocomplete follow the html autofill tokens so browsers and password managers (eg Bitwarden identities) fill every field *@
+    <EditForm Model="@Model" OnValidSubmit="@Continue" OnInvalidSubmit="@ShowErrorSummary">
+        @* Validates form fields against FluentValidation validator defined in Rise.Shared.Guests.GuestRequest.Create.Validator *@
+        <FluentValidationValidator />
+
+        <div class="columns">
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label is-required" for="guest-first-name">First Name</label>
+                    <div class="control">
+                        <InputText @bind-Value="Model.FirstName" id="guest-first-name" name="given-name" autocomplete="given-name" class="input" placeholder="e.g. John" />
+                    </div>
+                    <ValidationMessage For="() => Model.FirstName" class="help is-danger" />
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label is-required" for="guest-last-name">Last Name</label>
+                    <div class="control">
+                        <InputText @bind-Value="Model.LastName" id="guest-last-name" name="family-name" autocomplete="family-name" class="input" placeholder="e.g. Doe" />
+                    </div>
+                    <ValidationMessage For="() => Model.LastName" class="help is-danger" />
+                </div>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label is-required" for="guest-email">Email Address</label>
+                    <div class="control">
+                        <InputText @bind-Value="Model.Email" id="guest-email" name="email" autocomplete="email" type="email" class="input" placeholder="e.g. john.doe@example.com" />
+                    </div>
+                    <ValidationMessage For="() => Model.Email" class="help is-danger" />
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="field">
+                    <label class="label is-required" for="guest-phone-number">Phone Number</label>
+                    <div class="control">
+                        <InputText @bind-Value="Model.PhoneNumber" id="guest-phone-number" name="tel" autocomplete="tel" type="tel" class="input" placeholder="e.g. +32 123 456 789" />
+                    </div>
+                    <ValidationMessage For="() => Model.PhoneNumber" class="help is-danger" />
+                </div>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label is-required" for="guest-address-line1">Address Line 1</label>
+            <div class="control">
+                <InputText @bind-Value="Model.AddressLine1" id="guest-address-line1" name="address-line1" autocomplete="address-line1" class="input" placeholder="Street and house number" />
+            </div>
+            <ValidationMessage For="() => Model.AddressLine1" class="help is-danger" />
+        </div>
+
+        <div class="field">
+            <label class="label" for="guest-address-line2">Address Line 2 (Optional)</label>
+            <div class="control">
+                <InputText @bind-Value="Model.AddressLine2" id="guest-address-line2" name="address-line2" autocomplete="address-line2" class="input" placeholder="Apartment, suite, unit, etc." />
+            </div>
+            <ValidationMessage For="() => Model.AddressLine2" class="help is-danger" />
+        </div>
+
+        <div class="field">
+            <label class="label is-required" for="guest-country">Country</label>
+            <div class="control">
+                <InputText @bind-Value="Model.Country" id="guest-country" name="country-name" autocomplete="country-name" class="input" placeholder="e.g. Belgium" />
+            </div>
+            <ValidationMessage For="() => Model.Country" class="help is-danger" />
+        </div>
+
+        @* next to the continue btn, so the guest sees why nothing happens, disappears once every field is fixed *@
+        @if (IsErrorSummaryVisible && context.GetValidationMessages().Any())
+        {
+            <div class="notification is-danger is-light form-error-summary mt-5" role="alert">
+                <p class="has-text-weight-semibold">Please correct the highlighted fields:</p>
+                <ValidationSummary />
+            </div>
+        }
+
+        <div class="field is-grouped is-grouped-right mt-5">
+            <div class="control">
+                <Button Variant="ButtonVariant.Secondary" Href="@BackToRoomsUrl">Back to rooms</Button>
+            </div>
+            <div class="control">
+                <Button Type="submit">Continue</Button>
+            </div>
+        </div>
+    </EditForm>
+</div>

@@ -78,19 +78,17 @@
 }
 
 /*
-  one rate on 2 rows and 3 columns
-  radio on the left, name and total on the 1st row, conditions and detail on the 2nd row
+  one rate on 1 row and 3 columns
+  radio on the left, price per night next to it, total on the right
   grid areas so the order of the tags in the razor does not matter
   the whole line is a label, so it looks clickable
 */
 .room-card-rate {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    grid-template-areas:
-        "radio name total"
-        "radio conditions detail";
+    grid-template-areas: "radio detail total";
     column-gap: var(--space-sm);
-    align-items: baseline;
+    align-items: center;
     padding: var(--space-xs) var(--space-sm);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
@@ -115,21 +113,6 @@
     cursor: pointer;
 }
 
-/* rate name, eg Non-refundable */
-.room-card-rate-name {
-    grid-area: name;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-text);
-}
-
-/* conditions under the name, small and grey */
-.room-card-rate-conditions {
-    grid-area: conditions;
-    font-size: 0.8125rem;
-    color: var(--color-text-muted);
-}
-
 /* total of the stay with this rate, the main number of the line, in the title font */
 .room-card-total {
     grid-area: total;
@@ -139,12 +122,11 @@
     text-align: right;
 }
 
-/* eg €109 × 3 nights under the total, small and grey */
+/* eg €109 × 3 nights next to the radio btn */
 .room-card-rate-detail {
     grid-area: detail;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     color: var(--color-text-muted);
-    text-align: right;
 }
 
 /*

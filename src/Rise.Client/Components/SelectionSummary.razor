@@ -31,7 +31,6 @@
 
     <p class="selection-summary-vat">Prices include VAT</p>
 
-    @* next step of the booking, no action yet *@
-    @* TODO: go to the guest details page with the booking stories (A4) *@
-    <Button IsFullWidth="true">Continue</Button>
+    @* next step of the booking, the page stores the selection and goes to the guest details *@
+    <Button IsFullWidth="true" IsDisabled="Rooms.Count == 0" OnClick="() => OnContinue.InvokeAsync()">Continue</Button>
 </aside>

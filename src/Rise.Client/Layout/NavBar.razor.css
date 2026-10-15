@@ -8,12 +8,25 @@
     padding: 0 var(--space-lg);
 }
 
-/* site name in the serif title font */
+/* real logo on the left, the emblem next to the name in script */
 .site-brand {
-    font-family: var(--font-title);
-    font-size: 1.5rem;
-    font-weight: 500;
-    color: var(--color-text);
+    gap: var(--space-sm);
+}
+
+/* bulma caps the imgs of the navbar at 1.75rem, too small for the emblem */
+.site-brand img {
+    max-height: none;
+    width: auto;
+}
+
+.site-brand-emblem {
+    height: 2.75rem;
+}
+
+/* a bit lower so the script lines up with the middle of the emblem */
+.site-brand-name {
+    height: 1.6rem;
+    margin-top: 0.3rem;
 }
 
 /*

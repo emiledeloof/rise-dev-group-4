@@ -1,0 +1,28 @@
+@* photo slider with frosted glass arrows and dots, used on the home room cards, styles in PhotoCarousel.razor.css *@
+
+@if (Photos.Count > 0)
+{
+    <div class="carousel">
+        @* @key gives a new img on each change, so the fade in animation plays again *@
+        <img @key="_index" class="carousel-photo" src="@Photos[_index]" alt="@PhotoAlt" />
+
+        @* no arrows and no dots when there is only one photo *@
+        @if (Photos.Count > 1)
+        {
+            <button type="button" class="carousel-btn carousel-prev" aria-label="Previous photo" @onclick="Previous">
+                <i class="fas fa-chevron-left" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="carousel-btn carousel-next" aria-label="Next photo" @onclick="Next">
+                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            </button>
+
+            @* one dot per photo, the current one is filled *@
+            <div class="carousel-dots" aria-hidden="true">
+                @for (var i = 0; i < Photos.Count; i++)
+                {
+                    <span class="carousel-dot @(i == _index ? "is-active" : "")"></span>
+                }
+            </div>
+        }
+    </div>
+}

@@ -67,7 +67,7 @@ public class RoomCardShould : BunitContext
     }
 
     /// <summary>
-    /// one line per rate with its name, conditions, total and price per night
+    /// one line per rate with its total and price per night, no rate name and no conditions
     /// </summary>
     [Fact]
     public void ShowOneLinePerRate()
@@ -80,23 +80,11 @@ public class RoomCardShould : BunitContext
         lines.Count.ShouldBe(2);
 
         var first = lines[0];
-        first.QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Non-refundable");
-        first.QuerySelector(".room-card-rate-conditions")!.TextContent.ShouldBe("No refund after booking");
+        // only the price for now, there is only one rate per room
+        first.QuerySelector(".room-card-rate-name").ShouldBeNull();
+        first.QuerySelector(".room-card-rate-conditions").ShouldBeNull();
         first.QuerySelector(".room-card-total")!.TextContent.ShouldBe("€327");
         first.QuerySelector(".room-card-rate-detail")!.TextContent.ShouldBe("€109 × 3 nights");
-    }
-
-    /// <summary>
-    /// a rate without conditions has no empty conditions line
-    /// </summary>
-    [Fact]
-    public void HideTheConditionsWhenARateHasNone()
-    {
-        // arrange and act
-        var cut = RenderCard();
-
-        // assert, QuerySelector gives null when nothing matches inside the 2nd line
-        cut.FindAll(".room-card-rate")[1].QuerySelector(".room-card-rate-conditions").ShouldBeNull();
     }
 
     /// <summary>

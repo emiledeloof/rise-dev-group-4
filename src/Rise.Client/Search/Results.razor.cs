@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
+using Rise.Client.Bookings;
 using Rise.Client.Components;
 
 namespace Rise.Client.Search;
@@ -30,6 +31,9 @@ public partial class Results
     // client RoomService registered in Program.cs, calls the availability endpoint
     [Inject] public required IRoomService RoomService { get; set; }
 
+    // booking the guest is putting together, the continue btn stores the selection in it
+    [Inject] public required BookingDraft Draft { get; set; }
+
     // free rooms from the api, null while the page is still loading
     private IReadOnlyList<RoomDto.Available>? _rooms;
 
@@ -45,6 +49,11 @@ public partial class Results
     /// </summary>
     protected override async Task OnParametersSetAsync()
     {
+        // the page is being left, eg continue went to the guest details, so nothing to load
+        // without this the bunit tests loop forever, there is no router to close the page so the empty dates redirect again and again
+        if (!Navigation.ToBaseRelativePath(Navigation.Uri).StartsWith("search/results"))
+            return;
+
         // reset so the page shows loading again for the new dates
         _rooms = null;
         _errorMessage = null;
@@ -80,6 +89,41 @@ public partial class Results
 
         // all good, keep the rooms so the page can show them
         _rooms = result.Value.Rooms.ToList();
+
+        // back from the guest form or the overview for the same dates, show the rooms picked before
+        RestoreSelectionFromDraft();
+    }
+
+    // puts the rooms of the draft back in the selection, only when the dates are the same
+    // and only the room and rate pairs the api still sends, a room booked meanwhile is dropped
+    private void RestoreSelectionFromDraft()
+    {
+        if (Draft.CheckIn != CheckIn || Draft.CheckOut != CheckOut)
+            return;
+
+        foreach (var picked in Draft.Rooms)
+        {
+            var room = _rooms!.FirstOrDefault(r => r.Id == picked.RoomId);
+            if (room is not null && room.Rates.Any(x => x.Id == picked.RateId))
+                _selection[picked.RoomId] = picked.RateId;
+        }
+    }
+
+    // called by the continue btn of the summary, stores the stay and the picked rooms then goes to the guest details
+    private void Continue()
+    {
+        if (_rooms is null || _selection.Count == 0)
+            return;
+
+        var rooms = _selection.Select(s =>
+        {
+            var room = _rooms.First(r => r.Id == s.Key);
+            var rate = room.Rates.First(x => x.Id == s.Value);
+            return new DraftRoom(room.Id, room.Name, rate.Id, rate.Name, rate.Description, rate.PricePerNight, rate.TotalPrice);
+        });
+
+        Draft.SetRooms(CheckIn!.Value, CheckOut!.Value, rooms);
+        Navigation.NavigateTo("/guests/create");
     }
 
     // called by a card when the guest picks a rate, adds the room or changes its rate
@@ -102,7 +146,7 @@ public partial class Results
             var room = _rooms.First(r => r.Id == s.Key);
             var rate = room.Rates.First(x => x.Id == s.Value);
             return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice);
-    }).ToList();
+        }).ToList();
 
     // rate chosen for a room, null when the room is not in the selection
     // TryGetValue gives true and the value when the key is there, false otherwise

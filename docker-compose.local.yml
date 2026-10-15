@@ -40,8 +40,8 @@ services:
       Database__Seed: ${APP_SEED:-true} # test data incl. the seeded users (password A1b2C3!)
       Stripe__SecretKey: ${STRIPE_SECRET_KEY:-sk_test_not_configured} # required at startup, payments only work with a real test key
       Stripe__WebhookSecret: ${STRIPE_WEBHOOK_SECRET:-}
-      Stripe__SuccessUrl: ${STRIPE_SUCCESS_URL:-http://localhost:${APP_PORT:-8080}/}
-      Stripe__CancelUrl: ${STRIPE_CANCEL_URL:-http://localhost:${APP_PORT:-8080}/}
+      Stripe__SuccessUrl: ${STRIPE_SUCCESS_URL:-http://localhost:${APP_PORT:-8080}/booking/confirmation?session_id={CHECKOUT_SESSION_ID}}
+      Stripe__CancelUrl: ${STRIPE_CANCEL_URL:-http://localhost:${APP_PORT:-8080}/payment/cancel}
     ports:
       - "${APP_PORT:-8080}:8080"
     volumes:

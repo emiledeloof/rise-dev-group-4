@@ -62,7 +62,7 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                         PricePerNight = x.PricePerNight,
                         TotalPrice = PriceCalculator.Total(x.PricePerNight, nights)
                     }).ToList()
-            })  
+            })
             .ToListAsync(ctx);
 
         // wrap the list in a RoomResponse.Available and send it back as a success

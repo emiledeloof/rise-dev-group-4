@@ -83,4 +83,37 @@ public class SelectionSummaryShould : BunitContext
         // assert
         cut.Find(".selection-summary-meta").TextContent.ShouldBe("3 nights");
     }
+
+    /// <summary>
+    /// the continue button is disabled when no room is selected
+    /// </summary>
+    [Fact]
+    public void DisableContinueButtonWhenNoRoomsSelected()
+    {
+        // arrange and act
+        var cut = RenderSummary();
+
+        // assert
+        cut.Find("button").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// the continue button tells the page, the page stores the selection and moves on
+    /// </summary>
+    [Fact]
+    public void CallOnContinueWhenRoomsSelected()
+    {
+        // arrange
+        var continued = false;
+        var cut = Render<SelectionSummary>(p => p
+            .Add(x => x.Rooms, [new SelectedRoom("Double Room", "Standard", 150m)])
+            .Add(x => x.Nights, 3)
+            .Add(x => x.OnContinue, () => continued = true));
+
+        // act
+        cut.Find("button").Click();
+
+        // assert
+        continued.ShouldBeTrue();
+    }
 }
