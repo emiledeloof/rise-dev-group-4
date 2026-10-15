@@ -79,3 +79,4 @@ catch (Exception ex)
     Log.Fatal(ex, "An exception occurred while creating the WASM host");
     throw;
 }
+
