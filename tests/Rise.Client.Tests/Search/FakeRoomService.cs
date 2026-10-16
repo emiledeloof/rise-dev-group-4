@@ -49,7 +49,10 @@ public class FakeRoomService : IRoomService
     /// </summary>
     public Result<RoomDto.Detail> DetailAnswer { get; set; } = Result.Success(new RoomDto.Detail
     {
-        Id = 1, Name = "Double Room", Description = "Spacious room with a double bed.", MaxGuests = 2,
+        Id = 1,
+        Name = "Double Room",
+        Description = "Spacious room with a double bed.",
+        MaxGuests = 2,
     });
 
     /// <summary>
