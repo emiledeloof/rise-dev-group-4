@@ -94,7 +94,6 @@ jobs:
       - name: Deploy container
         env:
           TAG: ${{ needs.build.outputs.image_tag }}
-          DB_CONN: ${{ secrets.DB_CONNECTION_STRING }}
         run: |
           echo "Pulling image: $IMAGE_NAME:$TAG"
           docker pull "$IMAGE_NAME:$TAG"
@@ -111,14 +110,7 @@ jobs:
           docker volume create rise-logs
           docker run -d --name "$CONTAINER_NAME" \
             --restart unless-stopped \
-            -e ASPNETCORE_ENVIRONMENT=Production \
-            -e ConnectionStrings__DatabaseConnection="Host=10.11.2.113;Port=5432;Database=${POSTGRES_DB:-rise};Username=${POSTGRES_USER:-rise};Password=${POSTGRES_PASSWORD}" \
-            -e Database__MigrateOnStartup=true \
-            -e Database__Seed=${APP_SEED:-false} \
-            -e Stripe__SecretKey="${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY in .env}" \
-            -e Stripe__WebhookSecret="${STRIPE_WEBHOOK_SECRET:?Set STRIPE_WEBHOOK_SECRET in .env}" \
-            -e Stripe__SuccessUrl="${STRIPE_SUCCESS_URL:?Set STRIPE_SUCCESS_URL in .env}" \
-            -e Stripe__CancelUrl="${STRIPE_CANCEL_URL:?Set STRIPE_CANCEL_URL in .env}" \
+            --env-file /opt/rise/.env \
             -p 80:8080 \
             -v rise-logs:/app/Logs \
             "$IMAGE_NAME:$TAG"
