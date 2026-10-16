@@ -95,6 +95,34 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         for (var i = 1; i <= 4; i++)
             deluxeBathtub.AddPhoto($"images/rooms/deluxe-room-bathtub-{i}.jpg");
 
+        // characteristics and amenities taken from the texts above
+        // TODO: size and view from the client, left empty so the page shows no made up values
+        standard.BedType = "2 single beds";
+        deluxe.BedType = "California king bed";
+        deluxeBathtub.BedType = "California king bed";
+
+        // shared amenities, icons from Font Awesome (see css/app.css)
+        var wifi = new Amenity("Wi-Fi", "fa-wifi");
+        var airConditioning = new Amenity("Air conditioning", "fa-snowflake");
+        var heating = new Amenity("Central heating", "fa-temperature-high");
+        var tv = new Amenity("Flat-screen TV", "fa-tv");
+        var fridge = new Amenity("Fridge", "fa-temperature-low");
+        var coffeeMachine = new Amenity("Coffee machine", "fa-mug-hot");
+        var teaMaker = new Amenity("Tea maker", "fa-mug-saucer");
+        var shower = new Amenity("Shower", "fa-shower");
+        var bathtub = new Amenity("Bathtub", "fa-bath");
+        var hairdryer = new Amenity("Hairdryer", "fa-wind");
+        var bathrobes = new Amenity("Bathrobes", "fa-shirt");
+        var iron = new Amenity("Iron", "fa-shirt");
+        var nonSmoking = new Amenity("Non-smoking", "fa-ban-smoking");
+
+        foreach (var amenity in new[] { wifi, airConditioning, tv, fridge, coffeeMachine, teaMaker, shower, hairdryer, nonSmoking })
+            standard.AddAmenity(amenity);
+        foreach (var amenity in new[] { wifi, airConditioning, heating, tv, fridge, coffeeMachine, teaMaker, shower, hairdryer, bathrobes, nonSmoking })
+            deluxe.AddAmenity(amenity);
+        foreach (var amenity in new[] { wifi, airConditioning, heating, tv, fridge, coffeeMachine, teaMaker, bathtub, hairdryer, bathrobes, iron, nonSmoking })
+            deluxeBathtub.AddAmenity(amenity);
+
         dbContext.Rooms.AddRange(standard, deluxe, deluxeBathtub);
         await dbContext.SaveChangesAsync();
     }

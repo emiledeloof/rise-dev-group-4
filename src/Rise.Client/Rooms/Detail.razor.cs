@@ -56,6 +56,10 @@ public partial class Detail
     // 1st photo is the static hero, null when the room has no photo
     private string? HeroPhoto => _room?.PhotoUrls.FirstOrDefault();
 
+    // at least 1 characteristic filled in, otherwise the empty state is shown
+    private bool HasCharacteristics =>
+        _room is not null && (_room.SizeInSquareMeters is not null || _room.BedType is not null || _room.View is not null);
+
     // the other photos go in the slider of the gallery
     private IReadOnlyList<string> GalleryPhotos => _room?.PhotoUrls.Skip(1).ToList() ?? [];
 

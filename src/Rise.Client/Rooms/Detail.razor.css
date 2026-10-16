@@ -141,6 +141,48 @@
     overflow: hidden;
 }
 
+/* size, bed and view in a row, wrap on small screens */
+.room-detail-specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm) var(--space-lg);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* icon + text, used by the characteristics and the amenities */
+.room-detail-spec,
+.room-detail-amenity {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.room-detail-spec i,
+.room-detail-amenity i {
+    width: 1.25rem;
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+/* smaller title above the amenities, inside the details section */
+.room-detail-subtitle {
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-sm);
+    font-size: 1.25rem;
+}
+
+/* amenities in columns, as many as fit */
+.room-detail-amenities {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: var(--space-sm) var(--space-lg);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
 /* empty states, softer text like the other muted details */
 .room-detail-empty {
     color: var(--color-text-muted);

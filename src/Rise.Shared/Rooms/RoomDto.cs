@@ -39,7 +39,7 @@ public static class RoomDto
     }
 
     /// <summary>
-    /// one room shown on the room detail page, only the description for now, no photos
+    /// one room shown on the room detail page, with its characteristics and amenities
     /// </summary>
     public class Detail
     {
@@ -57,5 +57,17 @@ public static class RoomDto
 
         // urls of all the photos of the room, in display order, empty when the room has none
         public IReadOnlyList<string> PhotoUrls { get; set; } = [];
+
+        // floor area in m², null when unknown
+        public int? SizeInSquareMeters { get; set; }
+
+        // eg California king bed, null when unknown
+        public string? BedType { get; set; }
+
+        // eg Garden view, null when unknown
+        public string? View { get; set; }
+
+        // what the room offers, sorted by name, empty when the room has none
+        public IReadOnlyList<AmenityDto.Index> Amenities { get; set; } = [];
     }
 }

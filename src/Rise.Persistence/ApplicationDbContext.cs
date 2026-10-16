@@ -23,6 +23,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> opts) :
     public DbSet<Guest> Guests => Set<Guest>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<RoomPhoto> RoomPhotos => Set<RoomPhoto>();
+    public DbSet<Amenity> Amenities => Set<Amenity>();
     public DbSet<Rate> Rates => Set<Rate>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BookingRoom> BookingRooms => Set<BookingRoom>();
