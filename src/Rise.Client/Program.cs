@@ -10,7 +10,6 @@ using Rise.Shared.Invoice;
 using Rise.Client.Rooms;
 using Rise.Shared.Bookings;
 using Rise.Shared.Guests;
-using Rise.Shared.Invoice;
 using Rise.Shared.Rooms;
 
 try
@@ -79,3 +78,4 @@ catch (Exception ex)
     Log.Fatal(ex, "An exception occurred while creating the WASM host");
     throw;
 }
+
