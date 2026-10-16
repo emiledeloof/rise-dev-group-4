@@ -21,4 +21,15 @@ public class RoomService(HttpClient httpClient) : IRoomService
         // GET on the endpoint and read the json answer as a Result
         return (await httpClient.GetFromJsonAsync<Result<RoomResponse.Available>>(url, cancellationToken: ctx))!;
     }
+
+    /// <summary>
+    /// asks the server for one room, for the room detail page
+    /// </summary>
+    public async Task<Result<RoomDto.Detail>> GetDetailAsync(int roomId, CancellationToken ctx = default)
+    {
+        // GetAsync and not GetFromJsonAsync, an unknown room comes back as a 404
+        // GetFromJsonAsync would throw on it, but the body still holds the NotFound Result we want
+        var response = await httpClient.GetAsync($"/api/rooms/{roomId}", ctx);
+        return (await response.Content.ReadFromJsonAsync<Result<RoomDto.Detail>>(cancellationToken: ctx))!;
+    }
 }

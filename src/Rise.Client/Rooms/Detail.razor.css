@@ -1,0 +1,12 @@
+/* room detail page styles, scoped to Detail.razor */
+
+/* description in a readable line length, keeps the line breaks the hotel typed */
+.room-detail-description {
+    max-width: 40rem;
+    white-space: pre-line;
+}
+
+/* empty states, softer text like the other muted details */
+.room-detail-empty {
+    color: var(--color-text-muted);
+}

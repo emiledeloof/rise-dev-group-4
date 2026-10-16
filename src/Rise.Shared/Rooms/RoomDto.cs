@@ -37,4 +37,22 @@ public static class RoomDto
         // all rates of the room for the stay, cheapest first
         public IEnumerable<RateDto.Available> Rates { get; set; } = [];
     }
+
+    /// <summary>
+    /// one room shown on the room detail page, only the description for now, no photos
+    /// </summary>
+    public class Detail
+    {
+        // id of the room in the db
+        public required int Id { get; set; }
+
+        // name shown as the page title
+        public required string Name { get; set; }
+
+        // text about what the room offers, a room can have none
+        public string? Description { get; set; }
+
+        // max nb of people in the room
+        public required int MaxGuests { get; set; }
+    }
 }

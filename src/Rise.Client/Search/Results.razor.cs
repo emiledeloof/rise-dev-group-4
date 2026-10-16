@@ -148,6 +148,9 @@ public partial class Results
             return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice);
         }).ToList();
 
+    // url of the detail page of a room, keeps the dates so its back btn returns to these results
+    private string DetailsUrlOf(int roomId) => $"rooms/{roomId}?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}";
+
     // rate chosen for a room, null when the room is not in the selection
     // TryGetValue gives true and the value when the key is there, false otherwise
     private int? SelectedRateOf(int roomId) => _selection.TryGetValue(roomId, out var rateId) ? rateId : null;

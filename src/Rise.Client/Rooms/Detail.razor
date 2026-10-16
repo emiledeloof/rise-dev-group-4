@@ -1,0 +1,43 @@
+@page "/rooms/{RoomId:int}"
+@* room detail page, opened from a card of the search results, only the description for now, no photos *@
+@* TODO: translate the texts with the languages task *@
+
+<PageTitle>@(_room?.Name ?? "Room")</PageTitle>
+
+@* centered frame, see .page in theme.css *@
+<div class="page">
+    @if (_isLoading)
+    {
+        @* api still answering, short text while waiting *@
+        <p>Loading room...</p>
+    }
+    else if (_room is null)
+    {
+        @* unknown or deleted room, or the api call failed, msg set in the code-behind *@
+        <p class="room-detail-empty">@_errorMessage</p>
+    }
+    else
+    {
+        <span class="eyebrow">Our rooms</span>
+        <h1>@_room.Name</h1>
+
+        @* capacity, eg up to 2 guests *@
+        <p class="subtitle room-detail-meta">Up to @_room.MaxGuests @(_room.MaxGuests == 1 ? "guest" : "guests")</p>
+
+        @* what the room offers, an empty state when there is no description, never a made up text *@
+        @if (!string.IsNullOrWhiteSpace(_room.Description))
+        {
+            <p class="room-detail-description">@_room.Description</p>
+        }
+        else
+        {
+            <p class="room-detail-empty">No description is available for this room yet.</p>
+        }
+    }
+
+    @* back to the results of the same dates, or to the search when the page was opened without dates *@
+    @if (!_isLoading)
+    {
+        <Button Variant="ButtonVariant.Secondary" Href="@BackUrl" Class="back-btn mt-3">@BackText</Button>
+    }
+</div>

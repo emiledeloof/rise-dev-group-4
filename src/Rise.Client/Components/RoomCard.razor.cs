@@ -48,6 +48,12 @@ public partial class RoomCard
     [Parameter] public string? PhotoUrl { get; set; }
 
     /// <summary>
+    /// url of the room detail page, eg rooms/3?checkIn=2026-10-14&amp;checkOut=2026-10-17
+    /// no link is shown when it is empty
+    /// </summary>
+    [Parameter] public string? DetailsUrl { get; set; }
+
+    /// <summary>
     /// id of the rate chosen for this room, null when the room is not in the selection
     /// the page owns the selection, the card only shows it
     /// </summary>

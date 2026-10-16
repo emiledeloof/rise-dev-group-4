@@ -1,3 +1,4 @@
+using Ardalis.Result;
 using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
@@ -209,5 +210,61 @@ public class RoomServiceShould
         rates[0].Description.ShouldBe("No refund after booking");
         rates[0].TotalPrice.ShouldBe(327m);
         rates[1].TotalPrice.ShouldBe(417m);
+    }
+
+    // id the in memory db gave to a room, the tests don't know it in advance
+    private static int IdOf(ApplicationDbContext dbContext, string name) =>
+        dbContext.Rooms.Single(r => r.Name == name).Id;
+
+    /// <summary>
+    /// the detail of a room has its name, description and capacity
+    /// </summary>
+    [Fact]
+    public async Task ReturnTheRoomDetail()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomDetail));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Name.ShouldBe(DoubleRoom);
+        result.Value.Description.ShouldBe("Spacious room with a double bed.");
+        result.Value.MaxGuests.ShouldBe(2);
+    }
+
+    /// <summary>
+    /// an id no room has gives NotFound, no made up room
+    /// </summary>
+    [Fact]
+    public async Task ReturnNotFoundForAnUnknownRoom()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNotFoundForAnUnknownRoom));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(9999);
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.NotFound);
+    }
+
+    /// <summary>
+    /// a deleted room is not shown anymore, so NotFound too
+    /// </summary>
+    [Fact]
+    public async Task ReturnNotFoundForADeletedRoom()
+    {
+        // arrange, the double room is deleted
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNotFoundForADeletedRoom),
+            (room, _) => room.IsDeleted = true);
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.NotFound);
     }
 }

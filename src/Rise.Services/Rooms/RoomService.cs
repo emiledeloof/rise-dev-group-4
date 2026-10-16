@@ -71,4 +71,27 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
             Rooms = rooms
         });
     }
+
+    /// <summary>
+    /// one room for the detail page, NotFound when the id is unknown or the room is deleted
+    /// </summary>
+    public async Task<Result<RoomDto.Detail>> GetDetailAsync(int roomId, CancellationToken ctx = default)
+    {
+        var room = await dbContext.Rooms
+            .AsNoTracking()
+            .Where(r => r.Id == roomId && !r.IsDeleted)
+            .Select(r => new RoomDto.Detail
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description,
+                MaxGuests = r.MaxGuests
+            })
+            .SingleOrDefaultAsync(ctx);
+
+        if (room is null)
+            return Result.NotFound($"Room with ID '{roomId}' was not found.");
+
+        return Result.Success(room);
+    }
 }

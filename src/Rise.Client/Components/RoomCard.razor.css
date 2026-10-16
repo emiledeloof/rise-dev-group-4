@@ -44,6 +44,23 @@
     font-size: 1.5rem;
 }
 
+/* name as a link to the detail page, keeps the title look */
+.room-card-title-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.room-card-title-link:hover {
+    text-decoration: underline;
+}
+
+/* small link to the detail page under the capacity */
+.room-card-details-link {
+    font-size: 0.875rem;
+    align-self: flex-start;
+    text-decoration: underline;
+}
+
 /* description in a smaller and softer text */
 .room-card-description {
     font-size: 0.875rem;
