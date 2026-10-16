@@ -54,5 +54,8 @@ public static class RoomDto
 
         // max nb of people in the room
         public required int MaxGuests { get; set; }
+
+        // urls of all the photos of the room, in display order, empty when the room has none
+        public IReadOnlyList<string> PhotoUrls { get; set; } = [];
     }
 }

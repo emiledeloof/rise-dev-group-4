@@ -30,6 +30,11 @@ public class RoomService(HttpClient httpClient) : IRoomService
         // GetAsync and not GetFromJsonAsync, an unknown room comes back as a 404
         // GetFromJsonAsync would throw on it, but the body still holds the NotFound Result we want
         var response = await httpClient.GetAsync($"/api/rooms/{roomId}", ctx);
+
+        // any other error, eg a 503 while the server starts, has no Result body, so the page shows its error msg instead of crashing
+        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotFound)
+            return Result.Error($"The server answered {(int)response.StatusCode}.");
+
         return (await response.Content.ReadFromJsonAsync<Result<RoomDto.Detail>>(cancellationToken: ctx))!;
     }
 }

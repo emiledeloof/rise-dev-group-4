@@ -267,4 +267,36 @@ public class RoomServiceShould
         // assert
         result.Status.ShouldBe(ResultStatus.NotFound);
     }
+
+    /// <summary>
+    /// the detail lists all the photos of the room, in the order they were added
+    /// </summary>
+    [Fact]
+    public async Task ReturnTheRoomPhotosInOrder()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomPhotosInOrder));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.Value.PhotoUrls.ShouldBe(new[] { "https://example.com/double-1.jpg", "https://example.com/double-2.jpg" });
+    }
+
+    /// <summary>
+    /// a room without photos gets an empty list, no made up photo
+    /// </summary>
+    [Fact]
+    public async Task ReturnNoPhotosForARoomWithout()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNoPhotosForARoomWithout));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, SingleRoom));
+
+        // assert
+        result.Value.PhotoUrls.ShouldBeEmpty();
+    }
 }

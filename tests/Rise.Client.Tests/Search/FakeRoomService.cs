@@ -53,6 +53,7 @@ public class FakeRoomService : IRoomService
         Name = "Double Room",
         Description = "Spacious room with a double bed.",
         MaxGuests = 2,
+        PhotoUrls = ["images/rooms/double-1.jpg", "images/rooms/double-2.jpg"],
     });
 
     /// <summary>

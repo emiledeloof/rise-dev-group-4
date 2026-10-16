@@ -85,7 +85,13 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                 Id = r.Id,
                 Name = r.Name,
                 Description = r.Description,
-                MaxGuests = r.MaxGuests
+                MaxGuests = r.MaxGuests,
+                // RoomPhoto has no position yet, the photos are added in display order so the id keeps that order
+                PhotoUrls = r.Photos
+                    .Where(p => !p.IsDeleted)
+                    .OrderBy(p => p.Id)
+                    .Select(p => p.Url)
+                    .ToList()
             })
             .SingleOrDefaultAsync(ctx);
 
