@@ -111,6 +111,25 @@ else
                     }
                 </section>
 
+                @* ---------- occupancy, pet and cot rules ---------- *@
+                <section class="room-detail-section">
+                    <span class="eyebrow">Good to know</span>
+                    <h2>Occupancy &amp; policies</h2>
+
+                    @* capacity is always known, the rest is the text the hotel wrote *@
+                    <p class="room-detail-spec room-detail-occupancy"><i class="fas fa-user-group" aria-hidden="true"></i><span>Up to @_room.MaxGuests @(_room.MaxGuests == 1 ? "guest" : "guests")</span></p>
+
+                    @* empty state when the hotel wrote no rules, never a made up policy *@
+                    @if (_room.Policies is not null)
+                    {
+                        <p class="room-detail-policies">@_room.Policies</p>
+                    }
+                    else
+                    {
+                        <p class="room-detail-empty room-detail-no-policies">No pet or cot information is available for this room yet.</p>
+                    }
+                </section>
+
                 @* ---------- the other photos in the slider ---------- *@
                 @* nothing more to show when the room only has its hero photo *@
                 @if (HeroPhoto is null)

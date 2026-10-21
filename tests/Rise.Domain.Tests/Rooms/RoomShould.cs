@@ -164,6 +164,42 @@ public class RoomShould
     }
 
     [Fact]
+    public void HaveNoPoliciesByDefault()
+    {
+        var room = new Room("101", "Single Room", 1);
+
+        room.Policies.ShouldBeNull();
+    }
+
+    [Fact]
+    public void TrimThePolicies()
+    {
+        var room = new Room("101", "Single Room", 1)
+        {
+            Policies = "  No pets allowed.  ",
+        };
+
+        room.Policies.ShouldBe("No pets allowed.");
+    }
+
+    /// <summary>
+    /// an empty text is stored as no policies, so the page shows its empty state
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void StoreEmptyPoliciesAsUnknown(string? value)
+    {
+        var room = new Room("101", "Single Room", 1)
+        {
+            Policies = value,
+        };
+
+        room.Policies.ShouldBeNull();
+    }
+
+    [Fact]
     public void AddAnAmenity()
     {
         var room = new Room("101", "Single Room", 1);

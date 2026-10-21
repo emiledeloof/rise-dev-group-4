@@ -41,6 +41,7 @@ public class RoomServiceShould
         doubleRoom.SizeInSquareMeters = 25;
         doubleRoom.BedType = "Double bed";
         doubleRoom.View = "Garden view";
+        doubleRoom.Policies = "A baby cot is available on request.";
         // added out of alphabetical order on purpose, the service must sort them by name
         doubleRoom.AddAmenity(new Amenity("Wi-Fi", "fa-wifi"));
         doubleRoom.AddAmenity(new Amenity("Hairdryer", "fa-wind"));
@@ -341,6 +342,38 @@ public class RoomServiceShould
         result.Value.SizeInSquareMeters.ShouldBeNull();
         result.Value.BedType.ShouldBeNull();
         result.Value.View.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// the detail has the occupancy, pet and cot rules of the room
+    /// </summary>
+    [Fact]
+    public async Task ReturnTheRoomPolicies()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomPolicies));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.Value.Policies.ShouldBe("A baby cot is available on request.");
+    }
+
+    /// <summary>
+    /// a room without policies gets null, no made up rules
+    /// </summary>
+    [Fact]
+    public async Task ReturnNoPoliciesForARoomWithout()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNoPoliciesForARoomWithout));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, SingleRoom));
+
+        // assert
+        result.Value.Policies.ShouldBeNull();
     }
 
     /// <summary>

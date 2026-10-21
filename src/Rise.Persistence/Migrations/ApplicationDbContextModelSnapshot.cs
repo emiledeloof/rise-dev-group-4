@@ -608,6 +608,10 @@ namespace Rise.Persistence.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
+                    b.Property<string>("Policies")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
                     b.Property<string>("RoomNumber")
                         .IsRequired()
                         .HasMaxLength(20)

@@ -134,6 +134,8 @@
     font-size: 1.0625rem;
     line-height: 1.75;
     white-space: pre-line;
+    /* long words or links typed by the hotel wrap instead of going out of the screen */
+    overflow-wrap: anywhere;
 }
 
 /* gallery slider, rounded like the cards */
@@ -184,6 +186,19 @@
     margin: 0;
 }
 
+/* occupancy line above the policies text */
+.room-detail-occupancy {
+    margin-bottom: var(--space-sm);
+}
+
+/* rules of the room, same readable text as the description, keeps the line breaks the hotel typed */
+.room-detail-policies {
+    max-width: 40rem;
+    line-height: 1.75;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
 /* empty states, softer text like the other muted details */
 .room-detail-empty {
     color: var(--color-text-muted);
@@ -232,8 +247,9 @@
 
 /* one column, the stay card goes under the text and is not sticky anymore */
 @media (max-width: 900px) {
+    /* minmax(0, 1fr) like on big screens, a plain 1fr grows with the carousel and pushes the text out of the screen */
     .room-detail-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: var(--space-lg);
     }
 
