@@ -11,6 +11,8 @@ using Rise.Client.Rooms;
 using Rise.Shared.Bookings;
 using Rise.Shared.Guests;
 using Rise.Shared.Rooms;
+using Rise.Client.Rates;
+using Rise.Shared.Rates;
 using Rise.Shared.RatePricing;
 using Rise.Client.RatePricing;
 
@@ -73,6 +75,11 @@ try
         client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();
 
+    builder.Services.AddHttpClient<IRateService, RateService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
     // the rate pricing endpoints need the admin role, so send the auth cookie along
     builder.Services.AddHttpClient<IRatePricingService, RatePricingService>(client =>
     {
@@ -86,5 +93,3 @@ catch (Exception ex)
     Log.Fatal(ex, "An exception occurred while creating the WASM host");
     throw;
 }
-
-

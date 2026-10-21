@@ -25,4 +25,13 @@ public static class RateDto
         // price for the whole stay with this rate, from PriceCalculator
         public required decimal TotalPrice { get; set; }
     }
+
+    public class Index
+    {
+        public required int Id { get; set; }
+        public required string Name { get; set; }
+        public required string RoomName { get; set; }
+        public required decimal PricePerNight { get; set; }
+        public string? Description { get; set; }
+    }
 }

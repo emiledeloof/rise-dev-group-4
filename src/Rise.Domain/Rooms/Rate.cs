@@ -30,7 +30,7 @@ public class Rate : Entity
     }
 
     /// <summary>
-    /// conditions of the rate shown to the guest, eg no refund after booking
+    /// conditions of the rate shown to the guest, e.g. no refund after booking
     /// </summary>
     public string? Description { get; set; }
 
