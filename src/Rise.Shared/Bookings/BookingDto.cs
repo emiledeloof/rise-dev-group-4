@@ -55,4 +55,31 @@ public static class BookingDto
         public required decimal Amount { get; set; }
         public DateTime? PaidAt { get; set; }
     }
+
+    /// <summary>
+    /// One room row in the admin booking matrix, with all bookings that overlap the requested window.
+    /// </summary>
+    public class MatrixRow
+    {
+        public required int RoomId { get; set; }
+        public required string RoomNumber { get; set; }
+        public required string RoomName { get; set; }
+        public required List<MatrixBooking> Bookings { get; set; }
+    }
+
+    /// <summary>
+    /// A single booking entry rendered as a coloured span inside the matrix grid.
+    /// </summary>
+    public class MatrixBooking
+    {
+        public required int Id { get; set; }
+        public required string BookingNumber { get; set; }
+        public required string GuestName { get; set; }
+        public required DateOnly CheckIn { get; set; }
+        public required DateOnly CheckOut { get; set; }
+        /// <summary>
+        /// "Paid" when at least one payment is settled, otherwise "Pending".
+        /// </summary>
+        public required string Status { get; set; }
+    }
 }

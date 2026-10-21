@@ -59,4 +59,14 @@ public class BookingService(HttpClient httpClient) : IBookingService
             $"/api/bookings{request}",
             cancellationToken))!;
     }
+
+    public async Task<Result<BookingResponse.Matrix>> GetMatrixAsync(
+        BookingRequest.Matrix request,
+        CancellationToken cancellationToken = default)
+    {
+        var qs = $"?windowStart={request.WindowStart:yyyy-MM-dd}&windowDays={request.WindowDays}";
+        return (await httpClient.GetFromJsonAsync<Result<BookingResponse.Matrix>>(
+            $"/api/bookings/matrix{qs}",
+            cancellationToken))!;
+    }
 }

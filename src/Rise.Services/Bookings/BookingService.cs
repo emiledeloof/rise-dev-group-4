@@ -351,4 +351,76 @@ public sealed class BookingService(
             TotalCount = totalCount,
         });
     }
+
+    /// <summary>
+    /// Returns all rooms with the bookings that overlap the requested date window,
+    /// used to render the admin booking matrix calendar.
+    /// </summary>
+    public async Task<Result<BookingResponse.Matrix>> GetMatrixAsync(
+        BookingRequest.Matrix request,
+        CancellationToken ctx = default)
+    {
+        var windowEnd = request.WindowStart.AddDays(request.WindowDays);
+
+        // Load all non-deleted rooms ordered by name
+        var rooms = await dbContext.Rooms
+            .AsNoTracking()
+            .Where(r => !r.IsDeleted)
+            .OrderBy(r => r.Name)
+            .Select(r => new { r.Id, r.RoomNumber, r.Name })
+            .ToListAsync(ctx);
+
+        // Load all booking-room entries that fall inside the window in one query,
+        // navigating from the owning side (BookingRoom → Booking, Booking → Guest/Payments)
+        var overlapping = await dbContext.BookingRooms
+            .AsNoTracking()
+            .Where(br => !br.IsDeleted
+                      && !br.Booking.IsDeleted
+                      && br.Booking.CheckIn < windowEnd
+                      && br.Booking.CheckOut > request.WindowStart)
+            .Select(br => new
+            {
+                RoomId = br.Room.Id,
+                br.Booking.Id,
+                br.Booking.BookingNumber,
+                GuestName = br.Booking.Guest.Name,
+                br.Booking.CheckIn,
+                br.Booking.CheckOut,
+                Status = br.Booking.Payments.Any(p => p.PaidAt != null) ? "Paid" : "Pending",
+            })
+            .ToListAsync(ctx);
+
+        // Group bookings by room and build the response
+        var bookingsByRoom = overlapping
+            .GroupBy(br => br.RoomId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var rows = rooms.Select(r =>
+        {
+            var roomBookings = bookingsByRoom.TryGetValue(r.Id, out var brs) ? brs : [];
+            return new BookingDto.MatrixRow
+            {
+                RoomId = r.Id,
+                RoomNumber = r.RoomNumber,
+                RoomName = r.Name,
+                Bookings = roomBookings.Select(b => new BookingDto.MatrixBooking
+                {
+                    Id = b.Id,
+                    BookingNumber = b.BookingNumber,
+                    GuestName = b.GuestName,
+                    CheckIn = b.CheckIn,
+                    CheckOut = b.CheckOut,
+                    Status = b.Status,
+                }).ToList(),
+            };
+        }).ToList();
+
+        return Result.Success(new BookingResponse.Matrix
+        {
+            WindowStart = request.WindowStart,
+            WindowDays = request.WindowDays,
+            Rows = rows,
+        });
+    }
 }
+
