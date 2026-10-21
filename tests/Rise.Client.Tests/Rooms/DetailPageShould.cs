@@ -208,4 +208,94 @@ public class DetailPageShould : BunitContext
         cut.FindAll("img").ShouldBeEmpty();
         cut.Find(".room-detail-no-photos").TextContent.ShouldBe("No photos are available for this room yet.");
     }
+
+    /// <summary>
+    /// the size, bed and view of the room are shown
+    /// </summary>
+    [Fact]
+    public void ShowTheRoomCharacteristics()
+    {
+        // arrange and act
+        var cut = RenderPage();
+
+        // assert
+        cut.Find(".room-detail-size").TextContent.ShouldBe("25 m²");
+        cut.Find(".room-detail-bed").TextContent.ShouldBe("Double bed");
+        cut.Find(".room-detail-view").TextContent.ShouldBe("Garden view");
+        cut.FindAll(".room-detail-no-specs").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// a characteristic the hotel did not fill in is left out, the others are still shown
+    /// </summary>
+    [Fact]
+    public void HideMissingCharacteristics()
+    {
+        // arrange
+        _roomService.DetailAnswer = Result.Success(new RoomDto.Detail
+        {
+            Id = 1,
+            Name = "Double Room",
+            MaxGuests = 2,
+            BedType = "Double bed",
+        });
+
+        // act
+        var cut = RenderPage();
+
+        // assert
+        cut.Find(".room-detail-bed").TextContent.ShouldBe("Double bed");
+        cut.FindAll(".room-detail-size").ShouldBeEmpty();
+        cut.FindAll(".room-detail-view").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// a room without any characteristic shows an empty state, no made up values
+    /// </summary>
+    [Fact]
+    public void ShowAnEmptyStateWhenThereAreNoCharacteristics()
+    {
+        // arrange
+        _roomService.DetailAnswer = Result.Success(new RoomDto.Detail { Id = 1, Name = "Double Room", MaxGuests = 2 });
+
+        // act
+        var cut = RenderPage();
+
+        // assert
+        cut.FindAll(".room-detail-specs").ShouldBeEmpty();
+        cut.Find(".room-detail-no-specs").TextContent.ShouldBe("No room details are available yet.");
+    }
+
+    /// <summary>
+    /// the amenities are shown in the order of the api, each with its icon
+    /// </summary>
+    [Fact]
+    public void ShowTheAmenities()
+    {
+        // arrange and act
+        var cut = RenderPage();
+
+        // assert
+        var amenities = cut.FindAll(".room-detail-amenity");
+        amenities.Select(a => a.TextContent.Trim()).ShouldBe(new[] { "Hairdryer", "Wi-Fi" });
+        amenities[1].QuerySelector("i")!.ClassList.ShouldContain("fa-wifi");
+        cut.FindAll(".room-detail-no-amenities").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// a room without amenities shows an empty state, not a made up list
+    /// </summary>
+    [Fact]
+    public void ShowAnEmptyStateWhenThereAreNoAmenities()
+    {
+        // arrange
+        _roomService.DetailAnswer = Result.Success(new RoomDto.Detail { Id = 1, Name = "Double Room", MaxGuests = 2 });
+
+        // act
+        var cut = RenderPage();
+
+        // assert
+        cut.FindAll(".room-detail-amenity").ShouldBeEmpty();
+        cut.Find(".room-detail-no-amenities").TextContent.ShouldBe("No amenities are listed for this room yet.");
+    }
 }

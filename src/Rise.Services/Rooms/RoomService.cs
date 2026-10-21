@@ -91,6 +91,14 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                     .Where(p => !p.IsDeleted)
                     .OrderBy(p => p.Id)
                     .Select(p => p.Url)
+                    .ToList(),
+                SizeInSquareMeters = r.SizeInSquareMeters,
+                BedType = r.BedType,
+                View = r.View,
+                Amenities = r.Amenities
+                    .Where(a => !a.IsDeleted)
+                    .OrderBy(a => a.Name)
+                    .Select(a => new AmenityDto.Index { Name = a.Name, Icon = a.Icon })
                     .ToList()
             })
             .SingleOrDefaultAsync(ctx);

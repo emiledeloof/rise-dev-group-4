@@ -38,8 +38,14 @@ public class RoomServiceShould
         var doubleRate = doubleRoom.AddRate("Non-refundable", 109m, "No refund after booking");
         doubleRoom.AddPhoto("https://example.com/double-1.jpg");
         doubleRoom.AddPhoto("https://example.com/double-2.jpg");
+        doubleRoom.SizeInSquareMeters = 25;
+        doubleRoom.BedType = "Double bed";
+        doubleRoom.View = "Garden view";
+        // added out of alphabetical order on purpose, the service must sort them by name
+        doubleRoom.AddAmenity(new Amenity("Wi-Fi", "fa-wifi"));
+        doubleRoom.AddAmenity(new Amenity("Hairdryer", "fa-wind"));
 
-        // no photo on purpose, to check the dto gets a null url
+        // no photo, characteristics or amenities on purpose, to check the dto gets empty values
         var singleRoom = new Room("101", SingleRoom, 1, "Cosy room with a single bed.");
         singleRoom.AddRate("Standard", 79m);
 
@@ -299,6 +305,92 @@ public class RoomServiceShould
 
         // assert
         result.Value.PhotoUrls.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// the detail has the size, bed and view of the room
+    /// </summary>
+    [Fact]
+    public async Task ReturnTheRoomCharacteristics()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomCharacteristics));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.Value.SizeInSquareMeters.ShouldBe(25);
+        result.Value.BedType.ShouldBe("Double bed");
+        result.Value.View.ShouldBe("Garden view");
+    }
+
+    /// <summary>
+    /// a room without characteristics gets nulls, no made up values
+    /// </summary>
+    [Fact]
+    public async Task ReturnNoCharacteristicsForARoomWithout()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNoCharacteristicsForARoomWithout));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, SingleRoom));
+
+        // assert
+        result.Value.SizeInSquareMeters.ShouldBeNull();
+        result.Value.BedType.ShouldBeNull();
+        result.Value.View.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// the amenities of the room are sorted by name, with their icon
+    /// </summary>
+    [Fact]
+    public async Task ReturnTheRoomAmenitiesSortedByName()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomAmenitiesSortedByName));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.Value.Amenities.Select(a => a.Name).ShouldBe(new[] { "Hairdryer", "Wi-Fi" });
+        result.Value.Amenities[1].Icon.ShouldBe("fa-wifi");
+    }
+
+    /// <summary>
+    /// a deleted amenity is not shown anymore
+    /// </summary>
+    [Fact]
+    public async Task IgnoreDeletedAmenities()
+    {
+        // arrange, the hairdryer is deleted
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(IgnoreDeletedAmenities),
+            (room, _) => room.Amenities.Single(a => a.Name == "Hairdryer").IsDeleted = true);
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.Value.Amenities.ShouldHaveSingleItem().Name.ShouldBe("Wi-Fi");
+    }
+
+    /// <summary>
+    /// a room without amenities gets an empty list, no made up amenity
+    /// </summary>
+    [Fact]
+    public async Task ReturnNoAmenitiesForARoomWithout()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNoAmenitiesForARoomWithout));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, SingleRoom));
+
+        // assert
+        result.Value.Amenities.ShouldBeEmpty();
     }
 
     /// <summary>

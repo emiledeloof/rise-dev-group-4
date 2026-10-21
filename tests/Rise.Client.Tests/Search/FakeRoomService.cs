@@ -45,7 +45,7 @@ public class FakeRoomService : IRoomService
     }
 
     /// <summary>
-    /// what GetDetailAsync sends back, a double room with a description by default
+    /// what GetDetailAsync sends back, a double room with a description, characteristics and amenities by default
     /// </summary>
     public Result<RoomDto.Detail> DetailAnswer { get; set; } = Result.Success(new RoomDto.Detail
     {
@@ -54,6 +54,14 @@ public class FakeRoomService : IRoomService
         Description = "Spacious room with a double bed.",
         MaxGuests = 2,
         PhotoUrls = ["images/rooms/double-1.jpg", "images/rooms/double-2.jpg"],
+        SizeInSquareMeters = 25,
+        BedType = "Double bed",
+        View = "Garden view",
+        Amenities =
+        [
+            new AmenityDto.Index { Name = "Hairdryer", Icon = "fa-wind" },
+            new AmenityDto.Index { Name = "Wi-Fi", Icon = "fa-wifi" },
+        ],
     });
 
     /// <summary>

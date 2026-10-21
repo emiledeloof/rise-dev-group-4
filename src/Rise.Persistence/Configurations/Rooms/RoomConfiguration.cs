@@ -16,6 +16,13 @@ internal class RoomConfiguration : EntityConfiguration<Room>
         builder.HasIndex(x => x.RoomNumber).IsUnique();
         builder.Property(x => x.Name).IsRequired().HasMaxLength(250);
         builder.Property(x => x.MaxGuests).IsRequired();
+        builder.Property(x => x.BedType).HasMaxLength(100);
+        builder.Property(x => x.View).HasMaxLength(100);
+
+        // Amenities are shared by the rooms, the RoomAmenity join table only links them.
+        builder.HasMany(x => x.Amenities)
+            .WithMany()
+            .UsingEntity("RoomAmenity");
 
         // Photos belong to the room, so they are removed together with the room.
         builder.HasMany(x => x.Photos)
