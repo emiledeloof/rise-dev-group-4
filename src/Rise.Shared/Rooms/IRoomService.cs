@@ -15,4 +15,7 @@ public interface IRoomService
     // gets one room for the room detail page, NotFound when it does not exist or is deleted
     Task<Result<RoomDto.Detail>> GetDetailAsync(int roomId, CancellationToken ctx = default);
 
+    // gets the first rooms for the landing page, at most request.Take, with the total nb of rooms
+    Task<Result<RoomResponse.List>> GetListAsync(RoomRequest.List request, CancellationToken ctx = default);
+
 }

@@ -1,0 +1,79 @@
+@page "/admin/rate-pricing"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Shared.Identity
+
+<PageTitle>Rate pricing</PageTitle>
+
+<div class="page">
+    <h1 class="title">Rate pricing</h1>
+
+    @* while rates is null, show a Loading... paragraph, same as InvoiceList *@
+    @if (rates is null)
+    {
+        <p>Loading...</p>
+    }
+
+    @* else if errorMessage is not null, show it in a p with class notification is-danger is-light *@
+    else if (errorMessage is not null)
+    {
+        <p class="notification is-danger is-light">@errorMessage</p>
+    }
+
+
+    @* else, a table with class table, 3 columns Room, Rate, Price per night
+       one row per rate with @foreach, @key on RateId, the price shown with FormatPrice *@
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr><th>Room</th><th>Rate</th><th>Price per night</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var rate in rates)
+                {
+                    <tr @key="rate.RateId">
+                    <td>@rate.RoomName</td>
+                    <td>@rate.RateName</td>
+                    <td>@FormatPrice(rate.PricePerNight)</td>
+                    <td>
+                        <Button Variant="ButtonVariant.Secondary" OnClick="() => StartEdit(rate)">Edit</Button>
+                    </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @* success msg, if successMessage is not null, a p with class notification is-success is-light *@
+        @if (successMessage is not null)
+        {
+            <p class="notification is-success is-light">@successMessage</p>
+        }
+
+        @* the edit form, only if editModel is not null
+           EditForm with Model editModel and OnValidSubmit SaveAsync
+           inside, FluentValidationValidator, an InputNumber bound to the price, a ValidationMessage under it
+           the save error msg if not null
+           a Save btn type submit and a Cancel btn calling CancelEdit *@
+           @if (editModel is not null)
+           {
+                <EditForm Model="editModel" OnValidSubmit="SaveAsync">
+                    <FluentValidationValidator />
+
+                    <div class="field">
+                        <label class="label" for="price">Price per night (€)</label>
+                        <InputNumber @bind-Value="editModel.PricePerNight" id="price" class="input" />
+                        <ValidationMessage For="() => editModel.PricePerNight" class="help is-danger" />
+                    </div>
+
+                    @if (saveErrorMessage is not null)
+                    {
+                        <p class="notification is-danger is-light">@saveErrorMessage</p>
+                    }
+
+                    <Button Type="submit">Save</Button>
+                    <Button Variant="ButtonVariant.Secondary" OnClick="CancelEdit">Cancel</Button>
+                </EditForm>
+            }
+    }
+</div>

@@ -108,4 +108,46 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
 
         return Result.Success(room);
     }
+
+    /// <summary>
+    /// the first rooms for the landing page, at most request.Take, with the total nb of rooms
+    /// </summary>
+    public async Task<Result<RoomResponse.List>> GetListAsync(RoomRequest.List request, CancellationToken ctx = default)
+    {
+        var query = dbContext.Rooms.AsNoTracking().Where(r => !r.IsDeleted);
+
+        // all the rooms, not only the ones sent back, so the page can link to the others
+        var totalCount = await query.CountAsync(ctx);
+
+        // the rooms are seeded in display order, so the id keeps that order
+        var rooms = await query
+            .OrderBy(r => r.Id)
+            .Take(request.Take)
+            .Select(r => new RoomDto.Summary
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description,
+                MaxGuests = r.MaxGuests,
+                // "from" price = cheapest rate, the cast to decimal? gives null when the room has no rate instead of 0
+                FromPrice = r.Rates
+                    .Where(x => !x.IsDeleted)
+                    .OrderBy(x => x.PricePerNight)
+                    .Select(x => (decimal?)x.PricePerNight)
+                    .FirstOrDefault(),
+                // same order as the detail page
+                PhotoUrls = r.Photos
+                    .Where(p => !p.IsDeleted)
+                    .OrderBy(p => p.Id)
+                    .Select(p => p.Url)
+                    .ToList()
+            })
+            .ToListAsync(ctx);
+
+        return Result.Success(new RoomResponse.List
+        {
+            Rooms = rooms,
+            TotalCount = totalCount
+        });
+    }
 }

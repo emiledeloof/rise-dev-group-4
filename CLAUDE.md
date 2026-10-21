@@ -68,3 +68,8 @@ xUnit + Shouldly everywhere; NSubstitute is available.
 - `Rise.Client.Tests`: bUnit. Test classes inherit `BunitContext`, register fakes (e.g. `FakeRoomService`) and use `this.AddAuthorization().SetAuthorized(...)`. Their root namespace is `Rise.Client`.
 - `Rise.Services.Tests`: these currently use the EF InMemory provider, though a comment in the code advises moving to a real database with cleanup between tests.
 - There are no integration tests yet. The README points to FastEndpoints integration testing.
+
+
+## Requirements
+- The website should provide a luxiorios feeling to the customer 
+- Build the Website mobilefirst, everything has to be responsive, a pwa mode is planed in the future

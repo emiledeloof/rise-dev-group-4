@@ -37,4 +37,19 @@ public class RoomService(HttpClient httpClient) : IRoomService
 
         return (await response.Content.ReadFromJsonAsync<Result<RoomDto.Detail>>(cancellationToken: ctx))!;
     }
+
+    /// <summary>
+    /// asks the server for the first rooms, for the landing page
+    /// </summary>
+    public async Task<Result<RoomResponse.List>> GetListAsync(RoomRequest.List request, CancellationToken ctx = default)
+    {
+        // max nb of rooms in the url, eg /api/rooms?take=3
+        var response = await httpClient.GetAsync($"/api/rooms{request}", ctx);
+
+        // same as GetDetailAsync, an error without a Result body becomes an error Result so the page shows its msg
+        if (!response.IsSuccessStatusCode)
+            return Result.Error($"The server answered {(int)response.StatusCode}.");
+
+        return (await response.Content.ReadFromJsonAsync<Result<RoomResponse.List>>(cancellationToken: ctx))!;
+    }
 }

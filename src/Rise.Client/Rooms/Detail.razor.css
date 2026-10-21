@@ -4,15 +4,13 @@
 
 /* full width photo under the navbar, the name sits on it at the bottom left */
 .room-hero {
-    /* muted olive from the home hero, shown while the photo loads or when there is none */
-    --color-hero: #7d866a;
-
     position: relative;
     display: flex;
     align-items: flex-end;
     min-height: clamp(22rem, 62vh, 38rem);
-    background-color: var(--color-hero);
-    color: #fff;
+    /* olive from the theme, a bit lighter, shown while the photo loads or when there is none */
+    background-color: color-mix(in srgb, var(--color-primary) 80%, var(--color-bg));
+    color: var(--color-surface);
     overflow: hidden;
 }
 
@@ -47,7 +45,10 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(20, 20, 16, 0.35) 0%, rgba(20, 20, 16, 0) 35%, rgba(20, 20, 16, 0.65) 100%);
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-footer) 35%, transparent) 0%,
+        transparent 35%,
+        color-mix(in srgb, var(--color-footer) 65%, transparent) 100%);
 }
 
 /* back link, name and capacity, above the photo, same width as the .page frame */
@@ -71,31 +72,31 @@
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
     border-radius: 999px;
-    background-color: rgba(255, 255, 255, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.35);
+    background-color: color-mix(in srgb, var(--color-surface) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-surface) 35%, transparent);
     backdrop-filter: blur(8px);
-    color: #fff;
+    color: var(--color-surface);
     font-size: 0.875rem;
     text-decoration: none;
     transition: background-color 0.2s ease;
 }
 
 .room-hero-back:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-    color: #fff;
+    background-color: color-mix(in srgb, var(--color-surface) 30%, transparent);
+    color: var(--color-surface);
 }
 
 /* label in white on the photo instead of the burgundy of the theme */
 .room-hero-eyebrow {
-    color: rgba(255, 255, 255, 0.85);
+    color: color-mix(in srgb, var(--color-surface) 85%, transparent);
 }
 
 /* big serif name, white with a soft shadow */
 .room-hero .room-hero-title {
-    color: #fff;
+    color: var(--color-surface);
     font-size: clamp(2.25rem, 5vw, 3.75rem);
     margin-bottom: var(--space-sm);
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    text-shadow: 0 2px 12px color-mix(in srgb, var(--color-footer) 35%, transparent);
 }
 
 /* capacity under the name, with its icon */
@@ -104,7 +105,7 @@
     align-items: center;
     gap: var(--space-sm);
     font-size: 0.9375rem;
-    color: rgba(255, 255, 255, 0.9);
+    color: color-mix(in srgb, var(--color-surface) 85%, transparent);
 }
 
 /* ---------- body, text and gallery on the left, stay card on the right ---------- */
@@ -204,7 +205,7 @@
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
-    box-shadow: 0 12px 32px rgba(20, 20, 16, 0.12);
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--color-footer) 12%, transparent);
 }
 
 /* dates in the title font, the main info of the card */
