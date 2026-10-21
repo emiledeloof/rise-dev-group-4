@@ -39,6 +39,30 @@ public static class RoomDto
     }
 
     /// <summary>
+    /// one room shown as a card on the landing page, no dates so no stay price
+    /// </summary>
+    public class Summary
+    {
+        // id of the room in the db, used for the link to the detail page
+        public required int Id { get; set; }
+
+        // name shown as the card title
+        public required string Name { get; set; }
+
+        // text about the room, the card cuts it to a few lines, a room can have none
+        public string? Description { get; set; }
+
+        // max nb of people in the room
+        public required int MaxGuests { get; set; }
+
+        // "from" price for 1 night, the cheapest rate, null when the room has no rate
+        public decimal? FromPrice { get; set; }
+
+        // urls of all the photos of the room, in display order, empty when the room has none
+        public IReadOnlyList<string> PhotoUrls { get; set; } = [];
+    }
+
+    /// <summary>
     /// one room shown on the room detail page, only the description for now, no photos
     /// </summary>
     public class Detail
@@ -54,5 +78,8 @@ public static class RoomDto
 
         // max nb of people in the room
         public required int MaxGuests { get; set; }
+
+        // urls of all the photos of the room, in display order, empty when the room has none
+        public IReadOnlyList<string> PhotoUrls { get; set; } = [];
     }
 }

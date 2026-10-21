@@ -53,6 +53,7 @@ public class FakeRoomService : IRoomService
         Name = "Double Room",
         Description = "Spacious room with a double bed.",
         MaxGuests = 2,
+        PhotoUrls = ["images/rooms/double-1.jpg", "images/rooms/double-2.jpg"],
     });
 
     /// <summary>
@@ -61,5 +62,45 @@ public class FakeRoomService : IRoomService
     public Task<Result<RoomDto.Detail>> GetDetailAsync(int roomId, CancellationToken ctx = default)
     {
         return Task.FromResult(DetailAnswer);
+    }
+
+    /// <summary>
+    /// what GetListAsync sends back, the 3 rooms of the seed by default and no other room
+    /// </summary>
+    public Result<RoomResponse.List> ListAnswer { get; set; } = Result.Success(new RoomResponse.List
+    {
+        Rooms =
+        [
+            new RoomDto.Summary
+            {
+                Id = 1, Name = "Standard Room", Description = "Cosy room with a view on the vines.", MaxGuests = 2, FromPrice = 133m,
+                PhotoUrls = ["images/rooms/standard-room-1.jpg", "images/rooms/standard-room-2.jpg"],
+            },
+            new RoomDto.Summary
+            {
+                Id = 2, Name = "Deluxe Room", Description = "Spacious room with a terrace.", MaxGuests = 2, FromPrice = 175m,
+                PhotoUrls = ["images/rooms/deluxe-room-1.jpg"],
+            },
+            new RoomDto.Summary
+            {
+                Id = 3, Name = "Deluxe Room with bathtub", Description = "Spacious room with a bathtub.", MaxGuests = 2, FromPrice = 175m,
+                PhotoUrls = ["images/rooms/deluxe-room-bathtub-1.jpg"],
+            },
+        ],
+        TotalCount = 3,
+    });
+
+    /// <summary>
+    /// every list request the page sent, to check how many rooms it asked for
+    /// </summary>
+    public List<RoomRequest.List> ListRequests { get; } = [];
+
+    /// <summary>
+    /// remembers the request and sends back the chosen list answer
+    /// </summary>
+    public Task<Result<RoomResponse.List>> GetListAsync(RoomRequest.List request, CancellationToken ctx = default)
+    {
+        ListRequests.Add(request);
+        return Task.FromResult(ListAnswer);
     }
 }

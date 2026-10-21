@@ -5,6 +5,7 @@ using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
 using Rise.Persistence;
 using Rise.Services.Rooms;
+using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 
 namespace Rise.Services.Tests.Rooms;
@@ -266,5 +267,113 @@ public class RoomServiceShould
 
         // assert
         result.Status.ShouldBe(ResultStatus.NotFound);
+    }
+
+    /// <summary>
+    /// the detail lists all the photos of the room, in the order they were added
+    /// </summary>
+    [Fact]
+    public async Task ReturnTheRoomPhotosInOrder()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomPhotosInOrder));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.Value.PhotoUrls.ShouldBe(new[] { "https://example.com/double-1.jpg", "https://example.com/double-2.jpg" });
+    }
+
+    /// <summary>
+    /// a room without photos gets an empty list, no made up photo
+    /// </summary>
+    [Fact]
+    public async Task ReturnNoPhotosForARoomWithout()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNoPhotosForARoomWithout));
+
+        // act
+        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, SingleRoom));
+
+        // assert
+        result.Value.PhotoUrls.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// the list has every room with its cheapest rate as from price, a booked room is listed too
+    /// </summary>
+    [Fact]
+    public async Task ListAllRoomsWithTheirCheapestRate()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ListAllRoomsWithTheirCheapestRate));
+
+        // act
+        var result = await new RoomService(dbContext).GetListAsync(new RoomRequest.List());
+
+        // assert, 109 and not 139 for the double room, the expensive rate was added first
+        result.IsSuccess.ShouldBeTrue();
+        var rooms = result.Value.Rooms.ToList();
+        rooms.Count.ShouldBe(2);
+        rooms.Single(r => r.Name == DoubleRoom).FromPrice.ShouldBe(109m);
+        rooms.Single(r => r.Name == DoubleRoom).Description.ShouldBe("Spacious room with a double bed.");
+        rooms.Single(r => r.Name == SingleRoom).FromPrice.ShouldBe(79m);
+        result.Value.TotalCount.ShouldBe(2);
+    }
+
+    /// <summary>
+    /// each room of the list has its photos in the order they were added, empty when it has none
+    /// </summary>
+    [Fact]
+    public async Task ListThePhotosOfEachRoomInOrder()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ListThePhotosOfEachRoomInOrder));
+
+        // act
+        var result = await new RoomService(dbContext).GetListAsync(new RoomRequest.List());
+
+        // assert
+        var rooms = result.Value.Rooms.ToList();
+        rooms.Single(r => r.Name == DoubleRoom).PhotoUrls
+            .ShouldBe(new[] { "https://example.com/double-1.jpg", "https://example.com/double-2.jpg" });
+        rooms.Single(r => r.Name == SingleRoom).PhotoUrls.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// never more rooms than asked, the total still counts all of them
+    /// </summary>
+    [Fact]
+    public async Task ListAtMostTheRequestedNumberOfRooms()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ListAtMostTheRequestedNumberOfRooms));
+
+        // act
+        var result = await new RoomService(dbContext).GetListAsync(new RoomRequest.List { Take = 1 });
+
+        // assert
+        result.Value.Rooms.Count().ShouldBe(1);
+        result.Value.TotalCount.ShouldBe(2);
+    }
+
+    /// <summary>
+    /// a deleted room is not in the list and not in the total
+    /// </summary>
+    [Fact]
+    public async Task SkipDeletedRoomsInTheList()
+    {
+        // arrange, the double room is deleted
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(SkipDeletedRoomsInTheList),
+            (room, _) => room.IsDeleted = true);
+
+        // act
+        var result = await new RoomService(dbContext).GetListAsync(new RoomRequest.List());
+
+        // assert
+        result.Value.Rooms.Select(r => r.Name).ShouldBe(new[] { SingleRoom });
+        result.Value.TotalCount.ShouldBe(1);
     }
 }

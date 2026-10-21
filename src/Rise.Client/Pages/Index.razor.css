@@ -230,6 +230,27 @@
     margin-bottom: var(--space-xs);
 }
 
+/* short text of the room, cut to 2 lines with … so the cards keep the same height */
+.room-card-description {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.5;
+}
+
+/* msg when the rooms could not be loaded, same space above as the grid */
+.rooms-empty {
+    margin-top: var(--space-lg);
+}
+
+/* link to the other rooms under the cards, same as the link to all reviews */
+.rooms-all {
+    display: inline-block;
+    margin-top: var(--space-lg);
+}
+
 .review-card {
     padding: var(--space-md);
 }

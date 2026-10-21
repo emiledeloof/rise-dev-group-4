@@ -1,12 +1,220 @@
 /* room detail page styles, scoped to Detail.razor */
 
-/* description in a readable line length, keeps the line breaks the hotel typed */
+/* ---------- hero, the main photo of the room ---------- */
+
+/* full width photo under the navbar, the name sits on it at the bottom left */
+.room-hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: clamp(22rem, 62vh, 38rem);
+    /* olive from the theme, a bit lighter, shown while the photo loads or when there is none */
+    background-color: color-mix(in srgb, var(--color-primary) 80%, var(--color-bg));
+    color: var(--color-surface);
+    overflow: hidden;
+}
+
+/* no photo, a lower hero so the page does not start with a big empty block */
+.room-hero.is-empty {
+    min-height: 16rem;
+}
+
+/* photo fills the hero without being stretched, with a slow zoom out when the page opens */
+.room-hero-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: room-hero-zoom 1.6s ease-out;
+}
+
+@keyframes room-hero-zoom {
+    from {
+        transform: scale(1.06);
+        opacity: 0.6;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* dark veil at the bottom so the white name stays readable on light photos */
+.room-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-footer) 35%, transparent) 0%,
+        transparent 35%,
+        color-mix(in srgb, var(--color-footer) 65%, transparent) 100%);
+}
+
+/* back link, name and capacity, above the photo, same width as the .page frame */
+.room-hero-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 72rem;
+    margin: 0 auto;
+    /* more space on top for the back link */
+    padding: 5rem var(--space-lg) var(--space-lg);
+}
+
+/* small frosted glass link at the top left, like the glass arrows of the carousel */
+.room-hero-back {
+    position: absolute;
+    top: var(--space-lg);
+    left: var(--space-lg);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--color-surface) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-surface) 35%, transparent);
+    backdrop-filter: blur(8px);
+    color: var(--color-surface);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.room-hero-back:hover {
+    background-color: color-mix(in srgb, var(--color-surface) 30%, transparent);
+    color: var(--color-surface);
+}
+
+/* label in white on the photo instead of the burgundy of the theme */
+.room-hero-eyebrow {
+    color: color-mix(in srgb, var(--color-surface) 85%, transparent);
+}
+
+/* big serif name, white with a soft shadow */
+.room-hero .room-hero-title {
+    color: var(--color-surface);
+    font-size: clamp(2.25rem, 5vw, 3.75rem);
+    margin-bottom: var(--space-sm);
+    text-shadow: 0 2px 12px color-mix(in srgb, var(--color-footer) 35%, transparent);
+}
+
+/* capacity under the name, with its icon */
+.room-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 0.9375rem;
+    color: color-mix(in srgb, var(--color-surface) 85%, transparent);
+}
+
+/* ---------- body, text and gallery on the left, stay card on the right ---------- */
+
+/* less space on top than a normal page, the hero is right above */
+.room-detail-body {
+    padding-top: var(--space-lg);
+}
+
+/* minmax(0, 1fr) so the carousel can't push the stay card out of the screen */
+.room-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    gap: var(--space-xl);
+    align-items: start;
+}
+
+/* space between the about and gallery sections */
+.room-detail-section + .room-detail-section {
+    margin-top: var(--space-xl);
+}
+
+/* description in a bigger text and a readable line length, keeps the line breaks the hotel typed */
 .room-detail-description {
     max-width: 40rem;
+    font-size: 1.0625rem;
+    line-height: 1.75;
     white-space: pre-line;
+}
+
+/* gallery slider, rounded like the cards */
+.room-detail-photos {
+    border-radius: var(--radius-card);
+    overflow: hidden;
 }
 
 /* empty states, softer text like the other muted details */
 .room-detail-empty {
     color: var(--color-text-muted);
+}
+
+/* ---------- stay card ---------- */
+
+/* white card that stays visible while the guest scrolls, a bit higher than the other cards with a soft shadow */
+/* margin-top pulls it over the bottom of the hero */
+.room-detail-stay {
+    position: sticky;
+    top: var(--space-lg);
+    margin-top: -6rem;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--color-footer) 12%, transparent);
+}
+
+/* dates in the title font, the main info of the card */
+.room-detail-stay-dates {
+    font-family: var(--font-title);
+    font-size: 1.75rem;
+    line-height: 1.2;
+}
+
+/* nights and capacity under the dates */
+.room-detail-stay-meta {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+/* short invitation above the btn */
+.room-detail-stay-hint {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-sm);
+}
+
+/* ---------- phones and small tablets ---------- */
+
+/* one column, the stay card goes under the text and is not sticky anymore */
+@media (max-width: 900px) {
+    .room-detail-layout {
+        grid-template-columns: 1fr;
+        gap: var(--space-lg);
+    }
+
+    .room-detail-stay {
+        position: static;
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .room-hero-content {
+        padding: 4.5rem var(--space-md) var(--space-md);
+    }
+
+    .room-hero-back {
+        top: var(--space-md);
+        left: var(--space-md);
+    }
+}
+
+/* no zoom for guests who asked for less motion */
+@media (prefers-reduced-motion: reduce) {
+    .room-hero-photo {
+        animation: none;
+    }
 }

@@ -1,5 +1,7 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Rise.Shared.Rooms;
+using Rise.Shared.Search;
 
 namespace Rise.Client.Rooms;
 
@@ -39,6 +41,23 @@ public partial class Detail
     private bool HasSearchDates => CheckIn is not null && CheckOut is not null;
     private string BackUrl => HasSearchDates ? $"search/results?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}" : "search";
     private string BackText => HasSearchDates ? "Back to available rooms" : "Search rooms";
+
+    // dates of the url grouped in a stay period, to reuse its Nights calculation
+    private SearchRequest.StayPeriod Stay => new() { CheckIn = CheckIn, CheckOut = CheckOut };
+
+    // dates of the stay card, eg 14 Oct – 17 Oct 2026, english month names like the date picker until the languages task
+    private string StayDatesText =>
+        $"{CheckIn?.ToString("d MMM", CultureInfo.InvariantCulture)} – {CheckOut?.ToString("d MMM yyyy", CultureInfo.InvariantCulture)}";
+
+    // main btn of the stay card, same target as the back link, with a text that invites to book
+    private string CtaUrl => BackUrl;
+    private string CtaText => HasSearchDates ? "See prices for your dates" : "Check availability";
+
+    // 1st photo is the static hero, null when the room has no photo
+    private string? HeroPhoto => _room?.PhotoUrls.FirstOrDefault();
+
+    // the other photos go in the slider of the gallery
+    private IReadOnlyList<string> GalleryPhotos => _room?.PhotoUrls.Skip(1).ToList() ?? [];
 
     /// <summary>
     /// runs when the page opens and each time the id in the url changes, loads the room
