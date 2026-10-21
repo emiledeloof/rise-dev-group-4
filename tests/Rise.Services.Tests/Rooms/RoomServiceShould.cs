@@ -501,4 +501,64 @@ public class RoomServiceShould
         result.Value.Rooms.Select(r => r.Name).ShouldBe(new[] { SingleRoom });
         result.Value.TotalCount.ShouldBe(1);
     }
+
+    /// <summary>
+    /// every rate of the double room needs 5 nights, a 2 night stay hides the room
+    /// </summary>
+    [Fact]
+    public async Task HideARoomWhenTheStayIsShorterThanItsMinNights()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(HideARoomWhenTheStayIsShorterThanItsMinNights),
+            (room, _) =>
+            {
+                foreach (var rate in room.Rates)
+                    rate.MinNights = 5;
+            });
+
+        // act, oct 20 to 22 is 2 nights
+        var names = await FreeRoomNamesAsync(dbContext, Stay(20, 22));
+
+        // assert
+        names.ShouldBe(new[] { SingleRoom });
+    }
+
+    /// <summary>
+    /// only the rate that needs 5 nights is hidden, the other one stays
+    /// </summary>
+    [Fact]
+    public async Task HideOnlyTheRatesThatNeedALongerStay()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(HideOnlyTheRatesThatNeedALongerStay),
+            (room, _) => room.Rates.Single(r => r.Name == "Fully refundable").MinNights = 5);
+
+        // act, 2 nights
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+
+        // assert
+        var rates = result.Value.Rooms.Single(r => r.Name == DoubleRoom).Rates;
+        rates.Select(r => r.Name).ShouldBe(new[] { "Non-refundable" });
+    }
+
+    /// <summary>
+    /// a stay of exactly the min nb of nights is allowed
+    /// </summary>
+    [Fact]
+    public async Task KeepARoomWhenTheStayEqualsItsMinNights()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(KeepARoomWhenTheStayEqualsItsMinNights),
+            (room, _) =>
+            {
+                foreach (var rate in room.Rates)
+                    rate.MinNights = 2;
+            });
+
+        // act, 2 nights
+        var names = await FreeRoomNamesAsync(dbContext, Stay(20, 22));
+
+        // assert
+        names.ShouldBe(new[] { DoubleRoom, SingleRoom });
+    }
 }

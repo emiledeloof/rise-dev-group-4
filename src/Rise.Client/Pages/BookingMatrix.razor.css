@@ -1,0 +1,366 @@
+/* ──────────────────────────────────────────────
+Page wrapper
+─────────────────────────────────────────────── */
+.matrix-page {
+    padding: 2rem 2.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ──────────────────────────────────────────────
+   Header: title left, nav + action controls right
+─────────────────────────────────────────────── */
+.matrix-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.matrix-title {
+    font-family: var(--font-title, serif);
+    font-size: 2.25rem;
+    font-weight: 400;
+    margin: 0;
+    color: #1a1a1a;
+}
+
+.matrix-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.matrix-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.matrix-nav-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dcdcdc;
+    border-radius: 6px;
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #333333;
+    transition: background 0.15s;
+}
+
+.matrix-nav-btn:hover {
+    background: #f7f7f7;
+}
+
+.matrix-window-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1.25rem;
+    height: 2.25rem;
+    border: 1px solid #dcdcdc;
+    border-radius: 6px;
+    background: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #222222;
+    min-width: 12rem;
+}
+
+.matrix-top-actions {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.action-btn {
+    padding: 0.45rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: #ffffff;
+    border: 1px solid #cfcfcf;
+    color: #222222;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.action-btn:hover {
+    background: #f8f8f8;
+    border-color: #b5b5b5;
+}
+
+/* ──────────────────────────────────────────────
+   Legend chips
+─────────────────────────────────────────────── */
+.matrix-legend {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+
+.legend-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.legend-chip.free     { background: #d3ebd2; color: #2e5927; }
+.legend-chip.booked   { background: #fae48c; color: #6b5505; }
+.legend-chip.closed   { background: #eab4b1; color: #6b2622; }
+.legend-chip.selected { background: #cce1f2; color: #1e4b70; }
+
+/* ──────────────────────────────────────────────
+   Scroll container (horizontal on smaller screens)
+─────────────────────────────────────────────── */
+.matrix-scroll {
+    overflow-x: auto;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid #e2ded7;
+}
+
+/* ──────────────────────────────────────────────
+   Grid
+─────────────────────────────────────────────── */
+.matrix-grid {
+    display: grid;
+    grid-template-columns: 13rem repeat(var(--window-days, 16), minmax(3.2rem, 1fr));
+    min-width: 60rem;
+    background: #ffffff;
+}
+
+/* ──────────────────────────────────────────────
+   Generic cell & borders
+─────────────────────────────────────────────── */
+.matrix-cell {
+    border-right: 1px solid #e5e2da;
+    border-bottom: 1px solid #e5e2da;
+    position: relative;
+}
+
+/* ──────────────────────────────────────────────
+   Header Row
+─────────────────────────────────────────────── */
+.matrix-room-header {
+    display: flex;
+    align-items: center;
+    padding-left: 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #666666;
+    background: #faf9f6;
+    height: 3.5rem;
+}
+
+.matrix-day-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #faf9f6;
+    height: 3.5rem;
+    padding: 0.2rem 0;
+    gap: 0.2rem;
+}
+
+.day-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #555555;
+}
+
+.day-num {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #111111;
+}
+
+.today-circle {
+    background: #395232;
+    color: #ffffff;
+    border-radius: 50%;
+    width: 1.6rem;
+    height: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+
+/* ──────────────────────────────────────────────
+   Category / Room Name Banner (spans all columns)
+─────────────────────────────────────────────── */
+.matrix-category-banner {
+    grid-column: 1 / -1;
+    background: #f0ece3;
+    padding: 0.4rem 1.25rem;
+    border-bottom: 1px solid #e5e2da;
+}
+
+.category-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #69655c;
+}
+
+/* ──────────────────────────────────────────────
+   Room Label (Left cell in room row)
+─────────────────────────────────────────────── */
+.matrix-room-label {
+    display: flex;
+    align-items: center;
+    padding-left: 1.25rem;
+    background: #ffffff;
+    height: 4.5rem; /* Thicker row */
+}
+
+.room-number-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #222222;
+}
+
+/* ──────────────────────────────────────────────
+   Timeline Track (spans the 16 day columns)
+─────────────────────────────────────────────── */
+.matrix-timeline-track {
+    grid-column: 2 / -1;
+    position: relative;
+    height: 4.5rem; /* Thicker row */
+    border-bottom: 1px solid #e5e2da;
+}
+
+/* Flat single-layer grid for the timeline track */
+.track-flat-grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--window-days, 16), 1fr);
+}
+
+/* Free day cell — soft green, with a divider between free days */
+.flat-free-cell {
+    background-color: #d6e8d2;
+    border-right: 1px solid #ffffff;
+}
+
+.flat-free-cell:last-child {
+    border-right: 0;
+}
+
+/* Booked cell — fills entire cell yellow, no internal borders */
+.flat-booking-cell {
+    background-color: #f6e07a;
+    /* no border-right so consecutive booked days merge seamlessly */
+    display: flex;
+    align-items: center;
+    padding: 0 0.75rem;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Guest name rendered directly inside the yellow cell */
+.flat-booking-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #4a3d07;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* ──────────────────────────────────────────────
+   Bottom Action Section
+─────────────────────────────────────────────── */
+.matrix-bottom-actions {
+    margin-top: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.btn-new-booking {
+    align-self: flex-start;
+    background-color: #4c5a3d;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.65rem 1.4rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.btn-new-booking:hover {
+    background-color: #3f4b32;
+}
+
+.selection-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1.5px solid #4a7a9e;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 1rem 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.selection-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.selection-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.selection-dates {
+    font-size: 0.88rem;
+    color: #666666;
+}
+
+.selection-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.btn-create-booking {
+    background-color: #4c5a3d;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6rem 1.35rem;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.btn-create-booking:hover {
+    background-color: #3f4b32;
+}
+

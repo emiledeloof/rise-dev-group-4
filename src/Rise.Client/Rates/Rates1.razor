@@ -1,0 +1,140 @@
+﻿@page "/admin/rates"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Shared.Identity
+
+<PageTitle>Rates</PageTitle>
+
+<div class="page">
+    <h1 class="title">Rates</h1>
+    
+    @if (_rates is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <div class="rate-filters">
+            <label class="rate-filter">
+            <span>Room type</span>
+            <div class="rate-select-wrap">
+                <select @bind="_selectedRoomName" @bind:after="ApplyFiltersAsync">
+                    <option value="">All rooms</option>
+                    @foreach (var roomName in _roomNames)
+                    {
+                        <option value="@roomName">@roomName</option>
+                    }
+                </select>
+                <span class="rate-select-arrow" aria-hidden="true"></span>
+            </div>
+            </label>
+
+            <label class="rate-filter">
+            <span>Policy</span>
+            <div class="rate-select-wrap">
+                <select @bind="_selectedPolicy" @bind:after="ApplyFiltersAsync">
+                    <option value="">All policies</option>
+                    @foreach (var policy in _policies)
+                    {
+                        <option value="@policy">@policy</option>
+                    }
+                </select>
+                <span class="rate-select-arrow" aria-hidden="true"></span>
+            </div>
+            </label>
+        </div>
+        
+        <div class="box rate-list">
+
+            @if (_errorMessage is not null)
+            {
+                <p class="notification is-danger is-light">@_errorMessage</p>
+            }
+            else if (!_rates.Any())
+            {
+                <p class="rate-muted">No rates yet.</p>
+            }
+            else
+            {
+                <div class="rate-table-scroll">
+                    <table class="rate-table">
+                        <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Room type</th>
+                            <th scope="col">From–to</th>
+                            <th scope="col">Min nights</th>
+                            <th scope="col">Policy</th>
+                            <th scope="col">VAT</th>
+                            <th scope="col">Price/night</th>
+                            <th scope="col">Active</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var rate in _rates)
+                        {
+                            <tr @key="rate.Id">
+                                <td>@rate.Name</td>
+                                <td>@rate.RoomName</td>
+                                <td class="rate-placeholder">&mdash;</td>
+                                <td class="rate-placeholder">&mdash;</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(rate.Description))
+                                    {
+                                        <span class="rate-policy-non">@rate.Description</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="rate-placeholder">&mdash;</span>
+                                    }
+                                </td>
+                                <td class="rate-placeholder">&mdash;</td>
+                                <td class="rate-price">@FormatPrice(rate.PricePerNight)</td>
+                                <td>
+                                    <span class="rate-switch" aria-hidden="true">
+                                        <span></span>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (TotalPages > 1)
+                {
+                    <nav class="pagination is-centered is-small mt-4" role="navigation" aria-label="pagination">
+                        <button class="pagination-previous"
+                                disabled="@(_currentPage <= 1)"
+                                @onclick="PreviousPageAsync">
+                            Previous
+                        </button>
+                        <button class="pagination-next"
+                                disabled="@(_currentPage >= TotalPages)"
+                                @onclick="NextPageAsync">
+                            Next
+                        </button>
+                        <ul class="pagination-list">
+                            @for (var page = 1; page <= TotalPages; page++)
+                            {
+                                var p = page; // capture for the lambda
+                                <li>
+                                    <button class="pagination-link @(p == _currentPage ? "is-current" : "")"
+                                            aria-label="Page @p"
+                                            aria-current="@(p == _currentPage ? "page" : null)"
+                                            @onclick="() => GoToPageAsync(p)">
+                                        @p
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+
+                <p class="rate-muted rate-count">
+                    Showing @_rates.Count() of @_totalCount rate@(_totalCount == 1 ? "" : "s")
+                </p>
+            }
+        </div>
+    }
+</div>

@@ -93,4 +93,13 @@ public class FakeBookingService : IBookingService
 
     public Task<Result<BookingResponse.Index>> GetIndexAsync(QueryRequest.SkipTake request, CancellationToken ctx = default)
         => Task.FromResult(IndexAnswer);
+
+    public Task<Result<BookingResponse.Matrix>> GetMatrixAsync(BookingRequest.Matrix request, CancellationToken ctx = default)
+        => Task.FromResult(Result.Success(new BookingResponse.Matrix
+        {
+            WindowStart = request.WindowStart,
+            WindowDays = request.WindowDays,
+            Rows = [],
+        }));
 }
+

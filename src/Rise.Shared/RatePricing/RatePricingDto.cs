@@ -21,5 +21,8 @@ public static class RatePricingDto
 
         // current price for 1 night in eur
         public required decimal PricePerNight { get; set; }
+
+        // min nb of nights a guest must book
+        public required int MinNights { get; set; }
     }
 }

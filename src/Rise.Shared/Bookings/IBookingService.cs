@@ -19,4 +19,9 @@ public interface IBookingService
     /// Returns a paginated list of all bookings for the admin overview.
     /// </summary>
     Task<Result<BookingResponse.Index>> GetIndexAsync(QueryRequest.SkipTake request, CancellationToken ctx = default);
+
+    /// <summary>
+    /// Returns all rooms with their bookings that overlap the given date window, for the admin calendar.
+    /// </summary>
+    Task<Result<BookingResponse.Matrix>> GetMatrixAsync(BookingRequest.Matrix request, CancellationToken ctx = default);
 }

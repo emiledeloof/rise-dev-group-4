@@ -1,0 +1,95 @@
+@page "/admin"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Shared.Identity
+
+<PageTitle>Booking matrix</PageTitle>
+
+<div class="matrix-page">
+    <div class="matrix-header">
+        <h1 class="matrix-title">Booking matrix</h1>
+
+        <div class="matrix-header-controls">
+            <div class="matrix-nav">
+                <button class="matrix-nav-btn" @onclick="PreviousWindowAsync">‹</button>
+                <div class="matrix-window-box">@WindowLabel</div>
+                <button class="matrix-nav-btn" @onclick="NextWindowAsync">›</button>
+            </div>
+
+            <div class="matrix-top-actions">
+                <button class="action-btn outline-btn" type="button">Open or close rooms</button>
+                <button class="action-btn outline-btn" type="button">Print poster</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="matrix-legend">
+        <span class="legend-chip free">Free</span>
+        <span class="legend-chip booked">Booked</span>
+        <span class="legend-chip closed">Closed</span>
+    </div>
+
+    @if (_matrix is null && _errorMessage is null)
+    {
+        <p><em>Loading…</em></p>
+    }
+    else if (_errorMessage is not null)
+    {
+        <p class="notification is-danger is-light">@_errorMessage</p>
+    }
+    else if (_matrix is not null)
+    {
+        <div class="matrix-scroll">
+            <div class="matrix-grid" style="--window-days:@_matrix.WindowDays">
+
+                @* ── header row ── *@
+                <div class="matrix-cell matrix-room-header">Room</div>
+                @foreach (var day in Days)
+                {
+                    <div class="matrix-cell matrix-day-header @(IsToday(day) ? "is-today" : "")">
+                        <span class="day-name">@day.ToString("ddd")</span>
+                        <span class="day-num @(IsToday(day) ? "today-circle" : "")">@day.Day</span>
+                    </div>
+                }
+
+                @* ── one section/row per room ── *@
+                @foreach (var row in _matrix.Rows)
+                {
+                    @* Category / Room label banner *@
+                    <div class="matrix-category-banner">
+                        <span class="category-name">Room #@row.RoomId</span>
+                    </div>
+
+                    @* Room row: left room cell + timeline track *@
+                    <div class="matrix-cell matrix-room-label">
+                        <span class="room-number-text">@row.RoomName.ToUpperInvariant()</span>
+                    </div>
+
+                    <div class="matrix-timeline-track">
+                        <div class="track-flat-grid" style="--window-days:@_matrix.WindowDays">
+                            @foreach (var cellItem in GetRowCells(row))
+                            {
+                                @if (cellItem.IsBooking && cellItem.Booking is not null)
+                                {
+                                    <div class="flat-booking-cell" style="grid-column: span @cellItem.ColSpan;">
+                                        <span class="flat-booking-name">@cellItem.Booking.GuestName</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="flat-free-cell" style="grid-column: span @cellItem.ColSpan;"></div>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* New booking button*@
+        <div class="matrix-bottom-actions">
+            <button class="btn-new-booking" type="button">New booking</button>
+        </div>
+    }
+</div>
+

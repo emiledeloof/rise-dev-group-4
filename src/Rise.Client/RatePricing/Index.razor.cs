@@ -1,46 +1,46 @@
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
 using Rise.Shared.RatePricing;
 
 namespace Rise.Client.RatePricing;
 
 /// <summary>
-/// admin page to see and change the price per night of each rate
+/// admin page to see and change the price per night and the min nb of nights of each rate
 /// same idea as Pages/InvoiceList.razor.cs
 /// </summary>
 public partial class Index
 {
-    // list of rates shown in the table, null while loading
-    // type IEnumerable of RatePricingDto.Index with a ? since it can be null
+    // rates shown in the table, null while the api is still answering
     private IEnumerable<RatePricingDto.Index>? rates;
 
-    // error msg shown when the list cant be loaded, string with a ?
+    // shown instead of the table when the rates cant be loaded
     private string? errorMessage;
 
-    // the service that calls the api, given by blazor with [Inject]
-    // same line as IInvoiceService in InvoiceList.razor.cs
+    /// <summary>
+    /// client service that calls the rate pricing api, given by blazor
+    /// </summary>
     [Inject] public required IRatePricingService RatePricingService { get; set; }
 
-    // the rate being edited, null when no form is open
-    // type RatePricingRequest.Edit with a ?
+    // values of the open form, null when no rate is being edited
     private RatePricingRequest.Edit? editModel;
 
-    // msg shown after a save that worked, string with a ?
+    // the rate as it was when edit was clicked, compared on save to know what changed
+    private RatePricingDto.Index? originalRate;
+
+    // shown under the table after a save that worked
     private string? successMessage;
 
-    // msg shown when a save failed, string with a ?
+    // shown in the form when the api refused or failed the save
     private string? saveErrorMessage;
 
     /// <summary>
-    /// called once when the page opens, loads the rates from the api
+    /// loads the rates from the api, called when the page opens and again after each save
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        // call GetIndexAsync of the service, await it, keep it in a var result
         var result = await RatePricingService.GetIndexAsync();
 
-        // not a success, set the error msg, eg The rates could not be loaded, then return
+        // empty list on error so the page leaves the loading state and shows the msg
         if (!result.IsSuccess)
         {
             errorMessage = "The rates could not be loaded.";
@@ -48,24 +48,27 @@ public partial class Index
             return;
         }
 
-        // success, put result.Value.Rates in the list
         rates = result.Value.Rates;
     }
 
     /// <summary>
-    /// opens the form for one rate, prefilled with its current price
+    /// opens the form for one rate, prefilled with its current values
     /// </summary>
     private void StartEdit(RatePricingDto.Index rate)
     {
-        // hide the msgs of a previous save, both back to null
+        // msgs of a previous save dont belong to this edit
         saveErrorMessage = null;
         successMessage = null;
 
-        // new edit model with the RateId and the PricePerNight of the rate
+        // kept to compare with the form on save
+        originalRate = rate;
+
+        // a copy, typing in the form doesnt change the table before the save
         editModel = new RatePricingRequest.Edit
         {
             RateId = rate.RateId,
-            PricePerNight = rate.PricePerNight
+            PricePerNight = rate.PricePerNight,
+            MinNights = rate.MinNights
         };
     }
 
@@ -74,28 +77,38 @@ public partial class Index
     /// </summary>
     private void CancelEdit()
     {
-        // no rate edited anymore, back to null
         editModel = null;
     }
 
     /// <summary>
-    /// called by the form only when the price is valid, sends it to the api
+    /// sends the form to the api, only called when the validator accepts it
     /// </summary>
     private async Task SaveAsync()
     {
-        // send the edit model with EditAsync of the service, await it, keep it in a var result
         var result = await RatePricingService.EditAsync(editModel!);
 
-        // not a success, set the save error msg, then return
+        // form stays open so the admin can retry without typing again
         if (!result.IsSuccess)
         {
-            saveErrorMessage = "The price could not be saved. Please try again.";
+            saveErrorMessage = "The changes could not be saved. Please try again.";
             return;
         }
 
-        // success, set the success msg, close the form, then reload the rates
-        // reload: await OnInitializedAsync(), it loads the list again so the table shows the new price
-        successMessage = "The price was saved.";
+        // compared before closing the form, editModel is null after
+        var priceChanged = editModel!.PricePerNight != originalRate!.PricePerNight;
+        var minNightsChanged = editModel!.MinNights != originalRate!.MinNights;
+
+        // msg that says exactly what was saved
+        if (priceChanged && minNightsChanged)
+            successMessage = "The price and minimum nights were saved.";
+        else if (priceChanged)
+            successMessage = "The price was saved.";
+        else if (minNightsChanged)
+            successMessage = "The minimum nights were saved.";
+        else
+            successMessage = "Nothing was changed.";
+
+        // close the form and reload so the table shows the saved values
         editModel = null;
         await OnInitializedAsync();
     }

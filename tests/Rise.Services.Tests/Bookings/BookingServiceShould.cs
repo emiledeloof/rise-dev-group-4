@@ -303,4 +303,49 @@ public class BookingServiceShould
         // assert
         result.Value.Bookings.Single().TotalAmount.ShouldBe(218m);
     }
+
+    // changes the min nb of nights of a rate after the seed
+    private static async Task SetMinNightsAsync(ApplicationDbContext dbContext, int rateId, int minNights)
+    {
+        var rate = await dbContext.Rates.SingleAsync(x => x.Id == rateId);
+        rate.MinNights = minNights;
+        await dbContext.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// the server refuses a stay shorter than the min nights of the rate, even if the search was bypassed
+    /// </summary>
+    [Fact]
+    public async Task RejectAStayShorterThanTheMinNights()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(RejectAStayShorterThanTheMinNights));
+        var single = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        await SetMinNightsAsync(dbContext, single.RateId, 5);
+
+        // act, oct 20 to 22 is 2 nights
+        var result = await CreateService(dbContext).CreateAsync(Request(20, 22, "marie@example.com", single));
+
+        // assert, nothing saved
+        result.Status.ShouldBe(ResultStatus.Invalid);
+        (await dbContext.Bookings.CountAsync()).ShouldBe(1);
+    }
+
+    /// <summary>
+    /// a stay of exactly the min nb of nights can be booked
+    /// </summary>
+    [Fact]
+    public async Task AcceptAStayOfExactlyTheMinNights()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(AcceptAStayOfExactlyTheMinNights));
+        var single = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        await SetMinNightsAsync(dbContext, single.RateId, 2);
+
+        // act, 2 nights
+        var result = await CreateService(dbContext).CreateAsync(Request(20, 22, "marie@example.com", single));
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.Created);
+    }
 }
