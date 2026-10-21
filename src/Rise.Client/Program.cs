@@ -11,6 +11,8 @@ using Rise.Client.Rooms;
 using Rise.Shared.Bookings;
 using Rise.Shared.Guests;
 using Rise.Shared.Rooms;
+using Rise.Shared.RatePricing;
+using Rise.Client.RatePricing;
 
 try
 {
@@ -67,6 +69,12 @@ try
 
     // the invoice endpoint needs the admin role, so send the auth cookie along
     builder.Services.AddHttpClient<IInvoiceService, InvoiceService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
+    // the rate pricing endpoints need the admin role, so send the auth cookie along
+    builder.Services.AddHttpClient<IRatePricingService, RatePricingService>(client =>
     {
         client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();

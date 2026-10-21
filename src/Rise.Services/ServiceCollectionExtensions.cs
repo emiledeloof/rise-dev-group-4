@@ -10,6 +10,8 @@ using Rise.Shared.Guests;
 using Rise.Shared.Invoice;
 using Rise.Services.Rooms;
 using Rise.Shared.Rooms;
+using Rise.Services.RatePricing;
+using Rise.Shared.RatePricing;
 
 namespace Rise.Services;
 
@@ -23,6 +25,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStripePaymentGateway, StripePaymentGateway>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
         services.AddScoped<IRoomService, RoomService>();
+        services.AddScoped<IRatePricingService, RatePricingService>();
         services.AddTransient<DbSeeder>();
 
         // Add other application services here.
