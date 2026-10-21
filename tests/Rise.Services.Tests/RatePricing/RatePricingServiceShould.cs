@@ -93,7 +93,7 @@ public class RatePricingServiceShould
 
         // act
         var result = await new RatePricingService(dbContext)
-            .EditAsync(new RatePricingRequest.Edit { RateId = rateId, PricePerNight = 140m });
+            .EditAsync(new RatePricingRequest.Edit { RateId = rateId, PricePerNight = 140m, MinNights = 1 });
 
         // assert, read the rate again from the db to be sure it was saved
         result.IsSuccess.ShouldBeTrue();
@@ -112,7 +112,7 @@ public class RatePricingServiceShould
 
         // act
         var result = await new RatePricingService(dbContext)
-            .EditAsync(new RatePricingRequest.Edit { RateId = 999, PricePerNight = 140m });
+            .EditAsync(new RatePricingRequest.Edit { RateId = 999, PricePerNight = 140m, MinNights = 1 });
 
         // assert
         result.Status.ShouldBe(ResultStatus.NotFound);
@@ -131,9 +131,45 @@ public class RatePricingServiceShould
 
         // act
         var result = await new RatePricingService(dbContext)
-            .EditAsync(new RatePricingRequest.Edit { RateId = rateId, PricePerNight = 140m });
+            .EditAsync(new RatePricingRequest.Edit { RateId = rateId, PricePerNight = 140m, MinNights = 1 });
 
         // assert
         result.Status.ShouldBe(ResultStatus.NotFound);
+    }
+
+    /// <summary>
+    /// a new rate starts at 1 night min, the list shows it
+    /// </summary>
+    [Fact]
+    public async Task ListTheMinNightsOfEachRate()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ListTheMinNightsOfEachRate));
+
+        // act
+        var result = await new RatePricingService(dbContext).GetIndexAsync();
+
+        // assert
+        result.Value.Rates.ShouldAllBe(r => r.MinNights == 1);
+    }
+
+    /// <summary>
+    /// the new min nb of nights is saved in the db
+    /// </summary>
+    [Fact]
+    public async Task SaveTheNewMinNights()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(SaveTheNewMinNights));
+        var rateId = await RateIdOfAsync(dbContext, "Standard Room");
+
+        // act
+        var result = await new RatePricingService(dbContext)
+            .EditAsync(new RatePricingRequest.Edit { RateId = rateId, PricePerNight = 133m, MinNights = 3 });
+
+        // assert, read the rate again from the db to be sure it was saved
+        result.IsSuccess.ShouldBeTrue();
+        var saved = await dbContext.Rates.AsNoTracking().SingleAsync(r => r.Id == rateId);
+        saved.MinNights.ShouldBe(3);
     }
 }

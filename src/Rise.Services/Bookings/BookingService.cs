@@ -11,6 +11,7 @@ using Rise.Services.Pricing;
 using Rise.Shared.Bookings;
 using Rise.Shared.Common;
 using Rise.Shared.Guests;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Rise.Services.Bookings;
 
@@ -110,6 +111,13 @@ public sealed class BookingService(
             {
                 return Result.Invalid(new ValidationError(
                     $"The selected rate is not available for room '{room.Name}'."));
+            }
+
+            // server side check of the min nb of nights, the search already hides these rates but it can be bypassed
+            if (request.CheckOut.DayNumber - request.CheckIn.DayNumber < rate.MinNights)
+            {
+                return Result.Invalid(new ValidationError(
+                    $"Room '{room.Name}' needs at least {rate.MinNights} nights."));
             }
 
             selections.Add((room, rate));

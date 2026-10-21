@@ -29,7 +29,8 @@ public class RatePricingService(ApplicationDbContext dbContext) : IRatePricingSe
                 RateId = r.Id,
                 RoomName = r.Room.Name,
                 RateName = r.Name,
-                PricePerNight = r.PricePerNight
+                PricePerNight = r.PricePerNight,
+                MinNights = r.MinNights
             })
             // run the query with ToListAsync(ctx), await it
             .ToListAsync(ctx);
@@ -59,6 +60,9 @@ public class RatePricingService(ApplicationDbContext dbContext) : IRatePricingSe
         // set the new price, the setter in Rate refuses 0 or less
         rate.PricePerNight = request.PricePerNight;
 
+        // write what is saved now in the logs, useful to debug
+        rate.MinNights = request.MinNights;
+        Log.Information("Rate {RateId} updated, price {Price}, min nights {MinNights}", request.RateId, request.PricePerNight, request.MinNights);
         // save the change in the db, await dbContext.SaveChangesAsync(ctx)
         await dbContext.SaveChangesAsync(ctx);
 

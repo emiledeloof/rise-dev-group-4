@@ -12,7 +12,7 @@ public class RatePricingEditValidatorShould
     private readonly RatePricingRequest.Edit.Validator _validator = new();
 
     // a valid request, each test breaks one rule
-    private static RatePricingRequest.Edit ValidRequest() => new() { RateId = 1, PricePerNight = 175m };
+    private static RatePricingRequest.Edit ValidRequest() => new() { RateId = 1, PricePerNight = 175m, MinNights = 1 };
 
     /// <summary>
     /// a normal price passes
@@ -69,6 +69,20 @@ public class RatePricingEditValidatorShould
     {
         var request = ValidRequest();
         request.RateId = 0;
+
+        _validator.Validate(request).IsValid.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// a stay is at least 1 night, 0 and negative are refused
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void RejectMinNightsOfZeroOrLess(int minNights)
+    {
+        var request = ValidRequest();
+        request.MinNights = minNights;
 
         _validator.Validate(request).IsValid.ShouldBeFalse();
     }

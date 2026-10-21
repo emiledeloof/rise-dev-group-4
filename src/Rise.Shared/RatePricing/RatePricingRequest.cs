@@ -16,6 +16,9 @@ public static partial class RatePricingRequest
         // new price for 1 night in eur
         public decimal PricePerNight { get; set; }
 
+        // min nb of nights a guest must book
+        public int MinNights { get; set; }
+
         /// <summary>
         /// rules checked on the client for feedback, then again on the server by fastendpoints
         /// </summary>
@@ -33,6 +36,10 @@ public static partial class RatePricingRequest
                 // price max 2 decimals, PrecisionScale(18, 2, true), same precision as the db
                     .PrecisionScale(18, 2, true)
                     .WithMessage("The price can have at most 2 decimals.");
+
+                RuleFor(x => x.MinNights)
+                    .GreaterThan(0)
+                    .WithMessage("A stay must be at least 1 night.");
             }
         }
     }

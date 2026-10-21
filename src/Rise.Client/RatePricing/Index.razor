@@ -2,78 +2,80 @@
 @layout AdminLayout
 @attribute [Authorize(Roles = AppRoles.Administrator)]
 @using Rise.Shared.Identity
+@* admin page to change the price and the min nb of nights of each rate, logic in Index.razor.cs *@
 
 <PageTitle>Rate pricing</PageTitle>
 
 <div class="page">
     <h1 class="title">Rate pricing</h1>
 
-    @* while rates is null, show a Loading... paragraph, same as InvoiceList *@
     @if (rates is null)
     {
+        @* api still answering *@
         <p>Loading...</p>
     }
-
-    @* else if errorMessage is not null, show it in a p with class notification is-danger is-light *@
     else if (errorMessage is not null)
     {
+        @* the list could not be loaded, no table to show *@
         <p class="notification is-danger is-light">@errorMessage</p>
     }
-
-
-    @* else, a table with class table, 3 columns Room, Rate, Price per night
-       one row per rate with @foreach, @key on RateId, the price shown with FormatPrice *@
     else
     {
+        @* one row per rate, @key helps blazor keep each row when the list is reloaded after a save *@
         <table class="table">
             <thead>
-                <tr><th>Room</th><th>Rate</th><th>Price per night</th><th></th></tr>
+                <tr><th>Room</th><th>Rate</th><th>Price per night</th><th>Min nights</th><th></th></tr>
             </thead>
             <tbody>
                 @foreach (var rate in rates)
                 {
                     <tr @key="rate.RateId">
-                    <td>@rate.RoomName</td>
-                    <td>@rate.RateName</td>
-                    <td>@FormatPrice(rate.PricePerNight)</td>
-                    <td>
-                        <Button Variant="ButtonVariant.Secondary" OnClick="() => StartEdit(rate)">Edit</Button>
-                    </td>
+                        <td>@rate.RoomName</td>
+                        <td>@rate.RateName</td>
+                        <td>@FormatPrice(rate.PricePerNight)</td>
+                        <td>@rate.MinNights</td>
+                        <td>
+                            <Button Variant="ButtonVariant.Secondary" OnClick="() => StartEdit(rate)">Edit</Button>
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
 
-        @* success msg, if successMessage is not null, a p with class notification is-success is-light *@
+        @* what the last save changed, hidden again when an other edit starts *@
         @if (successMessage is not null)
         {
             <p class="notification is-success is-light">@successMessage</p>
         }
 
-        @* the edit form, only if editModel is not null
-           EditForm with Model editModel and OnValidSubmit SaveAsync
-           inside, FluentValidationValidator, an InputNumber bound to the price, a ValidationMessage under it
-           the save error msg if not null
-           a Save btn type submit and a Cancel btn calling CancelEdit *@
-           @if (editModel is not null)
-           {
-                <EditForm Model="editModel" OnValidSubmit="SaveAsync">
-                    <FluentValidationValidator />
+        @* edit form of one rate, only open after a click on edit *@
+        @if (editModel is not null)
+        {
+            @* same validator as the server, SaveAsync only runs when every rule passes *@
+            <EditForm Model="editModel" OnValidSubmit="SaveAsync">
+                <FluentValidationValidator />
 
-                    <div class="field">
-                        <label class="label" for="price">Price per night (€)</label>
-                        <InputNumber @bind-Value="editModel.PricePerNight" id="price" class="input" />
-                        <ValidationMessage For="() => editModel.PricePerNight" class="help is-danger" />
-                    </div>
+                <div class="field">
+                    <label class="label" for="price">Price per night (€)</label>
+                    <InputNumber @bind-Value="editModel.PricePerNight" id="price" class="input" />
+                    <ValidationMessage For="() => editModel.PricePerNight" class="help is-danger" />
+                </div>
 
-                    @if (saveErrorMessage is not null)
-                    {
-                        <p class="notification is-danger is-light">@saveErrorMessage</p>
-                    }
+                <div class="field">
+                    <label class="label" for="min-nights">Minimum nights</label>
+                    <InputNumber @bind-Value="editModel.MinNights" id="min-nights" class="input" />
+                    <ValidationMessage For="() => editModel.MinNights" class="help is-danger" />
+                </div>
 
-                    <Button Type="submit">Save</Button>
-                    <Button Variant="ButtonVariant.Secondary" OnClick="CancelEdit">Cancel</Button>
-                </EditForm>
-            }
+                @* the api refused or failed the save *@
+                @if (saveErrorMessage is not null)
+                {
+                    <p class="notification is-danger is-light">@saveErrorMessage</p>
+                }
+
+                <Button Type="submit">Save</Button>
+                <Button Variant="ButtonVariant.Secondary" OnClick="CancelEdit">Cancel</Button>
+            </EditForm>
+        }
     }
 </div>
