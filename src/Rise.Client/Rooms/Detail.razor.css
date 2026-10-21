@@ -251,6 +251,21 @@
         top: var(--space-md);
         left: var(--space-md);
     }
+
+    /* characteristics and amenities in 2 columns, one under the other made the list too long */
+    .room-detail-specs,
+    .room-detail-amenities {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-sm) var(--space-md);
+    }
+
+    /* long names wrap inside their column instead of pushing it wider */
+    .room-detail-spec span,
+    .room-detail-amenity span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
 }
 
 /* no zoom for guests who asked for less motion */
