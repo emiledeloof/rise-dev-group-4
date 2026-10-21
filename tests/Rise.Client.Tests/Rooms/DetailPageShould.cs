@@ -138,7 +138,10 @@ public class DetailPageShould : BunitContext
         // arrange
         _roomService.DetailAnswer = Result.Success(new RoomDto.Detail
         {
-            Id = 1, Name = "Double Room", MaxGuests = 2, PhotoUrls = ["images/rooms/double-1.jpg"],
+            Id = 1,
+            Name = "Double Room",
+            MaxGuests = 2,
+            PhotoUrls = ["images/rooms/double-1.jpg"],
         });
 
         // act
@@ -192,7 +195,10 @@ public class DetailPageShould : BunitContext
         // arrange
         _roomService.DetailAnswer = Result.Success(new RoomDto.Detail
         {
-            Id = 1, Name = "Double Room", Description = "Spacious room with a double bed.", MaxGuests = 2,
+            Id = 1,
+            Name = "Double Room",
+            Description = "Spacious room with a double bed.",
+            MaxGuests = 2,
         });
 
         // act
@@ -228,7 +234,10 @@ public class DetailPageShould : BunitContext
         // arrange
         _roomService.DetailAnswer = Result.Success(new RoomDto.Detail
         {
-            Id = 1, Name = "Double Room", MaxGuests = 2, BedType = "Double bed",
+            Id = 1,
+            Name = "Double Room",
+            MaxGuests = 2,
+            BedType = "Double bed",
         });
 
         // act

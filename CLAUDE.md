@@ -50,6 +50,7 @@ This template combines Clean Architecture, DDD and vertical slices. The project 
 5. **Server** `Endpoints/<Feature>/`: one class per endpoint, `Endpoint<TRequest, Result<TResponse>>`, which delegates to the service. Use `Roles(AppRoles.X)` or `AllowAnonymous()` in `Configure`.
 6. **Client**: write the `HttpClient` implementation of the interface, register it in `Client/Program.cs`, and add the Razor pages (code-behind in `.razor.cs`).
 
+- take care to run dotnet format after a change, we have a CI pipeline which enforces that
 ### Cross-cutting conventions
 
 - **Responses**: endpoints return `Ardalis.Result`, and auto-send is disabled (`ep.DontAutoSendResponse()`). `Processors/GlobalResponseSender` maps `ResultStatus` to HTTP codes (Invalid→400, NotFound→404, Conflict→409, Error→422, …). Return the right `Result.*` from services instead of throwing or setting status codes. The client deserializes the body as `Result<T>`.
