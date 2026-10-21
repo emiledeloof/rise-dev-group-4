@@ -57,6 +57,7 @@ public class FakeRoomService : IRoomService
         SizeInSquareMeters = 25,
         BedType = "Double bed",
         View = "Garden view",
+        Policies = "A baby cot is available on request.",
         Amenities =
         [
             new AmenityDto.Index { Name = "Hairdryer", Icon = "fa-wind" },

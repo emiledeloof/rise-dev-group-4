@@ -58,6 +58,16 @@ public class Room : Entity
         set => _view = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
+    private string? _policies;
+    /// <summary>
+    /// free text with the occupancy, pet and cot rules of the room, null when the hotel wrote none
+    /// </summary>
+    public string? Policies
+    {
+        get => _policies;
+        set => _policies = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
     private readonly List<Amenity> _amenities = [];
     public IReadOnlyList<Amenity> Amenities => _amenities.AsReadOnly();
 

@@ -267,6 +267,39 @@ public class DetailPageShould : BunitContext
     }
 
     /// <summary>
+    /// the max nb of guests and the rules of the room are shown
+    /// </summary>
+    [Fact]
+    public void ShowTheOccupancyAndPolicies()
+    {
+        // arrange and act
+        var cut = RenderPage();
+
+        // assert
+        cut.Find(".room-detail-occupancy").TextContent.ShouldBe("Up to 2 guests");
+        cut.Find(".room-detail-policies").TextContent.ShouldBe("A baby cot is available on request.");
+        cut.FindAll(".room-detail-no-policies").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// a room without rules still shows its capacity, with an empty state instead of made up rules
+    /// </summary>
+    [Fact]
+    public void ShowAnEmptyStateWhenThereAreNoPolicies()
+    {
+        // arrange
+        _roomService.DetailAnswer = Result.Success(new RoomDto.Detail { Id = 1, Name = "Single Room", MaxGuests = 1 });
+
+        // act
+        var cut = RenderPage();
+
+        // assert
+        cut.Find(".room-detail-occupancy").TextContent.ShouldBe("Up to 1 guest");
+        cut.FindAll(".room-detail-policies").ShouldBeEmpty();
+        cut.Find(".room-detail-no-policies").TextContent.ShouldBe("No pet or cot information is available for this room yet.");
+    }
+
+    /// <summary>
     /// the amenities are shown in the order of the api, each with its icon
     /// </summary>
     [Fact]

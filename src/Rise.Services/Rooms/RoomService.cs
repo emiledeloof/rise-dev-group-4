@@ -93,6 +93,7 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                 SizeInSquareMeters = r.SizeInSquareMeters,
                 BedType = r.BedType,
                 View = r.View,
+                Policies = r.Policies,
                 Amenities = r.Amenities
                     .Where(a => !a.IsDeleted)
                     .OrderBy(a => a.Name)

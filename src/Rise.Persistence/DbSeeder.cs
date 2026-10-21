@@ -101,6 +101,12 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         deluxe.BedType = "California king bed";
         deluxeBathtub.BedType = "California king bed";
 
+        // pet and cot rules, only what the texts above say, the page already shows the max nb of guests
+        // TODO: pet policy and cots for the deluxe rooms from the client
+        standard.Policies = "A baby cot is available on request.\nNon-smoking room.";
+        deluxe.Policies = "Non-smoking room.";
+        deluxeBathtub.Policies = "Non-smoking room.";
+
         // shared amenities, icons from Font Awesome (see css/app.css)
         var wifi = new Amenity("Wi-Fi", "fa-wifi");
         var airConditioning = new Amenity("Air conditioning", "fa-snowflake");

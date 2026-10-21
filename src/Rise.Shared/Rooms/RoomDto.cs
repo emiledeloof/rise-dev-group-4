@@ -91,6 +91,9 @@ public static class RoomDto
         // eg Garden view, null when unknown
         public string? View { get; set; }
 
+        // occupancy, pet and cot rules written by the hotel, null when there are none
+        public string? Policies { get; set; }
+
         // what the room offers, sorted by name, empty when the room has none
         public IReadOnlyList<AmenityDto.Index> Amenities { get; set; } = [];
     }
