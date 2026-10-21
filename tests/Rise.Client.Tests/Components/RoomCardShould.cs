@@ -102,6 +102,35 @@ public class RoomCardShould : BunitContext
     }
 
     /// <summary>
+    /// a details url turns the name into a link and adds a view details link
+    /// </summary>
+    [Fact]
+    public void LinkToTheDetailsWhenADetailsUrlIsGiven()
+    {
+        // arrange and act
+        var cut = Render<RoomCard>(p => p
+            .Add(x => x.Name, "Double Room")
+            .Add(x => x.DetailsUrl, "rooms/1"));
+
+        // assert
+        cut.Find(".room-card-title-link").GetAttribute("href").ShouldBe("rooms/1");
+        cut.Find(".room-card-details-link").GetAttribute("href").ShouldBe("rooms/1");
+    }
+
+    /// <summary>
+    /// no details url means no link
+    /// </summary>
+    [Fact]
+    public void HideTheDetailsLinkWithoutADetailsUrl()
+    {
+        // arrange and act
+        var cut = RenderCard();
+
+        // assert
+        cut.FindAll("a").ShouldBeEmpty();
+    }
+
+    /// <summary>
     /// no description means no empty paragraph
     /// </summary>
     [Fact]

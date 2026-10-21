@@ -12,7 +12,17 @@
 
     <div class="room-card-body">
         @* room name in the title font *@
-        <h3>@Name</h3>
+        @* the name links to the room detail page when the page gives a url *@
+        <h3>
+            @if (!string.IsNullOrWhiteSpace(DetailsUrl))
+            {
+                <a href="@DetailsUrl" class="room-card-title-link">@Name</a>
+            }
+            else
+            {
+                @Name
+            }
+        </h3>
 
         @* short description, only shown when there is one *@
         @if (!string.IsNullOrWhiteSpace(Description))
@@ -22,6 +32,12 @@
 
         @* capacity, eg up to 2 guests *@
         <p class="room-card-meta">Up to @MaxGuests @(MaxGuests == 1 ? "guest" : "guests")</p>
+
+        @* link to the room detail page, only when the page gives a url *@
+        @if (!string.IsNullOrWhiteSpace(DetailsUrl))
+        {
+            <a href="@DetailsUrl" class="room-card-details-link">View details</a>
+        }
 
         @* rates of the room for the stay, cheapest first, styles in RoomCard.razor.css *@
         <div class="room-card-prices">

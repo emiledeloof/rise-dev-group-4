@@ -43,4 +43,23 @@ public class FakeRoomService : IRoomService
         Requests.Add(request);
         return Task.FromResult(Answer);
     }
+
+    /// <summary>
+    /// what GetDetailAsync sends back, a double room with a description by default
+    /// </summary>
+    public Result<RoomDto.Detail> DetailAnswer { get; set; } = Result.Success(new RoomDto.Detail
+    {
+        Id = 1,
+        Name = "Double Room",
+        Description = "Spacious room with a double bed.",
+        MaxGuests = 2,
+    });
+
+    /// <summary>
+    /// sends back the chosen detail answer
+    /// </summary>
+    public Task<Result<RoomDto.Detail>> GetDetailAsync(int roomId, CancellationToken ctx = default)
+    {
+        return Task.FromResult(DetailAnswer);
+    }
 }
