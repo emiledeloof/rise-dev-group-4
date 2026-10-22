@@ -12,13 +12,45 @@ public class FakeRateService : IRateService
 {
     public Result<RateResponse.Index> IndexAnswer { get; set; } = CreateIndexAnswer();
 
+    public Result<RateResponse.Create> CreateAnswer { get; set; } =
+        Result.Error("Rate creation is not configured.");
+
     public List<RateRequest.Index> IndexRequests { get; } = [];
+
+    public List<RateRequest.Create> CreateRequests { get; } = [];
 
     public Task<Result<RateResponse.Create>> CreateAsync(
         RateRequest.Create request,
         CancellationToken ctx = default)
-        => Task.FromException<Result<RateResponse.Create>>(
-            new NotSupportedException("The rates page does not create rates."));
+    {
+        CreateRequests.Add(request);
+
+        if (CreateAnswer.IsSuccess)
+        {
+            var createdRate = CreateAnswer.Value;
+            var index = IndexAnswer.Value;
+            IndexAnswer = Result.Success(new RateResponse.Index
+            {
+                Rates =
+                [
+                    new RateDto.Index
+                    {
+                        Id = createdRate.Id,
+                        Name = createdRate.Name,
+                        RoomName = createdRate.RoomName,
+                        PricePerNight = createdRate.PricePerNight,
+                        Description = createdRate.Description,
+                    },
+                    .. index.Rates,
+                ],
+                RoomNames = index.RoomNames.Append(createdRate.RoomName).Distinct().OrderBy(name => name),
+                Policies = index.Policies,
+                TotalCount = index.TotalCount + 1,
+            });
+        }
+
+        return Task.FromResult(CreateAnswer);
+    }
 
     public Task<Result<RateResponse.Index>> GetIndexAsync(
         RateRequest.Index request,

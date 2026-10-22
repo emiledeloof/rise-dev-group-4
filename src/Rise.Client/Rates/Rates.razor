@@ -4,9 +4,11 @@
 @using Rise.Shared.Identity
 
 <PageTitle>Rates</PageTitle>
-
 <div class="page">
+<div class="rate-page-heading">
     <h1 class="title">Rates</h1>
+    <Button OnClick="OpenCreateFormAsync">New Rate</Button>
+</div>
     
     @if (_rates is null)
     {
@@ -136,5 +138,59 @@
                 </p>
             }
         </div>
+        @if (_isCreateOpen)
+        {
+            <section class="rate-create-panel" aria-labelledby="create-rate-heading">
+                <h3 id="create-rate-heading">@CreateRateHeading</h3>
+
+                <EditForm Model="_createModel" OnValidSubmit="CreateRateAsync">
+                    <FluentValidationValidator/>
+                    <div class="rate-create-fields">
+                        <label class="rate-create-field">
+                            <span>Name</span>
+                            <InputText @bind-Value="_createModel.Name" />
+                            <ValidationMessage For="@(() => _createModel.Name)" class="help is-danger"/>
+                        </label>
+                        
+                        <label class="rate-filter">
+                            <span>Room type</span>
+                            <div class="rate-select-wrap">
+                                <InputSelect @bind-Value="_createModel.RoomName">
+                                    <option value="">Select a room</option>
+                                    @foreach (var roomName in _createRoomNames)
+                                    {
+                                        <option value="@roomName">@roomName</option>
+                                    }
+                                </InputSelect>
+                                <span class="rate-select-arrow" aria-hidden="true"></span>
+                            </div>
+                            <ValidationMessage For="@(() => _createModel.RoomName)" class="help is-danger" />
+                        </label>
+
+                        <label class="rate-create-field">
+                            <span>Price per night (€)</span>
+                            <InputNumber @bind-Value="_createModel.PricePerNight" step="0.01" />
+                            <ValidationMessage For="@(() => _createModel.PricePerNight)" class="help is-danger"/>
+                        </label>
+
+                        <label class="rate-create-field">
+                            <span>Cancellation policy / description</span>
+                            <InputText @bind-Value="_createModel.Description" />
+                            <ValidationMessage For="@(() => _createModel.Description)" class="help is-danger" />
+                        </label>
+                    </div>
+
+                    @if (_createErrorMessage is not null)
+                    {
+                        <p class="notification is-danger is-light">@_createErrorMessage</p>
+                    }
+
+                    <div class="rate-create-actions">
+                        <Button Type="submit" IsDisabled="_isCreating">Save rate</Button>
+                        <Button Variant="ButtonVariant.Secondary" OnClick="CloseCreateForm">Cancel</Button>
+                    </div>
+                </EditForm>
+            </section>
+        }
     }
 </div>

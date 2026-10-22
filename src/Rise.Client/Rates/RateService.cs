@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Json;
+using System.Text.Json;
 using Rise.Shared.Common;
 using Rise.Shared.Rates;
 
@@ -13,9 +14,20 @@ public sealed class RateService(HttpClient httpClient) : IRateService
         var response = await httpClient.PostAsJsonAsync(
             "/api/rates", request, cancellationToken);
 
-        return (await response.Content
+        var result = await response.Content
             .ReadFromJsonAsync<Result<RateResponse.Create>>(
-                cancellationToken: cancellationToken))!;
+                cancellationToken: cancellationToken)
+            ?? throw new JsonException("The create-rate response was empty.");
+
+        if (!response.IsSuccessStatusCode && result.IsSuccess)
+        {
+            throw new HttpRequestException(
+                $"Rate creation failed with HTTP {(int)response.StatusCode} ({response.ReasonPhrase}).",
+                null,
+                response.StatusCode);
+        }
+
+        return result;
     }
 
     public async Task<Result<RateResponse.Index>> GetIndexAsync(
