@@ -40,7 +40,7 @@ public partial class Index
     {
         var result = await RatePricingService.GetIndexAsync();
 
-        // empty list on error so the page leaves the loading state and shows the msg
+        // ! empty list on error so the page leaves the loading state and shows the msg
         if (!result.IsSuccess)
         {
             errorMessage = "The rates could not be loaded.";
@@ -63,12 +63,16 @@ public partial class Index
         // kept to compare with the form on save
         originalRate = rate;
 
-        // a copy, typing in the form doesnt change the table before the save
+        // * a copy, typing in the form doesnt change the table before the save
         editModel = new RatePricingRequest.Edit
         {
             RateId = rate.RateId,
             PricePerNight = rate.PricePerNight,
-            MinNights = rate.MinNights
+            MinNights = rate.MinNights,
+            IsRefundable = rate.IsRefundable,
+            FullRefundDays = rate.FullRefundDays,
+            PartialRefundDays = rate.PartialRefundDays,
+            PartialRefundPercent = rate.PartialRefundPercent
         };
     }
 
@@ -94,19 +98,30 @@ public partial class Index
             return;
         }
 
-        // compared before closing the form, editModel is null after
+        // ! compared before closing the form, editModel is null after
         var priceChanged = editModel!.PricePerNight != originalRate!.PricePerNight;
         var minNightsChanged = editModel!.MinNights != originalRate!.MinNights;
+        // refundable or not, the checkbox
+        var refundableChanged = editModel!.IsRefundable != originalRate!.IsRefundable;
 
-        // msg that says exactly what was saved
-        if (priceChanged && minNightsChanged)
-            successMessage = "The price and minimum nights were saved.";
-        else if (priceChanged)
-            successMessage = "The price was saved.";
-        else if (minNightsChanged)
-            successMessage = "The minimum nights were saved.";
-        else
-            successMessage = "Nothing was changed.";
+        // ! refund values only count for a refundable rate, the service ignores them otherwise
+        var fullRefundChanged = editModel!.IsRefundable
+            && editModel!.FullRefundDays != originalRate!.FullRefundDays;
+        var partialRefundChanged = editModel!.IsRefundable
+            && (editModel!.PartialRefundDays != originalRate!.PartialRefundDays
+                || editModel!.PartialRefundPercent != originalRate!.PartialRefundPercent);
+
+        // * one msg for every combination, eg saved price and partial refund
+        var changes = new List<string>();
+        if (priceChanged) changes.Add("price");
+        if (minNightsChanged) changes.Add("minimum nights");
+        if (refundableChanged) changes.Add(editModel!.IsRefundable ? "cancellation policy (refundable)" : "cancellation policy (non-refundable)");
+        if (fullRefundChanged) changes.Add("full refund period");
+        if (partialRefundChanged) changes.Add("partial refund");
+
+        successMessage = changes.Count == 0
+            ? "Nothing was changed."
+            : $"Saved: {JoinWithAnd(changes)}.";
 
         // close the form and reload so the table shows the saved values
         editModel = null;
@@ -118,4 +133,20 @@ public partial class Index
     /// </summary>
     private static string FormatPrice(decimal price)
         => $"€{price.ToString("0.00", CultureInfo.InvariantCulture)}";
+
+    /// <summary>
+    /// text of the policy for the table, eg 100 pct up to 30 days, 50 pct up to 7 days
+    /// </summary>
+    private static string FormatPolicy(RatePricingDto.Index rate)
+        => rate.IsRefundable
+        ? $"100% up to {rate.FullRefundDays} days, {rate.PartialRefundPercent}% up to {rate.PartialRefundDays} days"
+        : "Non-refundable";
+
+    /// <summary>
+    /// joins the words with commas and a last and, eg price, minimum nights and cancellation policy
+    /// </summary>
+    private static string JoinWithAnd(List<string> words)
+        => words.Count == 1
+            ? words[0]
+            : $"{string.Join(", ", words.SkipLast(1))} and {words[^1]}";
 }

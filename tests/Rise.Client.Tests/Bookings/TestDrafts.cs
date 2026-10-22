@@ -11,7 +11,8 @@ public static class TestDrafts
     public static readonly DateOnly CheckIn = DateOnly.FromDateTime(DateTime.Today).AddDays(2);
     public static readonly DateOnly CheckOut = CheckIn.AddDays(3);
 
-    public static DraftRoom DoubleRoom => new(1, "Double Room", 1, "Non-refundable", "No refund after booking", 109m, 327m);
+    public static DraftRoom DoubleRoom => new(1, "Double Room", 1, "Non-refundable", "No refund after booking", 109m, 327m,
+        "Non-refundable, no refund if you cancel");
 
     public static GuestRequest.Create Guest => new()
     {

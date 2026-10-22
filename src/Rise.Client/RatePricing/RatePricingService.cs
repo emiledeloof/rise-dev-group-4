@@ -14,25 +14,22 @@ public class RatePricingService(HttpClient httpClient) : IRatePricingService
     /// </summary>
     public async Task<Result<RatePricingResponse.Index>> GetIndexAsync(CancellationToken ctx = default)
     {
-        // GetFromJsonAsync on /api/rate-pricing, read the body as a Result of RatePricingResponse.Index
-        // same as InvoiceService, the ! says the body is never null
+        // * the ! says the body is never null, the server always answers with a Result
         return (await httpClient.GetFromJsonAsync<Result<RatePricingResponse.Index>>(
-            $"/api/rate-pricing",
+            "/api/rate-pricing",
             cancellationToken: ctx))!;
     }
 
     /// <summary>
-    /// PUT /api/rate-pricing with the new price in the body
+    /// PUT /api/rate-pricing with the new pricing in the body
     /// </summary>
     public async Task<Result> EditAsync(RatePricingRequest.Edit request, CancellationToken ctx = default)
     {
-        // send the request as json with PutAsJsonAsync on /api/rate-pricing, keep the http response in a var
+        // ! PUT, same verb as the endpoint, a POST would give a 405
         var response = await httpClient.PutAsJsonAsync("/api/rate-pricing", request, ctx);
 
-        // read the body of the response as a Result with ReadFromJsonAsync, same as GuestService
+        // the body holds the Result even for a 400 or 404, so the page can show the reason
         var result = await response.Content.ReadFromJsonAsync<Result>(cancellationToken: ctx);
-
-        // return it, ! because the server always sends a body
         return result!;
     }
 }

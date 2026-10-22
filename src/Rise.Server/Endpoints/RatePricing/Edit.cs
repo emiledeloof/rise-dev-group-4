@@ -4,8 +4,7 @@ using Rise.Shared.RatePricing;
 namespace Rise.Server.Endpoints.RatePricing;
 
 /// <summary>
-/// saves the new price of one rate, admin only
-/// the Edit validator runs automatically before ExecuteAsync, an invalid price gives a 400
+/// saves the pricing of one rate, admin only
 /// </summary>
 public class Edit(IRatePricingService ratePricingService) : Endpoint<RatePricingRequest.Edit, Result>
 {
@@ -14,19 +13,19 @@ public class Edit(IRatePricingService ratePricingService) : Endpoint<RatePricing
     /// </summary>
     public override void Configure()
     {
-        // http PUT on /api/rate-pricing, put = change something that already exists
+        // put = change something that already exists
         Put("/api/rate-pricing");
 
-        // admin only, Roles with AppRoles.Administrator
+        // ! real security, the [Authorize] on the page can be bypassed
         Roles(AppRoles.Administrator);
     }
 
     /// <summary>
-    /// called on each request with a valid body, only passes the call to the service
+    /// only called with a valid body, the Edit validator already ran and gave a 400 otherwise
     /// </summary>
     public override Task<Result> ExecuteAsync(RatePricingRequest.Edit req, CancellationToken ct)
     {
-        // return the result of EditAsync of the service, pass req and ct
+        // * no logic here, the service does the work
         return ratePricingService.EditAsync(req, ct);
     }
 }

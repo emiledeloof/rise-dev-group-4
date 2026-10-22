@@ -24,5 +24,17 @@ public static class RatePricingDto
 
         // min nb of nights a guest must book
         public required int MinNights { get; set; }
+
+        // true for a refundable rate, false for non-refundable, shared cant see the domain enum
+        public required bool IsRefundable { get; set; }
+
+        // 100 pct refund up to this nb of days before arrival
+        public required int FullRefundDays { get; set; }
+
+        // partial refund up to this nb of days before arrival
+        public required int PartialRefundDays { get; set; }
+
+        // pct refunded in the partial period, eg 50
+        public required int PartialRefundPercent { get; set; }
     }
 }

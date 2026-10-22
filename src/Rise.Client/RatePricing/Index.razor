@@ -24,7 +24,7 @@
         @* one row per rate, @key helps blazor keep each row when the list is reloaded after a save *@
         <table class="table">
             <thead>
-                <tr><th>Room</th><th>Rate</th><th>Price per night</th><th>Min nights</th><th></th></tr>
+                <tr><th>Room</th><th>Rate</th><th>Price per night</th><th>Min nights</th><th>Cancellation</th><th></th></tr>
             </thead>
             <tbody>
                 @foreach (var rate in rates)
@@ -34,6 +34,7 @@
                         <td>@rate.RateName</td>
                         <td>@FormatPrice(rate.PricePerNight)</td>
                         <td>@rate.MinNights</td>
+                        <td>@FormatPolicy(rate)</td>
                         <td>
                             <Button Variant="ButtonVariant.Secondary" OnClick="() => StartEdit(rate)">Edit</Button>
                         </td>
@@ -66,6 +67,36 @@
                     <InputNumber @bind-Value="editModel.MinNights" id="min-nights" class="input" />
                     <ValidationMessage For="() => editModel.MinNights" class="help is-danger" />
                 </div>
+
+                @* checked = refundable, unchecked = non refundable *@
+                <div class="field">
+                    <label class="checkbox">
+                        <InputCheckbox @bind-Value="editModel.IsRefundable" />
+                        Refundable
+                    </label>
+                </div>
+
+                @* refund values only for a refundable rate, they show and hide as soon as the box is clicked *@
+                @if (editModel.IsRefundable)
+                {
+                    <div class="field">
+                        <label class="label" for="full-refund-days">Full refund up to (days before arrival)</label>
+                        <InputNumber @bind-Value="editModel.FullRefundDays" id="full-refund-days" class="input" />
+                        <ValidationMessage For="() => editModel.FullRefundDays" class="help is-danger" />
+                    </div>
+
+                    <div class="field">
+                        <label class="label" for="partial-refund-days">Partial refund up to (days before arrival)</label>
+                        <InputNumber @bind-Value="editModel.PartialRefundDays" id="partial-refund-days" class="input" />
+                        <ValidationMessage For="() => editModel.PartialRefundDays" class="help is-danger" />
+                    </div>
+
+                    <div class="field">
+                        <label class="label" for="partial-refund-percent">Partial refund (%)</label>
+                        <InputNumber @bind-Value="editModel.PartialRefundPercent" id="partial-refund-percent" class="input" />
+                        <ValidationMessage For="() => editModel.PartialRefundPercent" class="help is-danger" />
+                    </div>
+                }
 
                 @* the api refused or failed the save *@
                 @if (saveErrorMessage is not null)

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rise.Domain.Rooms;
 using Rise.Persistence;
 using Rise.Shared.RatePricing;
 
@@ -11,64 +12,108 @@ namespace Rise.Services.RatePricing;
 public class RatePricingService(ApplicationDbContext dbContext) : IRatePricingService
 {
     /// <summary>
-    /// all rates not deleted with the name of their room, eg Deluxe Room, Standard, 175
+    /// all rates not deleted with the name of their room, sorted by room then rate
     /// </summary>
     public async Task<Result<RatePricingResponse.Index>> GetIndexAsync(CancellationToken ctx = default)
     {
-        // start from dbContext.Rates, keep only the ones not deleted
         var rates = await dbContext.Rates
             .Where(r => !r.IsDeleted)
-            // read only, nothing is changed here so AsNoTracking, faster
+            // * read only, no tracking needed, faster
             .AsNoTracking()
-            // sort by room name then rate name, OrderBy then ThenBy, so the admin always sees the same order
+            // same order every time for the admin
             .OrderBy(r => r.Room.Name)
             .ThenBy(r => r.Name)
-            // turn each rate into a RatePricingDto.Index with Select, the room name comes from r.Room.Name
+            // only the fields the page needs, the room name comes from the join
             .Select(r => new RatePricingDto.Index
             {
                 RateId = r.Id,
                 RoomName = r.Room.Name,
                 RateName = r.Name,
                 PricePerNight = r.PricePerNight,
-                MinNights = r.MinNights
+                MinNights = r.MinNights,
+                // * shared cant see the enum, so the page gets a bool
+                IsRefundable = r.CancellationPolicy == CancellationPolicy.Refundable,
+                FullRefundDays = r.FullRefundDays,
+                PartialRefundDays = r.PartialRefundDays,
+                PartialRefundPercent = r.PartialRefundPercent
             })
-            // run the query with ToListAsync(ctx), await it
+            // ! the query only runs here
             .ToListAsync(ctx);
 
-        // wrap the list in a RatePricingResponse.Index and return Result.Success(...)
         return Result.Success(new RatePricingResponse.Index { Rates = rates });
     }
 
     /// <summary>
-    /// saves the new price of one rate, NotFound if the rate does not exist
+    /// saves the pricing of one rate, NotFound if the rate does not exist
     /// </summary>
     public async Task<Result> EditAsync(RatePricingRequest.Edit request, CancellationToken ctx = default)
     {
-        // find the rate with the id of the request and not deleted, FirstOrDefaultAsync
-        // no AsNoTracking here, EF must follow the rate to save the change
+        // ! tracked on purpose, EF must follow the rate to save the changes
         var rate = await dbContext.Rates
             .FirstOrDefaultAsync(r => r.Id == request.RateId && !r.IsDeleted, ctx);
 
-        // rate not found, write a warning in the logs with the id, Log.Warning(...)
-        // then return Result.NotFound with a clear msg, see BookingService for the style
         if (rate is null)
         {
             Log.Warning("Rate {RateId} not found", request.RateId);
             return Result.NotFound($"Rate with Id '{request.RateId}' was not found.");
         }
 
-        // set the new price, the setter in Rate refuses 0 or less
+        // * the setters in Rate refuse invalid values, last safety net after the validator
         rate.PricePerNight = request.PricePerNight;
-
-        // write what is saved now in the logs, useful to debug
         rate.MinNights = request.MinNights;
-        Log.Information("Rate {RateId} updated, price {Price}, min nights {MinNights}", request.RateId, request.PricePerNight, request.MinNights);
-        // save the change in the db, await dbContext.SaveChangesAsync(ctx)
+
+        // * bool from the page back to the domain enum
+        var newPolicy = request.IsRefundable ? CancellationPolicy.Refundable : CancellationPolicy.NonRefundable;
+
+        // ! before the policy is set, the old one is needed to know if it changed
+        RenameAfterPolicy(rate, newPolicy);
+        rate.CancellationPolicy = newPolicy;
+
+        // ! only for a refundable rate, the validator skips these values otherwise
+        // so a bad value here would hit the Guard and give a 500, a non refundable rate keeps its old values
+        if (request.IsRefundable)
+        {
+            rate.FullRefundDays = request.FullRefundDays;
+            rate.PartialRefundDays = request.PartialRefundDays;
+            rate.PartialRefundPercent = request.PartialRefundPercent;
+        }
+
         await dbContext.SaveChangesAsync(ctx);
 
-        // write the change in the logs, rate id and new price, Log.Information(...)
-        Log.Information("Rate {RateId} price changed to {Price}", request.RateId, request.PricePerNight);
+        // what is saved now, useful to debug
+        Log.Information("Rate {RateId} updated, price {Price}, min nights {MinNights}, refundable {IsRefundable}", request.RateId, request.PricePerNight, request.MinNights, request.IsRefundable);
 
         return Result.Success();
+    }
+
+    // default name and conditions of a non refundable rate, eg from the seed
+    private const string NonRefundableName = "Non-refundable";
+    private const string NonRefundableConditions = "No refund after booking";
+
+    // default name of a refundable rate
+    private const string RefundableName = "Refundable";
+
+    /// <summary>
+    /// a rate named after its policy follows it, eg Non-refundable becomes Refundable when the box is checked
+    /// a custom name, eg Breakfast included, is never changed
+    /// </summary>
+    private static void RenameAfterPolicy(Rate rate, CancellationPolicy newPolicy)
+    {
+        // same policy, nothing to rename
+        if (newPolicy == rate.CancellationPolicy)
+            return;
+
+        if (newPolicy == CancellationPolicy.Refundable && rate.Name == NonRefundableName)
+        {
+            rate.Name = RefundableName;
+            // * no refund after booking is wrong now, the guest sees the refund rules instead
+            if (rate.Description == NonRefundableConditions)
+                rate.Description = null;
+        }
+        else if (newPolicy == CancellationPolicy.NonRefundable && rate.Name == RefundableName)
+        {
+            rate.Name = NonRefundableName;
+            rate.Description ??= NonRefundableConditions;
+        }
     }
 }

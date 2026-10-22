@@ -30,6 +30,41 @@ public class Rate : Entity
     }
 
     /// <summary>
+    /// refundable by default, the standard policy of the client
+    /// </summary>
+    public CancellationPolicy CancellationPolicy { get; set; } = CancellationPolicy.Refundable;
+
+    /// <summary>
+    /// 100 pct refund when cancelled at least this nb of days before arrival, only for a refundable rate
+    /// </summary>
+    private int _fullRefundDays = 30;
+    public int FullRefundDays
+    {
+        get => _fullRefundDays;
+        set => _fullRefundDays = Guard.Against.Negative(value);
+    }
+
+    /// <summary>
+    /// partial refund when cancelled at least this nb of days before arrival, nothing after
+    /// </summary>
+    private int _partialRefundDays = 7;
+    public int PartialRefundDays
+    {
+        get => _partialRefundDays;
+        set => _partialRefundDays = Guard.Against.Negative(value);
+    }
+
+    /// <summary>
+    /// pct refunded in the partial period, between 0 and 100
+    /// </summary>
+    private int _partialRefundPercent = 50;
+    public int PartialRefundPercent
+    {
+        get => _partialRefundPercent;
+        set => _partialRefundPercent = Guard.Against.OutOfRange(value, nameof(value), 0, 100);
+    }
+
+    /// <summary>
     /// conditions of the rate shown to the guest, e.g. no refund after booking
     /// </summary>
     public string? Description { get; set; }

@@ -172,4 +172,169 @@ public class RatePricingServiceShould
         var saved = await dbContext.Rates.AsNoTracking().SingleAsync(r => r.Id == rateId);
         saved.MinNights.ShouldBe(3);
     }
+
+    /// <summary>
+    /// the list gives the policy as a bool and the refund values
+    /// a new rate is refundable 30/7/50 by default, the standard one is made non refundable
+    /// </summary>
+    [Fact]
+    public async Task ListTheCancellationPolicyOfEachRate()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ListTheCancellationPolicyOfEachRate),
+            rate => rate.CancellationPolicy = CancellationPolicy.NonRefundable);
+
+        // act
+        var result = await new RatePricingService(dbContext).GetIndexAsync();
+
+        // assert, sorted by room so deluxe is first
+        var rates = result.Value.Rates.ToList();
+        rates[0].IsRefundable.ShouldBeTrue();
+        rates[0].FullRefundDays.ShouldBe(30);
+        rates[0].PartialRefundDays.ShouldBe(7);
+        rates[0].PartialRefundPercent.ShouldBe(50);
+        rates[1].IsRefundable.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// a refundable policy is saved with its new values
+    /// </summary>
+    [Fact]
+    public async Task SaveARefundablePolicyWithItsValues()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(SaveARefundablePolicyWithItsValues),
+            rate => rate.CancellationPolicy = CancellationPolicy.NonRefundable);
+        var rateId = await RateIdOfAsync(dbContext, "Standard Room");
+
+        // act
+        var result = await new RatePricingService(dbContext).EditAsync(new RatePricingRequest.Edit
+        {
+            RateId = rateId,
+            PricePerNight = 133m,
+            MinNights = 1,
+            IsRefundable = true,
+            FullRefundDays = 45,
+            PartialRefundDays = 10,
+            PartialRefundPercent = 30
+        });
+
+        // assert, read the rate again from the db to be sure it was saved
+        result.IsSuccess.ShouldBeTrue();
+        var saved = await dbContext.Rates.AsNoTracking().SingleAsync(r => r.Id == rateId);
+        saved.CancellationPolicy.ShouldBe(CancellationPolicy.Refundable);
+        saved.FullRefundDays.ShouldBe(45);
+        saved.PartialRefundDays.ShouldBe(10);
+        saved.PartialRefundPercent.ShouldBe(30);
+    }
+
+    /// <summary>
+    /// ! a non refundable rate keeps its old refund values, even if the request sends invalid ones
+    /// without the if in the service the Guard would throw here
+    /// </summary>
+    [Fact]
+    public async Task KeepTheOldRefundValuesForANonRefundableRate()
+    {
+        // arrange, the rate starts refundable 30/7/50
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(KeepTheOldRefundValuesForANonRefundableRate));
+        var rateId = await RateIdOfAsync(dbContext, "Standard Room");
+
+        // act
+        var result = await new RatePricingService(dbContext).EditAsync(new RatePricingRequest.Edit
+        {
+            RateId = rateId,
+            PricePerNight = 133m,
+            MinNights = 1,
+            IsRefundable = false,
+            FullRefundDays = -5,
+            PartialRefundDays = -1,
+            PartialRefundPercent = 150
+        });
+
+        // assert
+        result.IsSuccess.ShouldBeTrue();
+        var saved = await dbContext.Rates.AsNoTracking().SingleAsync(r => r.Id == rateId);
+        saved.CancellationPolicy.ShouldBe(CancellationPolicy.NonRefundable);
+        saved.FullRefundDays.ShouldBe(30);
+        saved.PartialRefundDays.ShouldBe(7);
+        saved.PartialRefundPercent.ShouldBe(50);
+    }
+
+    // request that only changes the policy, the other values stay the same as the seed
+    private static RatePricingRequest.Edit PolicyRequest(int rateId, bool isRefundable) => new()
+    {
+        RateId = rateId,
+        PricePerNight = 133m,
+        MinNights = 1,
+        IsRefundable = isRefundable,
+        FullRefundDays = 30,
+        PartialRefundDays = 7,
+        PartialRefundPercent = 50
+    };
+
+    /// <summary>
+    /// a rate named Non-refundable is renamed Refundable when it becomes refundable
+    /// its no refund conditions are removed, the guest sees the refund rules instead
+    /// </summary>
+    [Fact]
+    public async Task RenameANonRefundableRateWhenItBecomesRefundable()
+    {
+        // arrange, the seeded rate is named Non-refundable
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(RenameANonRefundableRateWhenItBecomesRefundable), rate =>
+        {
+            rate.CancellationPolicy = CancellationPolicy.NonRefundable;
+            rate.Description = "No refund after booking";
+        });
+        var rateId = await RateIdOfAsync(dbContext, "Standard Room");
+
+        // act
+        await new RatePricingService(dbContext).EditAsync(PolicyRequest(rateId, isRefundable: true));
+
+        // assert
+        var saved = await dbContext.Rates.AsNoTracking().SingleAsync(r => r.Id == rateId);
+        saved.Name.ShouldBe("Refundable");
+        saved.Description.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// and back, a rate named Refundable is renamed Non-refundable with its conditions
+    /// </summary>
+    [Fact]
+    public async Task RenameARefundableRateWhenItBecomesNonRefundable()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(RenameARefundableRateWhenItBecomesNonRefundable),
+            rate => rate.Name = "Refundable");
+        var rateId = await RateIdOfAsync(dbContext, "Standard Room");
+
+        // act
+        await new RatePricingService(dbContext).EditAsync(PolicyRequest(rateId, isRefundable: false));
+
+        // assert
+        var saved = await dbContext.Rates.AsNoTracking().SingleAsync(r => r.Id == rateId);
+        saved.Name.ShouldBe("Non-refundable");
+        saved.Description.ShouldBe("No refund after booking");
+    }
+
+    /// <summary>
+    /// ! a custom name is never changed by the policy
+    /// </summary>
+    [Fact]
+    public async Task KeepACustomNameWhenThePolicyChanges()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(KeepACustomNameWhenThePolicyChanges), rate =>
+        {
+            rate.Name = "Breakfast included";
+            rate.CancellationPolicy = CancellationPolicy.NonRefundable;
+        });
+        var rateId = await RateIdOfAsync(dbContext, "Standard Room");
+
+        // act
+        await new RatePricingService(dbContext).EditAsync(PolicyRequest(rateId, isRefundable: true));
+
+        // assert
+        var saved = await dbContext.Rates.AsNoTracking().SingleAsync(r => r.Id == rateId);
+        saved.Name.ShouldBe("Breakfast included");
+    }
 }

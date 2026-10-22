@@ -95,16 +95,20 @@
 }
 
 /*
-  one rate on 1 row and 3 columns
+  one rate on 2 rows and 3 columns
   radio on the left, price per night next to it, total on the right
+  cancellation policy on the 2nd row, under the price, the dot leaves the radio column empty
   grid areas so the order of the tags in the razor does not matter
   the whole line is a label, so it looks clickable
 */
 .room-card-rate {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    grid-template-areas: "radio detail total";
+    grid-template-areas:
+        "radio detail total"
+        ".     policy policy";
     column-gap: var(--space-sm);
+    row-gap: 2px;
     align-items: center;
     padding: var(--space-xs) var(--space-sm);
     border: 1px solid var(--color-border);
@@ -143,6 +147,13 @@
 .room-card-rate-detail {
     grid-area: detail;
     font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+/* eg free cancellation up to 30 days before arrival, small and grey under the price */
+.room-card-rate-policy {
+    grid-area: policy;
+    font-size: 0.75rem;
     color: var(--color-text-muted);
 }
 

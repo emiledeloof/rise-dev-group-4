@@ -14,19 +14,17 @@ public class Index(IRatePricingService ratePricingService) : EndpointWithoutRequ
     /// </summary>
     public override void Configure()
     {
-        // http GET on /api/rate-pricing
         Get("/api/rate-pricing");
 
-        // admin only, Roles with AppRoles.Administrator
+        // ! real security, the [Authorize] on the page can be bypassed
         Roles(AppRoles.Administrator);
     }
 
     /// <summary>
-    /// called on each request, no logic here, it only passes the call to the service
+    /// called on each request, only passes the call to the service
     /// </summary>
     public override Task<Result<RatePricingResponse.Index>> ExecuteAsync(CancellationToken ct)
     {
-        // return the result of GetIndexAsync of the service, pass ct
         return ratePricingService.GetIndexAsync(ct);
     }
 }

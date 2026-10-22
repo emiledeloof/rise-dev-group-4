@@ -64,7 +64,8 @@
                         @* detail eg €109 × 3 nights in room-card-rate-detail, total on the right in room-card-total *@
                         <span class="room-card-total">€@rate.TotalPrice.ToString("0")</span>
                         <span class="room-card-rate-detail">€@rate.PricePerNight.ToString("0") × @Nights @(Nights == 1 ? "night" : "nights")</span>
-
+                        @* cancellation policy of the rate under the price, on a 2nd row of the grid *@
+                        <span class="room-card-rate-policy">@CancellationPolicyText.Of(rate)</span>
                     </label>
                     </li>
                 }

@@ -22,8 +22,16 @@ public class FakeRoomService : IRoomService
                 Id = 1, Name = "Double Room", MaxGuests = 2, PricePerNight = 109m, Nights = 3, TotalPrice = 327m,
                 Rates =
                 [
-                    new RateDto.Available { Id = 1, Name = "Non-refundable", PricePerNight = 109m, TotalPrice = 327m },
-                    new RateDto.Available { Id = 2, Name = "Fully refundable", PricePerNight = 139m, TotalPrice = 417m },
+                    new RateDto.Available
+                    {
+                        Id = 1, Name = "Non-refundable", PricePerNight = 109m, TotalPrice = 327m,
+                        IsRefundable = false, FullRefundDays = 30, PartialRefundDays = 7, PartialRefundPercent = 50,
+                    },
+                    new RateDto.Available
+                    {
+                        Id = 2, Name = "Fully refundable", PricePerNight = 139m, TotalPrice = 417m,
+                        IsRefundable = true, FullRefundDays = 30, PartialRefundDays = 7, PartialRefundPercent = 50,
+                    },
                 ],
             },
             new RoomDto.Available { Id = 2, Name = "Single Room", MaxGuests = 1, PricePerNight = 79m, Nights = 3, TotalPrice = 237m },

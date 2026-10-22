@@ -3,6 +3,7 @@ using Rise.Persistence;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 using Rise.Services.Pricing;
+using Rise.Domain.Rooms;
 
 namespace Rise.Services.Rooms;
 
@@ -59,7 +60,12 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                         Name = x.Name,
                         Description = x.Description,
                         PricePerNight = x.PricePerNight,
-                        TotalPrice = PriceCalculator.Total(x.PricePerNight, nights)
+                        TotalPrice = PriceCalculator.Total(x.PricePerNight, nights),
+                        // * cancellation policy shown to the guest, shared cant see the enum so a bool
+                        IsRefundable = x.CancellationPolicy == CancellationPolicy.Refundable,
+                        FullRefundDays = x.FullRefundDays,
+                        PartialRefundDays = x.PartialRefundDays,
+                        PartialRefundPercent = x.PartialRefundPercent
                     }).ToList()
             })
             .ToListAsync(ctx);

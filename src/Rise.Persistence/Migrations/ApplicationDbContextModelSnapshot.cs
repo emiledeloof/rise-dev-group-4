@@ -335,15 +335,27 @@ namespace Rise.Persistence.Migrations
                     b.Property<int>("BookingId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("CancellationPolicy")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<int>("FullRefundDays")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
+
+                    b.Property<int>("PartialRefundDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PartialRefundPercent")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("PricePerNight")
                         .HasPrecision(18, 2)
@@ -536,6 +548,9 @@ namespace Rise.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CancellationPolicy")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -544,6 +559,9 @@ namespace Rise.Persistence.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<int>("FullRefundDays")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
@@ -557,6 +575,12 @@ namespace Rise.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int>("PartialRefundDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PartialRefundPercent")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("PricePerNight")
                         .HasPrecision(18, 2)

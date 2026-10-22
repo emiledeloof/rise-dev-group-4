@@ -20,10 +20,19 @@ public class RoomCardShould : BunitContext
     }
 
     // 2 sample rates for 3 nights, the 2nd one has no conditions on purpose
+    // the 1st is non refundable, the 2nd refundable with the client rules
     private static RateDto.Available[] SampleRates(int nights = 3) =>
     [
-        new() { Id = 1, Name = "Non-refundable", Description = "No refund after booking", PricePerNight = 109m, TotalPrice = 109m * nights },
-        new() { Id = 2, Name = "Fully refundable", Description = null, PricePerNight = 139m, TotalPrice = 139m * nights },
+        new()
+        {
+            Id = 1, Name = "Non-refundable", Description = "No refund after booking", PricePerNight = 109m, TotalPrice = 109m * nights,
+            IsRefundable = false, FullRefundDays = 30, PartialRefundDays = 7, PartialRefundPercent = 50,
+        },
+        new()
+        {
+            Id = 2, Name = "Fully refundable", Description = null, PricePerNight = 139m, TotalPrice = 139m * nights,
+            IsRefundable = true, FullRefundDays = 30, PartialRefundDays = 7, PartialRefundPercent = 50,
+        },
     ];
 
     // renders a card with sample values, each test only changes what it checks
@@ -90,6 +99,22 @@ public class RoomCardShould : BunitContext
     /// <summary>
     /// night is singular for a 1 night stay
     /// </summary>
+    /// <summary>
+    /// each rate shows its cancellation policy under the price
+    /// </summary>
+    [Fact]
+    public void ShowTheCancellationPolicyOfEachRate()
+    {
+        // arrange and act
+        var cut = RenderCard();
+
+        // assert
+        var policies = cut.FindAll(".room-card-rate-policy");
+        policies.Count.ShouldBe(2);
+        policies[0].TextContent.ShouldBe("Non-refundable, no refund if you cancel");
+        policies[1].TextContent.ShouldBe("Free cancellation up to 30 days before arrival, 50% refund up to 7 days before");
+    }
+
     [Fact]
     public void WriteNightInSingularForOneNight()
     {

@@ -10,7 +10,7 @@ public static partial class RatePricingResponse
     /// </summary>
     public class Index
     {
-        // list of RatePricingDto.Index, empty list by default so it's never null
+        // * empty list by default so it's never null
         public IEnumerable<RatePricingDto.Index> Rates { get; set; } = [];
     }
 }

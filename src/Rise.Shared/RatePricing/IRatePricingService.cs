@@ -5,11 +5,14 @@ namespace Rise.Shared.RatePricing;
 /// </summary>
 public interface IRatePricingService
 {
-    // GetIndexAsync, all rates with their pricing
-    // returns Task of Result of RatePricingResponse.Index, takes a CancellationToken ctx = default
+    /// <summary>
+    /// all rates with their pricing
+    /// </summary>
     Task<Result<RatePricingResponse.Index>> GetIndexAsync(CancellationToken ctx = default);
 
-    // EditAsync, saves the new price of one rate
-    // takes a RatePricingRequest.Edit and a CancellationToken ctx = default, returns Task of Result
+    /// <summary>
+    /// saves the pricing of one rate
+    /// </summary>
+    // * Result without data, the page only needs to know success or error
     Task<Result> EditAsync(RatePricingRequest.Edit request, CancellationToken ctx = default);
 }

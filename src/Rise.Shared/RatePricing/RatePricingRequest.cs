@@ -19,6 +19,18 @@ public static partial class RatePricingRequest
         // min nb of nights a guest must book
         public int MinNights { get; set; }
 
+        // true for a refundable rate, false for non-refundable, shared cant see the domain enum
+        public bool IsRefundable { get; set; }
+
+        // 100 pct refund up to this nb of days before arrival
+        public int FullRefundDays { get; set; }
+
+        // partial refund up to this nb of days before arrival
+        public int PartialRefundDays { get; set; }
+
+        // pct refunded in the partial period, eg 50
+        public int PartialRefundPercent { get; set; }
+
         /// <summary>
         /// rules checked on the client for feedback, then again on the server by fastendpoints
         /// </summary>
@@ -26,20 +38,36 @@ public static partial class RatePricingRequest
         {
             public Validator()
             {
-                // rate id must be more than 0
+                // a real rate is always picked
                 RuleFor(r => r.RateId).GreaterThan(0);
 
+                // * max 2 decimals, same precision as the db column
                 RuleFor(x => x.PricePerNight)
-                // price must be more than 0, with a clear msg for the admin
                     .GreaterThan(0)
                     .WithMessage("The price per night must be more than 0.")
-                // price max 2 decimals, PrecisionScale(18, 2, true), same precision as the db
                     .PrecisionScale(18, 2, true)
                     .WithMessage("The price can have at most 2 decimals.");
 
                 RuleFor(x => x.MinNights)
                     .GreaterThan(0)
                     .WithMessage("A stay must be at least 1 night.");
+
+                // ! refund rules only for a refundable rate, the values are ignored otherwise
+                RuleFor(x => x.PartialRefundPercent)
+                    .InclusiveBetween(0, 100)
+                    .WithMessage("The partial refund must be between 0 and 100%.")
+                    .When(x => x.IsRefundable);
+
+                // * eg 30 days at 100 pct then 7 days at 50 pct, never the other way round
+                RuleFor(x => x.FullRefundDays)
+                    .GreaterThan(x => x.PartialRefundDays)
+                    .WithMessage("The full refund period must be longer than the partial one.")
+                    .When(x => x.IsRefundable);
+
+                RuleFor(x => x.PartialRefundDays)
+                    .GreaterThanOrEqualTo(0)
+                    .WithMessage("The number of days can't be negative.")
+                    .When(x => x.IsRefundable);
             }
         }
     }
