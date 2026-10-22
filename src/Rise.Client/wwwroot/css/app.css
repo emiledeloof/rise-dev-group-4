@@ -68,3 +68,7 @@ h1:focus {
     .loading-progress-text:after {
         content: var(--blazor-load-percentage-text, "Loading");
     }
+/* the page behind the large photo of PhotoCarousel does not scroll */
+body:has(.lightbox) {
+    overflow: hidden;
+}

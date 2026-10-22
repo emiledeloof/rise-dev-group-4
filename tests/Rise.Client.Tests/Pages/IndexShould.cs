@@ -179,4 +179,34 @@ public class IndexShould : BunitContext
         cut.Find(".rooms-empty").TextContent.ShouldContain("Our rooms could not be loaded right now.");
         cut.Find("h1").TextContent.ShouldBe("Slow days among vines and granite");
     }
+
+    /// <summary>
+    /// a click on a photo of the estate shows it large
+    /// </summary>
+    [Fact]
+    public void OpenTheEstatePhotoLarge()
+    {
+        // Arrange, the lightbox takes the focus when it opens
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<Index>();
+
+        // Act
+        cut.Find(".estate-photo .carousel-zoom").Click();
+
+        // Assert
+        cut.FindAll(".lightbox").Count.ShouldBe(1);
+    }
+
+    /// <summary>
+    /// the photos of the room cards stay a plain slider, the detail page has the large photos
+    /// </summary>
+    [Fact]
+    public void NotOpenTheRoomCardPhotosLarge()
+    {
+        // Act
+        var cut = Render<Index>();
+
+        // Assert
+        cut.FindAll(".room-card .carousel-zoom").ShouldBeEmpty();
+    }
 }
