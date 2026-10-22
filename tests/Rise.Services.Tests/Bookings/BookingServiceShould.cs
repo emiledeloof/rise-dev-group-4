@@ -348,4 +348,66 @@ public class BookingServiceShould
         // assert
         result.Status.ShouldBe(ResultStatus.Created);
     }
+
+    // ── GetMatrixAsync ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetMatrixReturnsOnlyPaidBookingsAndExcludesPending()
+    {
+        // arrange — seeded booking (Double Room, Oct 10-12) has no payments, so it is pending.
+        // Add a second booking (Single Room, Oct 10-12) that is paid.
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetMatrixReturnsOnlyPaidBookingsAndExcludesPending));
+        var single = await dbContext.Rooms.Include(x => x.Rates).SingleAsync(x => x.Name == "Single Room");
+        var guest = await dbContext.Guests.FirstAsync();
+        var paidBooking = new Booking("20261001-SVM-000002", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
+        paidBooking.AddRoom(single, single.Rates.First());
+        var payment = paidBooking.AddPayment(158m);
+        payment.MarkAsPaid(DateTime.UtcNow);
+        dbContext.Bookings.Add(paidBooking);
+        await dbContext.SaveChangesAsync();
+
+        var request = new BookingRequest.Matrix
+        {
+            WindowStart = new DateOnly(2026, 10, 9),
+            WindowDays = 7,
+        };
+
+        // act
+        var result = await CreateService(dbContext).GetMatrixAsync(request);
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.Ok);
+        var matrix = result.Value;
+        matrix.Rows.Count.ShouldBe(2);
+
+        // Double Room had only a pending booking, so it must have 0 bookings
+        var doubleRow = matrix.Rows.Single(r => r.RoomName == "Double Room");
+        doubleRow.Bookings.ShouldBeEmpty();
+
+        // Single Room had a paid booking, so it must show up
+        var singleRow = matrix.Rows.Single(r => r.RoomName == "Single Room");
+        singleRow.Bookings.Count.ShouldBe(1);
+        singleRow.Bookings[0].BookingNumber.ShouldBe("20261001-SVM-000002");
+        singleRow.Bookings[0].Status.ShouldBe("Paid");
+    }
+
+    [Fact]
+    public async Task GetMatrixReturnsAllRoomsEvenWhenNoBookings()
+    {
+        // arrange — db has rooms, but no paid bookings
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetMatrixReturnsAllRoomsEvenWhenNoBookings));
+        var request = new BookingRequest.Matrix
+        {
+            WindowStart = new DateOnly(2026, 10, 9),
+            WindowDays = 7,
+        };
+
+        // act
+        var result = await CreateService(dbContext).GetMatrixAsync(request);
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.Ok);
+        result.Value.Rows.Count.ShouldBe(2);
+        result.Value.Rows.ShouldAllBe(r => r.Bookings.Count == 0);
+    }
 }

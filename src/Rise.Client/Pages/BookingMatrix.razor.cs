@@ -73,7 +73,7 @@ public partial class BookingMatrix
         while (dayIndex < WindowDays)
         {
             var day = _windowStart.AddDays(dayIndex);
-            var booking = row.Bookings.FirstOrDefault(b => b.CheckIn <= day && b.CheckOut > day);
+            var booking = row.Bookings.FirstOrDefault(b => b.Status == "Paid" && b.CheckIn <= day && b.CheckOut > day);
 
             if (booking is null)
             {
@@ -82,7 +82,7 @@ public partial class BookingMatrix
                 while (dayIndex < WindowDays)
                 {
                     var nextDay = _windowStart.AddDays(dayIndex);
-                    if (row.Bookings.Any(b => b.CheckIn <= nextDay && b.CheckOut > nextDay))
+                    if (row.Bookings.Any(b => b.Status == "Paid" && b.CheckIn <= nextDay && b.CheckOut > nextDay))
                     {
                         break;
                     }
