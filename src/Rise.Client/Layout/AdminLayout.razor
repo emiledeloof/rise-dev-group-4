@@ -1,10 +1,12 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
 <div class="admin-shell">
     <aside class="admin-sidebar">
         <a class="admin-brand" href="/admin">Stazzu La Vigna di Maria</a>
         <nav aria-label="Admin navigation">
             <NavLink href="/admin" Match="NavLinkMatch.All">Booking matrix</NavLink>
-            <NavLink href="/admin/booking-list">Bookings</NavLink>
+            @* also active on a booking detail, eg /admin/bookings/3, the layout re-renders on every navigation *@
+            <NavLink href="/admin/booking-list" class="@(IsBookingDetail ? "active" : null)">Bookings</NavLink>
             <NavLink href="/admin/invoice-list">Invoices</NavLink>
             <NavLink href="/admin/rates">Rates</NavLink>
             <NavLink href="/admin/rate-pricing">Rate pricing</NavLink>
@@ -14,3 +16,8 @@
         @Body
     </main>
 </div>
+
+@code {
+    private bool IsBookingDetail =>
+        Navigation.ToBaseRelativePath(Navigation.Uri).StartsWith("admin/bookings/", StringComparison.OrdinalIgnoreCase);
+}

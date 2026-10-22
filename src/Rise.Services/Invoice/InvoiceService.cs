@@ -31,6 +31,7 @@ public class InvoiceService(ApplicationDbContext dbContext) : IInvoiceService
             .Select(p => new InvoiceDto.Index
             {
                 Id = p.Id,
+                BookingId = p.Booking.Id,
                 BookingNumber = p.Booking.BookingNumber,
                 GuestName = p.Booking.Guest.Name,
                 Amount = p.Amount,

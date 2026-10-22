@@ -190,22 +190,85 @@ public sealed class BookingService(
         return guest;
     }
 
-    public async Task<Result<BookingDto.Detail>> GetDetailAsync(int bookingId, CancellationToken ctx = default)
+    /// <summary>
+    /// Loads one booking with its guest, rooms, rates and payments for the admin detail page.
+    /// A deleted booking is treated as not found.
+    /// </summary>
+    public async Task<Result<BookingDto.AdminDetail>> GetDetailAsync(int bookingId, CancellationToken ctx = default)
     {
         var booking = await dbContext.Bookings
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(x => x.Guest)
             .Include(x => x.Rooms)
                 .ThenInclude(x => x.Room)
+            .Include(x => x.Rooms)
+                .ThenInclude(x => x.Rate)
             .Include(x => x.Payments)
-            .SingleOrDefaultAsync(x => x.Id == bookingId, ctx);
+            .SingleOrDefaultAsync(x => x.Id == bookingId && !x.IsDeleted, ctx);
 
         if (booking is null)
         {
             return Result.NotFound($"Booking with ID '{bookingId}' was not found.");
         }
 
-        return Result.Success(ToDetailDto(booking));
+        return Result.Success(ToAdminDetailDto(booking));
+    }
+
+    private static BookingDto.AdminDetail ToAdminDetailDto(Booking booking)
+    {
+        var nights = booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
+        var rooms = booking.Rooms
+            .Where(x => !x.IsDeleted)
+            .Select(x => new BookingDto.AdminRoomDto
+            {
+                RoomId = x.Room.Id,
+                RoomNumber = x.Room.RoomNumber,
+                RoomName = x.Room.Name,
+                RateName = x.Rate.Name,
+                PricePerNight = x.PricePerNight,
+                Total = PriceCalculator.Total(x.PricePerNight, nights),
+            })
+            .OrderBy(x => x.RoomNumber)
+            .ToList();
+        var payments = booking.Payments.Where(x => !x.IsDeleted).ToList();
+
+        return new BookingDto.AdminDetail
+        {
+            Id = booking.Id,
+            BookingNumber = booking.BookingNumber,
+            CreatedAt = booking.CreatedAt,
+            // same rule as GetIndexAsync
+            Status = payments.Any(x => x.IsPaid) ? "Paid" : "Pending",
+            CheckIn = booking.CheckIn,
+            CheckOut = booking.CheckOut,
+            Nights = nights,
+            TotalAmount = rooms.Sum(x => x.Total),
+            Guest = new BookingDto.AdminGuestDto
+            {
+                Id = booking.Guest.Id,
+                Name = booking.Guest.Name,
+                Email = booking.Guest.Email,
+                Phone = booking.Guest.Phone,
+                AddressLine1 = booking.Guest.Address.AddressLine1,
+                AddressLine2 = booking.Guest.Address.AddressLine2,
+                Country = booking.Guest.Address.Country,
+            },
+            Rooms = rooms,
+            Payments = payments
+                .OrderBy(x => x.Id)
+                .Select(x => new BookingDto.AdminPaymentDto
+                {
+                    Id = x.Id,
+                    Amount = x.Amount,
+                    PaidAt = x.PaidAt,
+                    InvoiceNumber = x.InvoiceNumber,
+                    CardBrand = x.CardBrand,
+                    CardLast4 = x.CardLast4,
+                    StripeReceiptUrl = x.StripeReceiptUrl,
+                })
+                .ToList(),
+        };
     }
 
     public async Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(

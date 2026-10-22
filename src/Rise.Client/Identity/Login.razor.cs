@@ -17,7 +17,15 @@ public partial class Login
 
         if (_result.IsSuccess)
         {
-            Navigation.NavigateTo($"/admin");
+            Navigation.NavigateTo(IsLocalUrl(ReturnUrl) ? $"/{ReturnUrl!.TrimStart('/')}" : "/admin");
         }
     }
+
+    // Prevents open redirects: only relative paths within this app are accepted.
+    private static bool IsLocalUrl(string? url) =>
+        !string.IsNullOrWhiteSpace(url)
+        && !url.StartsWith("//")
+        && !url.StartsWith("/\\")
+        && !url.Contains("://")
+        && !url.Equals("login", StringComparison.OrdinalIgnoreCase);
 }

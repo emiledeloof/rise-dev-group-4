@@ -53,3 +53,54 @@
     text-align: center;
     margin-top: var(--space-sm);
 }
+
+/* the whole row opens the booking detail, the link of the booking number is stretched over the row */
+.booking-row {
+    position: relative;
+    margin: 0 calc(-1 * var(--space-sm));
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+    border-radius: var(--radius);
+    transition: background-color 0.15s ease;
+}
+
+.booking-row:hover {
+    background-color: var(--color-bg);
+}
+
+.booking-list-link {
+    color: inherit;
+}
+
+.booking-list-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+.booking-list-link:focus-visible {
+    outline: none;
+}
+
+.booking-row:has(.booking-list-link:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.booking-row-chevron {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+/* phones, the amount and status go under the guest instead of next to it */
+@media (max-width: 640px) {
+    .booking-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-xs);
+    }
+
+    .booking-row-chevron {
+        display: none;
+    }
+}

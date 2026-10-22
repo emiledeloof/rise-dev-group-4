@@ -1,0 +1,194 @@
+@page "/admin/bookings/{BookingId:int}"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Client.Common
+@using Rise.Shared.Identity
+@* admin booking detail, opened from the booking list and the invoice list, styles in AdminDetail.razor.css *@
+@* missing values show "Not provided", never made up data *@
+
+<PageTitle>@(_booking is null ? "Booking" : $"Booking {_booking.BookingNumber}")</PageTitle>
+
+<div class="page booking-detail">
+    <a class="booking-detail-back" href="admin/booking-list">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i><span>All bookings</span>
+    </a>
+
+    @if (_isLoading)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else if (_booking is null)
+    {
+        @* unknown or deleted booking, or the api call failed, msg set in the code-behind *@
+        <div class="box booking-detail-card booking-detail-empty-state">
+            <p class="booking-detail-error">@_errorMessage</p>
+            <Button Variant="ButtonVariant.Secondary" Href="admin/booking-list" Class="mt-3">Back to the bookings</Button>
+        </div>
+    }
+    else
+    {
+        @* ---------- header, booking number and status ---------- *@
+        <header class="booking-detail-header">
+            <div>
+                <span class="eyebrow">Booking</span>
+                <h1 class="booking-detail-number">@_booking.BookingNumber</h1>
+                <p class="booking-detail-muted booking-detail-created">Booked on @Format.Date(_booking.CreatedAt)</p>
+            </div>
+            <span class="booking-detail-status">
+                @if (_booking.Status == "Paid")
+                {
+                    <span class="tag is-primary is-light is-medium">Paid</span>
+                }
+                else
+                {
+                    <span class="tag is-warning is-light is-medium">Pending</span>
+                }
+            </span>
+        </header>
+
+        <div class="booking-detail-layout">
+            <div class="booking-detail-main">
+                @* ---------- stay, dates nights and rooms ---------- *@
+                <section class="box booking-detail-card booking-detail-stay">
+                    <span class="eyebrow">The stay</span>
+
+                    <div class="booking-detail-dates">
+                        <div class="booking-detail-date">
+                            <span class="booking-detail-label">Check-in</span>
+                            <span class="booking-detail-date-day booking-detail-checkin">@Format.Date(_booking.CheckIn)</span>
+                            <span class="booking-detail-muted">@_booking.CheckIn.DayOfWeek</span>
+                        </div>
+                        <div class="booking-detail-nights">
+                            <i class="fas fa-moon" aria-hidden="true"></i>
+                            <span class="booking-detail-nights-count">@_booking.Nights @(_booking.Nights == 1 ? "night" : "nights")</span>
+                        </div>
+                        <div class="booking-detail-date">
+                            <span class="booking-detail-label">Check-out</span>
+                            <span class="booking-detail-date-day booking-detail-checkout">@Format.Date(_booking.CheckOut)</span>
+                            <span class="booking-detail-muted">@_booking.CheckOut.DayOfWeek</span>
+                        </div>
+                    </div>
+
+                    <h2 class="booking-detail-subtitle">Assigned room@(_booking.Rooms.Count == 1 ? "" : "s")</h2>
+                    @if (_booking.Rooms.Count > 0)
+                    {
+                        <ul class="booking-detail-rooms">
+                            @foreach (var room in _booking.Rooms)
+                            {
+                                <li @key="room.RoomId" class="booking-detail-room">
+                                    <span class="booking-detail-room-number">@room.RoomNumber</span>
+                                    <div>
+                                        <p class="booking-detail-room-name">@room.RoomName</p>
+                                        <p class="booking-detail-muted">@room.RateName</p>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="booking-detail-muted booking-detail-no-rooms">No rooms are assigned to this booking.</p>
+                    }
+                </section>
+
+                @* ---------- payments ---------- *@
+                <section class="box booking-detail-card booking-detail-payments">
+                    <span class="eyebrow">Payments</span>
+
+                    @if (_booking.Payments.Count > 0)
+                    {
+                        <ul>
+                            @foreach (var payment in _booking.Payments)
+                            {
+                                <li @key="payment.Id" class="booking-detail-payment">
+                                    <div>
+                                        <p>@(payment.PaidAt is null ? "Awaiting payment" : $"Paid {Format.Date(payment.PaidAt.Value)}")</p>
+                                        <p class="booking-detail-muted booking-detail-payment-info">
+                                            @if (payment.InvoiceNumber is not null)
+                                            {
+                                                <span>@payment.InvoiceNumber</span>
+                                            }
+                                            @if (payment.CardLast4 is not null)
+                                            {
+                                                <span>@Format.Card(payment.CardBrand, payment.CardLast4)</span>
+                                            }
+                                            @if (payment.StripeReceiptUrl is not null)
+                                            {
+                                                <a href="@payment.StripeReceiptUrl" target="_blank" rel="noopener">Stripe receipt ↗</a>
+                                            }
+                                        </p>
+                                    </div>
+                                    <div class="booking-detail-payment-amount">
+                                        <span>@Format.Amount(payment.Amount)</span>
+                                        @if (payment.PaidAt is null)
+                                        {
+                                            <span class="tag is-warning is-light">Open</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tag is-primary is-light">Paid</span>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="booking-detail-muted booking-detail-no-payments">No payments recorded yet.</p>
+                    }
+                </section>
+            </div>
+
+            @* ---------- guest and price, on the right on big screens, under the stay on phones ---------- *@
+            <aside class="booking-detail-aside">
+                <section class="box booking-detail-card booking-detail-guest">
+                    <span class="eyebrow">The guest</span>
+                    <h2 class="booking-detail-guest-name">@_booking.Guest.Name</h2>
+
+                    <dl class="booking-detail-facts">
+                        <div>
+                            <dt><i class="fas fa-envelope" aria-hidden="true"></i>Email</dt>
+                            <dd class="booking-detail-email"><a href="mailto:@_booking.Guest.Email">@_booking.Guest.Email</a></dd>
+                        </div>
+                        <div>
+                            <dt><i class="fas fa-phone" aria-hidden="true"></i>Phone</dt>
+                            <dd class="booking-detail-phone"><a href="tel:@_booking.Guest.Phone">@_booking.Guest.Phone</a></dd>
+                        </div>
+                        <div>
+                            <dt><i class="fas fa-location-dot" aria-hidden="true"></i>Address</dt>
+                            <dd class="booking-detail-address">
+                                @_booking.Guest.AddressLine1
+                                @if (_booking.Guest.AddressLine2 is not null)
+                                {
+                                    <br />@_booking.Guest.AddressLine2
+                                }
+                                <br />@_booking.Guest.Country
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="box booking-detail-card booking-detail-price">
+                    <span class="eyebrow">Price</span>
+
+                    @foreach (var room in _booking.Rooms)
+                    {
+                        <div @key="room.RoomId" class="booking-detail-price-row">
+                            <span>
+                                Room @room.RoomNumber
+                                <span class="booking-detail-muted">@Format.Amount(room.PricePerNight) × @_booking.Nights</span>
+                            </span>
+                            <span>@Format.Amount(room.Total)</span>
+                        </div>
+                    }
+
+                    <div class="booking-detail-total">
+                        <span>Total</span>
+                        <span class="booking-detail-total-amount">@Format.Amount(_booking.TotalAmount)</span>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    }
+</div>

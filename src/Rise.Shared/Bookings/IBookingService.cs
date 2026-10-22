@@ -11,7 +11,10 @@ public interface IBookingService
         BookingRequest.CreateCheckoutSession request,
         CancellationToken cancellationToken = default);
     Task<Result<BookingResponse.Create>> CreateAsync(BookingRequest.Create request, CancellationToken ctx = default);
-    Task<Result<BookingDto.Detail>> GetDetailAsync(int bookingId, CancellationToken ctx = default);
+    /// <summary>
+    /// Returns everything about one booking for the admin detail page, including private guest data.
+    /// </summary>
+    Task<Result<BookingDto.AdminDetail>> GetDetailAsync(int bookingId, CancellationToken ctx = default);
     Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
         string checkoutSessionId,
         CancellationToken ctx = default);

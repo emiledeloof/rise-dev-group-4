@@ -81,8 +81,13 @@ public class FakeBookingService : IBookingService
         return Task.FromResult(CheckoutAnswer);
     }
 
-    public Task<Result<BookingDto.Detail>> GetDetailAsync(int bookingId, CancellationToken ctx = default)
-        => throw new NotImplementedException();
+    /// <summary>
+    /// what GetDetailAsync sends back, the booking of <see cref="TestAdminDetails.Full"/> by default
+    /// </summary>
+    public Result<BookingDto.AdminDetail> AdminDetailAnswer { get; set; } = Result.Success(TestAdminDetails.Full());
+
+    public Task<Result<BookingDto.AdminDetail>> GetDetailAsync(int bookingId, CancellationToken ctx = default)
+        => Task.FromResult(AdminDetailAnswer);
 
     public Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(string checkoutSessionId, CancellationToken ctx = default)
     {
