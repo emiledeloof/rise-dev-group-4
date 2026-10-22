@@ -1,8 +1,8 @@
 /* ──────────────────────────────────────────────
-Page wrapper
+   Page wrapper
 ─────────────────────────────────────────────── */
 .matrix-page {
-    padding: 2rem 2.5rem;
+    padding: var(--space-lg) 2.5rem;
     max-width: 1400px;
     margin: 0 auto;
 }
@@ -20,11 +20,11 @@ Page wrapper
 }
 
 .matrix-title {
-    font-family: var(--font-title, serif);
+    font-family: var(--font-title);
     font-size: 2.25rem;
     font-weight: 400;
     margin: 0;
-    color: #1a1a1a;
+    color: var(--color-text);
 }
 
 .matrix-header-controls {
@@ -46,17 +46,18 @@ Page wrapper
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid #dcdcdc;
-    border-radius: 6px;
-    background: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
     cursor: pointer;
     font-size: 1.1rem;
-    color: #333333;
-    transition: background 0.15s;
+    color: var(--color-text);
+    transition: background-color 0.15s, border-color 0.15s;
 }
 
 .matrix-nav-btn:hover {
-    background: #f7f7f7;
+    background-color: var(--color-bg);
+    border-color: var(--color-text-muted);
 }
 
 .matrix-window-box {
@@ -65,12 +66,12 @@ Page wrapper
     justify-content: center;
     padding: 0 1.25rem;
     height: 2.25rem;
-    border: 1px solid #dcdcdc;
-    border-radius: 6px;
-    background: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
     font-size: 0.95rem;
     font-weight: 600;
-    color: #222222;
+    color: var(--color-text);
     min-width: 12rem;
 }
 
@@ -81,19 +82,19 @@ Page wrapper
 
 .action-btn {
     padding: 0.45rem 1rem;
-    border-radius: 6px;
+    border-radius: var(--radius);
     font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
-    background: #ffffff;
-    border: 1px solid #cfcfcf;
-    color: #222222;
-    transition: background 0.15s, border-color 0.15s;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    transition: background-color 0.15s, border-color 0.15s;
 }
 
 .action-btn:hover {
-    background: #f8f8f8;
-    border-color: #b5b5b5;
+    background-color: var(--color-bg);
+    border-color: var(--color-text-muted);
 }
 
 /* ──────────────────────────────────────────────
@@ -114,20 +115,20 @@ Page wrapper
     font-weight: 500;
 }
 
-.legend-chip.free     { background: #d3ebd2; color: #2e5927; }
-.legend-chip.booked   { background: #fae48c; color: #6b5505; }
-.legend-chip.closed   { background: #eab4b1; color: #6b2622; }
-.legend-chip.selected { background: #cce1f2; color: #1e4b70; }
+.legend-chip.free     { background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface)); color: var(--color-primary-dark); }
+.legend-chip.booked   { background: var(--color-warning-bg); color: var(--color-text); }
+.legend-chip.closed   { background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface)); color: var(--color-accent); }
+.legend-chip.selected { background: color-mix(in srgb, var(--color-primary) 30%, var(--color-surface)); color: var(--color-primary-dark); }
 
 /* ──────────────────────────────────────────────
    Scroll container (horizontal on smaller screens)
 ─────────────────────────────────────────────── */
 .matrix-scroll {
     overflow-x: auto;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    border: 1px solid #e2ded7;
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--color-border);
 }
 
 /* ──────────────────────────────────────────────
@@ -137,15 +138,15 @@ Page wrapper
     display: grid;
     grid-template-columns: 13rem repeat(var(--window-days, 16), minmax(3.2rem, 1fr));
     min-width: 60rem;
-    background: #ffffff;
+    background: var(--color-surface);
 }
 
 /* ──────────────────────────────────────────────
    Generic cell & borders
 ─────────────────────────────────────────────── */
 .matrix-cell {
-    border-right: 1px solid #e5e2da;
-    border-bottom: 1px solid #e5e2da;
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
     position: relative;
 }
 
@@ -158,8 +159,8 @@ Page wrapper
     padding-left: 1.25rem;
     font-size: 0.85rem;
     font-weight: 500;
-    color: #666666;
-    background: #faf9f6;
+    color: var(--color-text-muted);
+    background: var(--color-bg);
     height: 3.5rem;
 }
 
@@ -168,7 +169,7 @@ Page wrapper
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: #faf9f6;
+    background: var(--color-bg);
     height: 3.5rem;
     padding: 0.2rem 0;
     gap: 0.2rem;
@@ -177,18 +178,18 @@ Page wrapper
 .day-name {
     font-size: 0.75rem;
     font-weight: 500;
-    color: #555555;
+    color: var(--color-text-muted);
 }
 
 .day-num {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #111111;
+    color: var(--color-text);
 }
 
 .today-circle {
-    background: #395232;
-    color: #ffffff;
+    background: var(--color-primary);
+    color: var(--color-surface);
     border-radius: 50%;
     width: 1.6rem;
     height: 1.6rem;
@@ -203,16 +204,16 @@ Page wrapper
 ─────────────────────────────────────────────── */
 .matrix-category-banner {
     grid-column: 1 / -1;
-    background: #f0ece3;
+    background: var(--color-bg);
     padding: 0.4rem 1.25rem;
-    border-bottom: 1px solid #e5e2da;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .category-name {
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.06em;
-    color: #69655c;
+    color: var(--color-text-muted);
 }
 
 /* ──────────────────────────────────────────────
@@ -222,14 +223,14 @@ Page wrapper
     display: flex;
     align-items: center;
     padding-left: 1.25rem;
-    background: #ffffff;
+    background: var(--color-surface);
     height: 4.5rem; /* Thicker row */
 }
 
 .room-number-text {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #222222;
+    color: var(--color-text);
 }
 
 /* ──────────────────────────────────────────────
@@ -239,7 +240,7 @@ Page wrapper
     grid-column: 2 / -1;
     position: relative;
     height: 4.5rem; /* Thicker row */
-    border-bottom: 1px solid #e5e2da;
+    border-bottom: 1px solid var(--color-border);
 }
 
 /* Flat single-layer grid for the timeline track */
@@ -252,17 +253,17 @@ Page wrapper
 
 /* Free day cell — soft green, with a divider between free days */
 .flat-free-cell {
-    background-color: #d6e8d2;
-    border-right: 1px solid #ffffff;
+    background-color: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface));
+    border-right: 1px solid var(--color-surface);
 }
 
 .flat-free-cell:last-child {
     border-right: 0;
 }
 
-/* Booked cell — fills entire cell yellow, no internal borders */
+/* Booked cell — fills entire cell using warning-bg from theme, no internal borders */
 .flat-booking-cell {
-    background-color: #f6e07a;
+    background-color: var(--color-warning-bg);
     /* no border-right so consecutive booked days merge seamlessly */
     display: flex;
     align-items: center;
@@ -271,11 +272,11 @@ Page wrapper
     position: relative;
 }
 
-/* Guest name rendered directly inside the yellow cell */
+/* Guest name rendered directly inside the booked cell */
 .flat-booking-name {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #4a3d07;
+    color: var(--color-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -298,10 +299,10 @@ Page wrapper
 
 .btn-new-booking {
     align-self: flex-start;
-    background-color: #4c5a3d;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--color-surface);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius);
     padding: 0.65rem 1.4rem;
     font-size: 0.95rem;
     font-weight: 500;
@@ -310,16 +311,16 @@ Page wrapper
 }
 
 .btn-new-booking:hover {
-    background-color: #3f4b32;
+    background-color: var(--color-primary-dark);
 }
 
 .selection-action-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border: 1.5px solid #4a7a9e;
-    border-radius: 10px;
-    background: #ffffff;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
     padding: 1rem 1.5rem;
     flex-wrap: wrap;
     gap: 1rem;
@@ -334,12 +335,12 @@ Page wrapper
 .selection-title {
     font-size: 1rem;
     font-weight: 700;
-    color: #1a1a1a;
+    color: var(--color-text);
 }
 
 .selection-dates {
     font-size: 0.88rem;
-    color: #666666;
+    color: var(--color-text-muted);
 }
 
 .selection-buttons {
@@ -349,10 +350,10 @@ Page wrapper
 }
 
 .btn-create-booking {
-    background-color: #4c5a3d;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--color-surface);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius);
     padding: 0.6rem 1.35rem;
     font-size: 0.92rem;
     font-weight: 500;
@@ -361,6 +362,5 @@ Page wrapper
 }
 
 .btn-create-booking:hover {
-    background-color: #3f4b32;
+    background-color: var(--color-primary-dark);
 }
-
