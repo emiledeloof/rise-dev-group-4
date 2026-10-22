@@ -63,4 +63,50 @@ public class RateCreateValidatorShould
         result.Errors.Select(error => error.ErrorMessage)
             .ShouldContain("Cancellation policy / description cannot exceed 500 characters.");
     }
+
+    // a valid request, each test breaks one rule
+    private static RateRequest.Create ValidRequest() => new()
+    {
+        Name = "Standard",
+        RoomName = "Deluxe Room",
+        PricePerNight = 79,
+        Description = "Flexible cancellation",
+    };
+
+    /// <summary>
+    /// a stay is at least 1 night
+    /// </summary>
+    [Fact]
+    public void RejectMinNightsOfZero()
+    {
+        var request = ValidRequest();
+        request.MinNights = 0;
+
+        _validator.Validate(request).IsValid.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// the refund rules are checked for a refundable rate
+    /// </summary>
+    [Fact]
+    public void RejectAFullPeriodShorterThanThePartialOne()
+    {
+        var request = ValidRequest();
+        request.IsRefundable = true;
+        request.FullRefundDays = 5;
+
+        _validator.Validate(request).IsValid.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// ! for a non refundable rate the refund values are not checked
+    /// </summary>
+    [Fact]
+    public void IgnoreRefundValuesForANonRefundableRate()
+    {
+        var request = ValidRequest();
+        request.PartialRefundPercent = 150;
+
+        _validator.Validate(request).IsValid.ShouldBeTrue();
+    }
 }

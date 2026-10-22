@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Rise.Domain.Rooms;
 using Rise.Persistence;
 using Rise.Shared.Common;
 using Rise.Shared.Rates;
@@ -24,6 +25,18 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
             request.Name,
             request.PricePerNight,
             request.Description);
+
+        // * policy chosen in the form, a new rate is refundable in the domain so it is always set here
+        rate.MinNights = request.MinNights;
+        rate.CancellationPolicy = request.IsRefundable ? CancellationPolicy.Refundable : CancellationPolicy.NonRefundable;
+
+        // ! refund values only for a refundable rate, the validator skips them otherwise
+        if (request.IsRefundable)
+        {
+            rate.FullRefundDays = request.FullRefundDays;
+            rate.PartialRefundDays = request.PartialRefundDays;
+            rate.PartialRefundPercent = request.PartialRefundPercent;
+        }
 
         dbContext.Rates.Add(rate);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -57,8 +70,11 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
         if (!string.IsNullOrWhiteSpace(request.RoomName))
             query = query.Where(rate => rate.Room.Name == request.RoomName);
 
-        if (!string.IsNullOrWhiteSpace(request.Policy))
-            query = query.Where(rate => rate.Description == request.Policy);
+        // * filter on the real cancellation policy, not on the description text
+        if (request.Policy == RatePolicies.Refundable)
+            query = query.Where(rate => rate.CancellationPolicy == CancellationPolicy.Refundable);
+        else if (request.Policy == RatePolicies.NonRefundable)
+            query = query.Where(rate => rate.CancellationPolicy == CancellationPolicy.NonRefundable);
 
         var totalCount = await query.CountAsync(ctx);
 
@@ -85,12 +101,15 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
             .OrderBy(name => name)
             .ToListAsync(ctx);
 
-        var policies = await activeRates
-            .Where(rate => rate.Description != null)
-            .Select(rate => rate.Description!)
+        // only the policies that exist, as the texts the page sends back in the filter
+        var usedPolicies = await activeRates
+            .Select(rate => rate.CancellationPolicy)
             .Distinct()
-            .OrderBy(policy => policy)
             .ToListAsync(ctx);
+        var policies = usedPolicies
+            .Select(policy => policy == CancellationPolicy.Refundable ? RatePolicies.Refundable : RatePolicies.NonRefundable)
+            .OrderBy(policy => policy)
+            .ToList();
 
         var rates = await query
             .AsNoTracking()
@@ -103,6 +122,12 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
                 RoomName = rate.Room.Name,
                 PricePerNight = rate.PricePerNight,
                 Description = rate.Description,
+                // what the edit form needs, same mapping as RoomService
+                MinNights = rate.MinNights,
+                IsRefundable = rate.CancellationPolicy == CancellationPolicy.Refundable,
+                FullRefundDays = rate.FullRefundDays,
+                PartialRefundDays = rate.PartialRefundDays,
+                PartialRefundPercent = rate.PartialRefundPercent,
             })
             .ToListAsync(ctx);
 

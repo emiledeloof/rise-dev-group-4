@@ -17,6 +17,15 @@ public static partial class RateRequest
     }
 }
 
+/// <summary>
+/// values of the policy filter, shared cant see the domain enum so the page sends one of these texts
+/// </summary>
+public static class RatePolicies
+{
+    public const string Refundable = "Refundable";
+    public const string NonRefundable = "Non-refundable";
+}
+
 public static partial class RateResponse
 {
     public sealed class Index

@@ -59,8 +59,9 @@
                             checked="@(rate.Id == SelectedRateId)"
                             @onchange="() => OnRateSelected.InvokeAsync(rate.Id)" />
 
-                        @* only the price, no rate name and no conditions for now, there is only one rate per room *@
-                        @* TODO: show the name and conditions again when the rooms get several rates *@
+                        @* rate name so the guest can tell the rates of the room apart, eg Non-refundable or Refundable *@
+                        @* the conditions are the policy line below, the description would say the same thing *@
+                        <span class="room-card-rate-name">@rate.Name</span>
                         @* detail eg €109 × 3 nights in room-card-rate-detail, total on the right in room-card-total *@
                         <span class="room-card-total">€@rate.TotalPrice.ToString("0")</span>
                         <span class="room-card-rate-detail">€@rate.PricePerNight.ToString("0") × @Nights @(Nights == 1 ? "night" : "nights")</span>

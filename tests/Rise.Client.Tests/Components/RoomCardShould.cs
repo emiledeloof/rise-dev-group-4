@@ -89,8 +89,9 @@ public class RoomCardShould : BunitContext
         lines.Count.ShouldBe(2);
 
         var first = lines[0];
-        // only the price for now, there is only one rate per room
-        first.QuerySelector(".room-card-rate-name").ShouldBeNull();
+        // the name tells the rates apart, the conditions are the policy line
+        first.QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Non-refundable");
+        lines[1].QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Fully refundable");
         first.QuerySelector(".room-card-rate-conditions").ShouldBeNull();
         first.QuerySelector(".room-card-total")!.TextContent.ShouldBe("€327");
         first.QuerySelector(".room-card-rate-detail")!.TextContent.ShouldBe("€109 × 3 nights");

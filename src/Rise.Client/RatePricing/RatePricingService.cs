@@ -4,22 +4,11 @@ using Rise.Shared.RatePricing;
 namespace Rise.Client.RatePricing;
 
 /// <summary>
-/// client side of IRatePricingService, sends the calls of the pricing page to the api over http
+/// client side of IRatePricingService, sends the edit form of the rates page to the api over http
 /// same idea as Invoice/InvoiceService.cs and Guests/GuestService.cs
 /// </summary>
 public class RatePricingService(HttpClient httpClient) : IRatePricingService
 {
-    /// <summary>
-    /// GET /api/rate-pricing, all rates with their pricing
-    /// </summary>
-    public async Task<Result<RatePricingResponse.Index>> GetIndexAsync(CancellationToken ctx = default)
-    {
-        // * the ! says the body is never null, the server always answers with a Result
-        return (await httpClient.GetFromJsonAsync<Result<RatePricingResponse.Index>>(
-            "/api/rate-pricing",
-            cancellationToken: ctx))!;
-    }
-
     /// <summary>
     /// PUT /api/rate-pricing with the new pricing in the body
     /// </summary>

@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Rise.Shared.Common;
+using Rise.Shared.RatePricing;
 using Rise.Shared.Rooms;
 using Rise.Shared.Rates;
 
@@ -30,12 +31,29 @@ public partial class Rates : ComponentBase
     private IEnumerable<string> _createRoomNames = [];
     private RateRequest.Create _createModel = NewRateModel();
 
+    // edit a rate, values of the open form, null when no rate is being edited
+    private RatePricingRequest.Edit? _editModel;
+
+    // the rate as it was when edit was clicked, compared on save to know what changed
+    private RateDto.Index? _originalRate;
+
+    // shown under the table after a save that worked
+    private string? _successMessage;
+
+    // shown in the form when the api refused or failed the save
+    private string? _saveErrorMessage;
+
 
     private int TotalPages => _totalCount == 0 ? 1 : (int)Math.Ceiling(_totalCount / (double)PageSize);
 
     [Inject] public required IRateService RateService { get; set; }
 
     [Inject] public required IRoomService RoomService { get; set; }
+
+    /// <summary>
+    /// saves the edit form, same api as before the merge of the rate pricing page
+    /// </summary>
+    [Inject] public required IRatePricingService RatePricingService { get; set; }
 
     [Inject] public required ILogger<Rates> Logger { get; set; }
 
@@ -130,6 +148,9 @@ public partial class Rates : ComponentBase
 
     private async Task OpenCreateFormAsync()
     {
+        // * one form at a time, opening create closes edit
+        _editModel = null;
+        _successMessage = null;
         _createModel = NewRateModel();
         _createErrorMessage = null;
         _isCreateOpen = true;
@@ -202,6 +223,104 @@ public partial class Rates : ComponentBase
             _isCreating = false;
         }
     }
+
+    /// <summary>
+    /// opens the edit form for one rate, prefilled with its current values
+    /// </summary>
+    private void StartEdit(RateDto.Index rate)
+    {
+        // msgs of a previous save dont belong to this edit, one form at a time
+        _saveErrorMessage = null;
+        _successMessage = null;
+        _isCreateOpen = false;
+
+        // kept to compare with the form on save
+        _originalRate = rate;
+
+        // * a copy, typing in the form doesnt change the table before the save
+        _editModel = new RatePricingRequest.Edit
+        {
+            RateId = rate.Id,
+            PricePerNight = rate.PricePerNight,
+            MinNights = rate.MinNights,
+            IsRefundable = rate.IsRefundable,
+            FullRefundDays = rate.FullRefundDays,
+            PartialRefundDays = rate.PartialRefundDays,
+            PartialRefundPercent = rate.PartialRefundPercent
+        };
+    }
+
+    /// <summary>
+    /// closes the edit form without saving
+    /// </summary>
+    private void CancelEdit()
+    {
+        _editModel = null;
+    }
+
+    /// <summary>
+    /// sends the edit form to the api, only called when the validator accepts it
+    /// </summary>
+    private async Task SaveEditAsync()
+    {
+        var result = await RatePricingService.EditAsync(_editModel!);
+
+        // form stays open so the admin can retry without typing again
+        if (!result.IsSuccess)
+        {
+            _saveErrorMessage = "The changes could not be saved. Please try again.";
+            return;
+        }
+
+        // ! compared before closing the form, _editModel is null after
+        // local copies so the null checks are done once
+        var edit = _editModel!;
+        var original = _originalRate!;
+
+        var priceChanged = edit.PricePerNight != original.PricePerNight;
+        var minNightsChanged = edit.MinNights != original.MinNights;
+        // refundable or not, the checkbox
+        var refundableChanged = edit.IsRefundable != original.IsRefundable;
+
+        // ! refund values only count for a refundable rate, the service ignores them otherwise
+        var fullRefundChanged = edit.IsRefundable
+            && edit.FullRefundDays != original.FullRefundDays;
+        var partialRefundChanged = edit.IsRefundable
+            && (edit.PartialRefundDays != original.PartialRefundDays
+                || edit.PartialRefundPercent != original.PartialRefundPercent);
+
+        // * one msg for every combination, eg saved price and partial refund
+        var changes = new List<string>();
+        if (priceChanged) changes.Add("price");
+        if (minNightsChanged) changes.Add("minimum nights");
+        if (refundableChanged) changes.Add(edit.IsRefundable ? "cancellation policy (refundable)" : "cancellation policy (non-refundable)");
+        if (fullRefundChanged) changes.Add("full refund period");
+        if (partialRefundChanged) changes.Add("partial refund");
+
+        // close the form and reload so the table shows the saved values, the page and filters stay
+        _editModel = null;
+        await LoadPageAsync();
+
+        _successMessage = changes.Count == 0
+            ? "Nothing was changed."
+            : $"Saved: {JoinWithAnd(changes)}.";
+    }
+
+    /// <summary>
+    /// text of the policy for the table, eg 100 pct up to 30 days, 50 pct up to 7 days
+    /// </summary>
+    private static string FormatPolicy(RateDto.Index rate)
+        => rate.IsRefundable
+            ? $"100% up to {rate.FullRefundDays} days, {rate.PartialRefundPercent}% up to {rate.PartialRefundDays} days"
+            : RatePolicies.NonRefundable;
+
+    /// <summary>
+    /// joins the words with commas and a last and, eg price, minimum nights and cancellation policy
+    /// </summary>
+    private static string JoinWithAnd(List<string> words)
+        => words.Count == 1
+            ? words[0]
+            : $"{string.Join(", ", words.SkipLast(1))} and {words[^1]}";
 
     private static string GetErrorMessage(Ardalis.Result.IResult result, string fallback)
     {

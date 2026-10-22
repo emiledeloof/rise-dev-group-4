@@ -20,7 +20,10 @@ public class RateServiceIndexShould
 
         var doubleRoom = new Room("101", DoubleRoom, 2);
         doubleRoom.AddRate("Flexible", 120m, "Flexible cancellation");
-        doubleRoom.AddRate("Non-refundable", 90m, "No refund");
+        // * new rates are refundable by default, this one is not
+        var nonRefundable = doubleRoom.AddRate("Non-refundable", 90m, "No refund");
+        nonRefundable.CancellationPolicy = CancellationPolicy.NonRefundable;
+        nonRefundable.MinNights = 2;
         doubleRoom.AddRate("Deleted rate", 70m, "Archived policy").IsDeleted = true;
 
         var singleRoom = new Room("102", SingleRoom, 1);
@@ -50,14 +53,17 @@ public class RateServiceIndexShould
         result.Value.Rates.Select(rate => rate.RoomName).Distinct().ShouldBe([DoubleRoom]);
     }
 
+    /// <summary>
+    /// the policy filter uses the real cancellation policy, not the description
+    /// </summary>
     [Fact]
-    public async Task FilterRatesByPolicyDescription()
+    public async Task FilterRatesByCancellationPolicy()
     {
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(FilterRatesByPolicyDescription));
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(FilterRatesByCancellationPolicy));
 
         var result = await new RateService(dbContext).GetIndexAsync(new RateRequest.Index
         {
-            Policy = "No refund",
+            Policy = RatePolicies.NonRefundable,
         });
 
         result.IsSuccess.ShouldBeTrue();
@@ -73,7 +79,7 @@ public class RateServiceIndexShould
         var result = await new RateService(dbContext).GetIndexAsync(new RateRequest.Index
         {
             RoomName = DoubleRoom,
-            Policy = "No refund",
+            Policy = RatePolicies.NonRefundable,
         });
 
         result.IsSuccess.ShouldBeTrue();
@@ -97,7 +103,7 @@ public class RateServiceIndexShould
 
         // Filter choices should remain complete even while the current results are filtered.
         result.Value.RoomNames.ShouldBe([DoubleRoom, SingleRoom]);
-        result.Value.Policies.ShouldBe(["Flexible cancellation", "No refund"]);
+        result.Value.Policies.ShouldBe([RatePolicies.NonRefundable, RatePolicies.Refundable]);
     }
 
     [Fact]
@@ -113,5 +119,44 @@ public class RateServiceIndexShould
         result.IsSuccess.ShouldBeTrue();
         result.Value.Rates.Count().ShouldBe(1);
         result.Value.TotalCount.ShouldBe(3);
+    }
+
+    /// <summary>
+    /// refundable rates can be filtered too
+    /// </summary>
+    [Fact]
+    public async Task FilterRefundableRates()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(FilterRefundableRates));
+
+        var result = await new RateService(dbContext).GetIndexAsync(new RateRequest.Index
+        {
+            Policy = RatePolicies.Refundable,
+        });
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Rates.Select(rate => rate.Name).OrderBy(name => name).ShouldBe(["Flexible", "Standard"]);
+    }
+
+    /// <summary>
+    /// each row has what the edit form needs, min nights and the policy values
+    /// </summary>
+    [Fact]
+    public async Task ReturnTheMinNightsAndThePolicyOfEachRate()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheMinNightsAndThePolicyOfEachRate));
+
+        var result = await new RateService(dbContext).GetIndexAsync(new RateRequest.Index());
+
+        var nonRefundable = result.Value.Rates.Single(rate => rate.Name == "Non-refundable");
+        nonRefundable.MinNights.ShouldBe(2);
+        nonRefundable.IsRefundable.ShouldBeFalse();
+
+        var flexible = result.Value.Rates.Single(rate => rate.Name == "Flexible");
+        flexible.MinNights.ShouldBe(1);
+        flexible.IsRefundable.ShouldBeTrue();
+        flexible.FullRefundDays.ShouldBe(30);
+        flexible.PartialRefundDays.ShouldBe(7);
+        flexible.PartialRefundPercent.ShouldBe(50);
     }
 }

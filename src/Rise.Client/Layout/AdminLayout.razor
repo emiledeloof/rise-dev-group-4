@@ -2,15 +2,24 @@
 @inject NavigationManager Navigation
 <div class="admin-shell">
     <aside class="admin-sidebar">
-        <a class="admin-brand" href="/admin">Stazzu La Vigna di Maria</a>
+        @* real logo like the navbar of the site, emblem next to the name, see wwwroot/images/logo *@
+        <a class="admin-brand" href="/admin">
+            <img class="admin-brand-emblem" src="images/logo/emblem.png" alt="" />
+            <img class="admin-brand-name" src="images/logo/la-vigna-di-maria.png" alt="Stazzu La Vigna di Maria" />
+        </a>
         <nav aria-label="Admin navigation">
             <NavLink href="/admin" Match="NavLinkMatch.All">Booking matrix</NavLink>
             @* also active on a booking detail, eg /admin/bookings/3, the layout re-renders on every navigation *@
             <NavLink href="/admin/booking-list" class="@(IsBookingDetail ? "active" : null)">Bookings</NavLink>
             <NavLink href="/admin/invoice-list">Invoices</NavLink>
             <NavLink href="/admin/rates">Rates</NavLink>
-            <NavLink href="/admin/rate-pricing">Rate pricing</NavLink>
         </nav>
+
+        @* back to the guest side of the site, at the bottom of the sidebar *@
+        <a class="admin-back" href="/">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            Back to the site
+        </a>
     </aside>
     <main class="admin-content">
         @Body

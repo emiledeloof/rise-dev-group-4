@@ -242,3 +242,58 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* edit a rate, merged from the old rate pricing page */
+
+/* refundable checkbox between the 2 groups of fields */
+.rate-refundable {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    color: var(--color-text);
+    font-size: 0.875rem;
+}
+
+/* refund fields under the checkbox, same grid as the create fields */
+.rate-edit-panel .rate-refundable + .rate-create-fields {
+    margin-top: 1rem;
+}
+
+/* msg after a save, under the table */
+.rate-success {
+    margin-top: 1rem;
+}
+
+/* small edit btn at the end of each row, ::deep since it comes from the Button component */
+.rate-table ::deep .rate-edit-btn {
+    padding: 0.25rem 0.75rem;
+    height: auto;
+    font-size: 0.8rem;
+}
+
+/* min nights and refund fields of the create form, same grid as the other fields */
+.rate-create-policy {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+    .rate-create-policy {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ! edit column always visible, it stays on the right while the table scrolls */
+.rate-table th:last-child,
+.rate-table td:last-child {
+    position: sticky;
+    right: 0;
+    background: var(--color-surface);
+}
+
+.rate-table th:last-child {
+    background: #f1f0eb;
+}

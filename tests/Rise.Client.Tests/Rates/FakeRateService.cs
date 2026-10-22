@@ -40,6 +40,12 @@ public class FakeRateService : IRateService
                         RoomName = createdRate.RoomName,
                         PricePerNight = createdRate.PricePerNight,
                         Description = createdRate.Description,
+                        // a new rate gets the domain defaults
+                        MinNights = 1,
+                        IsRefundable = true,
+                        FullRefundDays = 30,
+                        PartialRefundDays = 7,
+                        PartialRefundPercent = 50,
                     },
                     .. index.Rates,
                 ],
@@ -71,6 +77,11 @@ public class FakeRateService : IRateService
                 RoomName = "Double Room",
                 PricePerNight = 90m,
                 Description = "No refund",
+                MinNights = 2,
+                IsRefundable = false,
+                FullRefundDays = 30,
+                PartialRefundDays = 7,
+                PartialRefundPercent = 50,
             },
             new RateDto.Index
             {
@@ -79,10 +90,15 @@ public class FakeRateService : IRateService
                 RoomName = "Single Room",
                 PricePerNight = 79m,
                 Description = null,
+                MinNights = 1,
+                IsRefundable = true,
+                FullRefundDays = 30,
+                PartialRefundDays = 7,
+                PartialRefundPercent = 50,
             },
         ],
         RoomNames = ["Double Room", "Single Room"],
-        Policies = ["No refund"],
+        Policies = [RatePolicies.NonRefundable, RatePolicies.Refundable],
         TotalCount = totalCount,
     };
 }

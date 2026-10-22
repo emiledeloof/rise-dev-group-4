@@ -6,43 +6,11 @@ using Rise.Shared.RatePricing;
 namespace Rise.Services.RatePricing;
 
 /// <summary>
-/// pricing of the rates for the admin page, reads and saves the rates in the db
+/// saves the pricing of a rate from the edit form of the admin rates page
 /// same idea as RoomService
 /// </summary>
 public class RatePricingService(ApplicationDbContext dbContext) : IRatePricingService
 {
-    /// <summary>
-    /// all rates not deleted with the name of their room, sorted by room then rate
-    /// </summary>
-    public async Task<Result<RatePricingResponse.Index>> GetIndexAsync(CancellationToken ctx = default)
-    {
-        var rates = await dbContext.Rates
-            .Where(r => !r.IsDeleted)
-            // * read only, no tracking needed, faster
-            .AsNoTracking()
-            // same order every time for the admin
-            .OrderBy(r => r.Room.Name)
-            .ThenBy(r => r.Name)
-            // only the fields the page needs, the room name comes from the join
-            .Select(r => new RatePricingDto.Index
-            {
-                RateId = r.Id,
-                RoomName = r.Room.Name,
-                RateName = r.Name,
-                PricePerNight = r.PricePerNight,
-                MinNights = r.MinNights,
-                // * shared cant see the enum, so the page gets a bool
-                IsRefundable = r.CancellationPolicy == CancellationPolicy.Refundable,
-                FullRefundDays = r.FullRefundDays,
-                PartialRefundDays = r.PartialRefundDays,
-                PartialRefundPercent = r.PartialRefundPercent
-            })
-            // ! the query only runs here
-            .ToListAsync(ctx);
-
-        return Result.Success(new RatePricingResponse.Index { Rates = rates });
-    }
-
     /// <summary>
     /// saves the pricing of one rate, NotFound if the rate does not exist
     /// </summary>

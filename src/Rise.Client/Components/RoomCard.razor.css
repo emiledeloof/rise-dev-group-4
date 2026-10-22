@@ -95,9 +95,9 @@
 }
 
 /*
-  one rate on 2 rows and 3 columns
-  radio on the left, price per night next to it, total on the right
-  cancellation policy on the 2nd row, under the price, the dot leaves the radio column empty
+  one rate on 3 rows and 3 columns
+  radio on the left, rate name next to it, total on the right
+  price per night and cancellation policy under the name, the dot leaves the radio column empty
   grid areas so the order of the tags in the razor does not matter
   the whole line is a label, so it looks clickable
 */
@@ -105,7 +105,8 @@
     display: grid;
     grid-template-columns: auto 1fr auto;
     grid-template-areas:
-        "radio detail total"
+        "radio name   total"
+        ".     detail detail"
         ".     policy policy";
     column-gap: var(--space-sm);
     row-gap: 2px;
@@ -143,7 +144,15 @@
     text-align: right;
 }
 
-/* eg €109 × 3 nights next to the radio btn */
+/* eg Non-refundable, the 1st thing the guest reads on the line */
+.room-card-rate-name {
+    grid-area: name;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* eg €109 × 3 nights under the rate name */
 .room-card-rate-detail {
     grid-area: detail;
     font-size: 0.875rem;

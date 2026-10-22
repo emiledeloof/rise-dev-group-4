@@ -8,7 +8,8 @@ using Rise.Shared.RatePricing;
 namespace Rise.Services.Tests.RatePricing;
 
 /// <summary>
-/// tests for <see cref="RatePricingService"/>
+/// tests for <see cref="RatePricingService"/>, the save of the edit form of the rates page
+/// the list is tested in Rates/RateServiceIndexShould
 /// same setup as RoomServiceShould, an in memory db filled for each test
 /// </summary>
 public class RatePricingServiceShould
@@ -43,43 +44,6 @@ public class RatePricingServiceShould
     // id of the rate of a room, looked up by room name so the tests dont depend on generated ids
     private static Task<int> RateIdOfAsync(ApplicationDbContext dbContext, string roomName)
         => dbContext.Rates.Where(r => r.Room.Name == roomName).Select(r => r.Id).SingleAsync();
-
-    /// <summary>
-    /// every rate comes back with its room name, sorted by room name
-    /// </summary>
-    [Fact]
-    public async Task ListTheRatesSortedByRoom()
-    {
-        // arrange
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(ListTheRatesSortedByRoom));
-
-        // act
-        var result = await new RatePricingService(dbContext).GetIndexAsync();
-
-        // assert
-        result.IsSuccess.ShouldBeTrue();
-        var rates = result.Value.Rates.ToList();
-        rates.Select(r => r.RoomName).ShouldBe(new[] { "Deluxe Room", "Standard Room" });
-        rates[1].RateName.ShouldBe("Non-refundable");
-        rates[1].PricePerNight.ShouldBe(133m);
-    }
-
-    /// <summary>
-    /// a deleted rate must not show up on the admin page
-    /// </summary>
-    [Fact]
-    public async Task HideDeletedRates()
-    {
-        // arrange
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(HideDeletedRates),
-            rate => rate.IsDeleted = true);
-
-        // act
-        var result = await new RatePricingService(dbContext).GetIndexAsync();
-
-        // assert
-        result.Value.Rates.Select(r => r.RoomName).ShouldBe(new[] { "Deluxe Room" });
-    }
 
     /// <summary>
     /// the new price is saved in the db
@@ -138,22 +102,6 @@ public class RatePricingServiceShould
     }
 
     /// <summary>
-    /// a new rate starts at 1 night min, the list shows it
-    /// </summary>
-    [Fact]
-    public async Task ListTheMinNightsOfEachRate()
-    {
-        // arrange
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(ListTheMinNightsOfEachRate));
-
-        // act
-        var result = await new RatePricingService(dbContext).GetIndexAsync();
-
-        // assert
-        result.Value.Rates.ShouldAllBe(r => r.MinNights == 1);
-    }
-
-    /// <summary>
     /// the new min nb of nights is saved in the db
     /// </summary>
     [Fact]
@@ -171,29 +119,6 @@ public class RatePricingServiceShould
         result.IsSuccess.ShouldBeTrue();
         var saved = await dbContext.Rates.AsNoTracking().SingleAsync(r => r.Id == rateId);
         saved.MinNights.ShouldBe(3);
-    }
-
-    /// <summary>
-    /// the list gives the policy as a bool and the refund values
-    /// a new rate is refundable 30/7/50 by default, the standard one is made non refundable
-    /// </summary>
-    [Fact]
-    public async Task ListTheCancellationPolicyOfEachRate()
-    {
-        // arrange
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(ListTheCancellationPolicyOfEachRate),
-            rate => rate.CancellationPolicy = CancellationPolicy.NonRefundable);
-
-        // act
-        var result = await new RatePricingService(dbContext).GetIndexAsync();
-
-        // assert, sorted by room so deluxe is first
-        var rates = result.Value.Rates.ToList();
-        rates[0].IsRefundable.ShouldBeTrue();
-        rates[0].FullRefundDays.ShouldBe(30);
-        rates[0].PartialRefundDays.ShouldBe(7);
-        rates[0].PartialRefundPercent.ShouldBe(50);
-        rates[1].IsRefundable.ShouldBeFalse();
     }
 
     /// <summary>
