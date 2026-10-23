@@ -38,13 +38,11 @@ jobs:
           dotnet list package --vulnerable --include-transitive
 
       # 2. Fast Whitespace & Formatting Check
-      # Fails fast before triggering the heavier compiler step
       - name: Verify Formatting (dotnet format)
         run: |
           dotnet format --verify-no-changes --verbosity normal
 
       # 3. Static Analysis & Roslyn Code Style Check
-      # Executes Roslyn analyzers, SonarAnalyzer, and treats warnings as errors
       - name: Build with Strict Code Analysis
         run: |
           dotnet build --no-restore --configuration Release --warnaserror
@@ -67,6 +65,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      - name: Extract Semantic Version
+        id: vars
+        run: |
+          RAW_TAG="${{ github.ref_name }}"
+          CLEAN_VERSION="${RAW_TAG#v}"
+          echo "version=${CLEAN_VERSION}" >> $GITHUB_OUTPUT
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v4
         with:
@@ -81,7 +86,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/release' }}
+          push: true
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.version }}
             ${{ env.IMAGE_NAME }}:latest
@@ -113,7 +118,7 @@ jobs:
             docker rm "$CONTAINER_NAME"
           fi
 
-          # Start new container (Fixed --name and image reference at the end)
+          # Start new container
           echo "Starting container: $CONTAINER_NAME"
           docker volume create rise-logs
           docker run -d --name "$CONTAINER_NAME" \
