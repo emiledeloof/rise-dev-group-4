@@ -19,6 +19,15 @@ jobs:
     steps:
       - name: Sync latest repository code
         uses: actions/checkout@v7
+
+      # Use caching to improve restore performance  
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
         
       # 1. Dependency Restore & Vulnerability Audit
       - name: Restore dependencies & Audit CVEs
