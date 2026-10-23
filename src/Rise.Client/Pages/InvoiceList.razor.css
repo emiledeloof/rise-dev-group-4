@@ -56,3 +56,16 @@
     font-weight: 600;
     white-space: nowrap;
 }
+
+/* booking number opens the booking detail */
+.invoice-booking-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--color-border);
+    text-underline-offset: 3px;
+}
+
+.invoice-booking-link:hover {
+    color: var(--color-primary);
+    text-decoration-color: currentColor;
+}

@@ -3,8 +3,18 @@
 @if (Photos.Count > 0)
 {
     <div class="carousel">
-        @* @key gives a new img on each change, so the fade in animation plays again *@
-        <img @key="_index" class="carousel-photo" src="@Photos[_index]" alt="@PhotoAlt" />
+        @if (Zoomable)
+        {
+            @* the photo is a btn so it can also be opened with the keyboard *@
+            <button type="button" class="carousel-zoom" aria-label="Show photo large" @onclick="Open">
+                <img @key="_index" class="carousel-photo" src="@Photos[_index]" alt="@PhotoAlt" />
+            </button>
+        }
+        else
+        {
+            @* @key gives a new img on each change, so the fade in animation plays again *@
+            <img @key="_index" class="carousel-photo" src="@Photos[_index]" alt="@PhotoAlt" />
+        }
 
         @* no arrows and no dots when there is only one photo *@
         @if (Photos.Count > 1)
@@ -25,4 +35,43 @@
             </div>
         }
     </div>
+
+    @* ---------- detail mode, the photo large on a dark backdrop ---------- *@
+    @if (_isOpen)
+    {
+        <div class="lightbox" role="dialog" aria-modal="true" aria-label="@PhotoAlt" tabindex="-1"
+             @ref="_lightbox" @onkeydown="OnKeyDown" @onclick="Close">
+            <div class="lightbox-bar" @onclick:stopPropagation="true">
+                <span class="lightbox-counter">@(_index + 1) / @Photos.Count</span>
+                <div class="lightbox-actions">
+                    <button type="button" class="lightbox-btn lightbox-size" @onclick="ToggleOriginalSize"
+                            aria-label="@(_isOriginalSize ? "Fit to screen" : "Original size")"
+                            title="@(_isOriginalSize ? "Fit to screen" : "Original size")">
+                        <i class="fas @(_isOriginalSize ? "fa-compress" : "fa-expand")" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="lightbox-btn lightbox-close" aria-label="Close" title="Close" @onclick="Close">
+                        <i class="fas fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+
+            @* in original size the stage scrolls, so large photos can be moved around *@
+            <div class="lightbox-stage @(_isOriginalSize ? "is-original" : "")">
+                <img @key="_index" class="lightbox-photo" src="@Photos[_index]" alt="@PhotoAlt"
+                     @onclick="ToggleOriginalSize" @onclick:stopPropagation="true" />
+            </div>
+
+            @if (Photos.Count > 1)
+            {
+                <button type="button" class="lightbox-btn lightbox-nav lightbox-prev" aria-label="Previous photo"
+                        @onclick="Previous" @onclick:stopPropagation="true">
+                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="lightbox-btn lightbox-nav lightbox-next" aria-label="Next photo"
+                        @onclick="Next" @onclick:stopPropagation="true">
+                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                </button>
+            }
+        </div>
+    }
 }

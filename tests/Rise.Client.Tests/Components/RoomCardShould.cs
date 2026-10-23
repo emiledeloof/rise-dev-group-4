@@ -20,10 +20,19 @@ public class RoomCardShould : BunitContext
     }
 
     // 2 sample rates for 3 nights, the 2nd one has no conditions on purpose
+    // the 1st is non refundable, the 2nd refundable with the client rules
     private static RateDto.Available[] SampleRates(int nights = 3) =>
     [
-        new() { Id = 1, Name = "Non-refundable", Description = "No refund after booking", PricePerNight = 109m, TotalPrice = 109m * nights },
-        new() { Id = 2, Name = "Fully refundable", Description = null, PricePerNight = 139m, TotalPrice = 139m * nights },
+        new()
+        {
+            Id = 1, Name = "Non-refundable", Description = "No refund after booking", PricePerNight = 109m, TotalPrice = 109m * nights,
+            IsRefundable = false, FullRefundDays = 30, PartialRefundDays = 7, PartialRefundPercent = 50,
+        },
+        new()
+        {
+            Id = 2, Name = "Fully refundable", Description = null, PricePerNight = 139m, TotalPrice = 139m * nights,
+            IsRefundable = true, FullRefundDays = 30, PartialRefundDays = 7, PartialRefundPercent = 50,
+        },
     ];
 
     // renders a card with sample values, each test only changes what it checks
@@ -80,8 +89,9 @@ public class RoomCardShould : BunitContext
         lines.Count.ShouldBe(2);
 
         var first = lines[0];
-        // only the price for now, there is only one rate per room
-        first.QuerySelector(".room-card-rate-name").ShouldBeNull();
+        // the name tells the rates apart, the conditions are the policy line
+        first.QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Non-refundable");
+        lines[1].QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Fully refundable");
         first.QuerySelector(".room-card-rate-conditions").ShouldBeNull();
         first.QuerySelector(".room-card-total")!.TextContent.ShouldBe("€327");
         first.QuerySelector(".room-card-rate-detail")!.TextContent.ShouldBe("€109 × 3 nights");
@@ -90,6 +100,22 @@ public class RoomCardShould : BunitContext
     /// <summary>
     /// night is singular for a 1 night stay
     /// </summary>
+    /// <summary>
+    /// each rate shows its cancellation policy under the price
+    /// </summary>
+    [Fact]
+    public void ShowTheCancellationPolicyOfEachRate()
+    {
+        // arrange and act
+        var cut = RenderCard();
+
+        // assert
+        var policies = cut.FindAll(".room-card-rate-policy");
+        policies.Count.ShouldBe(2);
+        policies[0].TextContent.ShouldBe("Non-refundable, no refund if you cancel");
+        policies[1].TextContent.ShouldBe("Free cancellation up to 30 days before arrival, 50% refund up to 7 days before");
+    }
+
     [Fact]
     public void WriteNightInSingularForOneNight()
     {
@@ -99,6 +125,35 @@ public class RoomCardShould : BunitContext
         // assert, in the line above the rates and in the detail of each rate
         cut.Find(".room-card-price-detail").TextContent.ShouldBe("1 night · prices include VAT");
         cut.Find(".room-card-rate-detail").TextContent.ShouldBe("€109 × 1 night");
+    }
+
+    /// <summary>
+    /// a details url turns the name into a link and adds a view details link
+    /// </summary>
+    [Fact]
+    public void LinkToTheDetailsWhenADetailsUrlIsGiven()
+    {
+        // arrange and act
+        var cut = Render<RoomCard>(p => p
+            .Add(x => x.Name, "Double Room")
+            .Add(x => x.DetailsUrl, "rooms/1"));
+
+        // assert
+        cut.Find(".room-card-title-link").GetAttribute("href").ShouldBe("rooms/1");
+        cut.Find(".room-card-details-link").GetAttribute("href").ShouldBe("rooms/1");
+    }
+
+    /// <summary>
+    /// no details url means no link
+    /// </summary>
+    [Fact]
+    public void HideTheDetailsLinkWithoutADetailsUrl()
+    {
+        // arrange and act
+        var cut = RenderCard();
+
+        // assert
+        cut.FindAll("a").ShouldBeEmpty();
     }
 
     /// <summary>

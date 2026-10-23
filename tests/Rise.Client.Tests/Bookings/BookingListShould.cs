@@ -122,4 +122,14 @@ public class BookingListShould : BunitContext
         var cut = Render<BookingList>();
         cut.Markup.ShouldContain("3 bookings");
     }
+
+    [Fact]
+    public void LinkEachRowToTheBookingDetail()
+    {
+        var cut = Render<BookingList>();
+
+        var links = cut.FindAll("li.booking-row a.booking-list-link");
+        links.Count.ShouldBe(3);
+        links[0].GetAttribute("href").ShouldBe("admin/bookings/1");
+    }
 }

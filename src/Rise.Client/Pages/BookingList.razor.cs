@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Rise.Shared.Bookings;
 using Rise.Shared.Common;
@@ -72,11 +71,4 @@ public partial class BookingList
             await LoadPageAsync();
         }
     }
-
-    // same format as the invoice list, eg €432.00
-    private static string FormatAmount(decimal amount)
-        => $"€{amount.ToString("0.00", CultureInfo.InvariantCulture)}";
-
-    private static string FormatDate(DateOnly date)
-        => date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
 }

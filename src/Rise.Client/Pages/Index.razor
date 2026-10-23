@@ -36,9 +36,9 @@
             </p>
             <Button Variant="ButtonVariant.Secondary" Href="estate">Discover the estate</Button>
         </div>
-        @* photos of the estate, same glass arrows as the room cards *@
+        @* photos of the estate, same glass arrows as the room cards, a click shows the photo large *@
         <div class="estate-photo">
-            <PhotoCarousel Photos="@EstatePhotos" Alt="The estate of Stazzu La Vigna di Maria" />
+            <PhotoCarousel Photos="@EstatePhotos" Alt="The estate of Stazzu La Vigna di Maria" Zoomable="true" />
         </div>
     </div>
 </section>
@@ -49,20 +49,53 @@
         <span class="eyebrow">Our rooms</span>
         <h2>Three rooms, each with its own character</h2>
 
-        <div class="card-grid">
-            @foreach (var room in RoomList)
+        @* nothing while loading so no placeholder data flashes, a msg with a way on when there are no rooms *@
+        @if (_isLoading)
+        {
+            @* empty on purpose, the api answers fast and a spinner would flash *@
+        }
+        else if (_errorMessage is not null)
+        {
+            <p class="home-muted rooms-empty">
+                @_errorMessage <a class="home-link" href="search">Search rooms <i class="fas fa-arrow-right"></i></a>
+            </p>
+        }
+        else
+        {
+            @* at most MaxRooms cards, see Index.razor.cs *@
+            <div class="card-grid">
+                @foreach (var room in _rooms)
+                {
+                    <article class="room-card">
+                        @* photos of the room, the glass arrows show the next or previous one *@
+                        <PhotoCarousel Photos="@room.PhotoUrls" Alt="@room.Name" />
+                        <div class="room-card-body">
+                            <h3>@room.Name</h3>
+
+                            @* short text, cut to 2 lines in the css, the full text is on the detail page *@
+                            @if (!string.IsNullOrWhiteSpace(room.Description))
+                            {
+                                <p class="room-card-description home-muted">@room.Description</p>
+                            }
+
+                            @* no price line for a room without a rate, never a €0 *@
+                            @if (room.FromPrice is { } fromPrice)
+                            {
+                                <p class="room-card-price home-small home-muted">from €@fromPrice.ToString("0") per night · incl. VAT</p>
+                            }
+
+                            <a class="home-link" href="rooms/@room.Id">View room <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </article>
+                }
+            </div>
+
+            @* only when the db has more rooms than the cards *@
+            @if (HasMoreRooms)
             {
-                <article class="room-card">
-                    @* photos of the room, the glass arrows show the next or previous one *@
-                    <PhotoCarousel Photos="@room.Photos" Alt="@room.Name" />
-                    <div class="room-card-body">
-                        <h3>@room.Name</h3>
-                        <p class="home-small home-muted">from €@room.Price per night · incl. VAT</p>
-                        <a class="home-link" href="rooms">View room <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </article>
+                <a class="home-link rooms-all" href="rooms">See all rooms <i class="fas fa-arrow-right"></i></a>
             }
-        </div>
+        }
     </div>
 </section>
 
@@ -86,50 +119,3 @@
         <a class="home-link review-all" href="reviews">Read all reviews on Google <i class="fas fa-arrow-right"></i></a>
     </div>
 </section>
-
-@code {
-    // photos of the hero slideshow, in order, the css keyframes are made for 5 photos of 6 s each
-    private const int SlideSeconds = 6;
-
-    private static readonly string[] HeroPhotos =
-    [
-        "images/home/hero-1-house.jpg",
-        "images/home/hero-2-room.jpg",
-        "images/home/hero-3-sunset.jpg",
-        "images/home/hero-4-beach.jpg",
-        "images/home/hero-5-coast.jpg",
-    ];
-
-    // the 3 real rooms with all their photos, same data as the seed
-    // TODO: load the rooms from the api, and the real standard room price from the client
-    // photos of the estate section: the house, the garden, the breakfast terrace, a vineyard and the statue of the cave
-    private static readonly string[] EstatePhotos =
-    [
-        "images/home/estate.jpg",
-        "images/home/estate-2.jpg",
-        "images/home/estate-3.jpg",
-        "images/home/estate-4.jpg",
-        "images/home/estate-5.jpg",
-    ];
-
-    private record RoomItem(string Name, int Price, string[] Photos);
-    private record ReviewItem(string Text, string Author, string Source);
-
-    private static readonly RoomItem[] RoomList =
-    [
-        new("Standard Room", 133, RoomPhotos("standard-room", 4)),
-        new("Deluxe Room", 175, RoomPhotos("deluxe-room", 5)),
-        new("Deluxe Room with bathtub", 175, RoomPhotos("deluxe-room-bathtub", 4)),
-    ];
-
-    // paths of the photos of a room in wwwroot/images/rooms, eg standard-room-1.jpg to standard-room-4.jpg
-    private static string[] RoomPhotos(string name, int count) =>
-        Enumerable.Range(1, count).Select(i => $"images/rooms/{name}-{i}.jpg").ToArray();
-
-    private static readonly ReviewItem[] ReviewList =
-    [
-        new("A quiet, beautiful place among the vines. We will be back.", "Anna", "Google Reviews"),
-        new("Warm hosts, stunning breakfast on the terrace.", "Marc", "Google Reviews"),
-        new("Perfect base for exploring the coast.", "Sofia", "Facebook"),
-    ];
-}

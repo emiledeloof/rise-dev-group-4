@@ -11,7 +11,10 @@ public interface IBookingService
         BookingRequest.CreateCheckoutSession request,
         CancellationToken cancellationToken = default);
     Task<Result<BookingResponse.Create>> CreateAsync(BookingRequest.Create request, CancellationToken ctx = default);
-    Task<Result<BookingDto.Detail>> GetDetailAsync(int bookingId, CancellationToken ctx = default);
+    /// <summary>
+    /// Returns everything about one booking for the admin detail page, including private guest data.
+    /// </summary>
+    Task<Result<BookingDto.AdminDetail>> GetDetailAsync(int bookingId, CancellationToken ctx = default);
     Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
         string checkoutSessionId,
         CancellationToken ctx = default);
@@ -19,4 +22,9 @@ public interface IBookingService
     /// Returns a paginated list of all bookings for the admin overview.
     /// </summary>
     Task<Result<BookingResponse.Index>> GetIndexAsync(QueryRequest.SkipTake request, CancellationToken ctx = default);
+
+    /// <summary>
+    /// Returns all rooms with their bookings that overlap the given date window, for the admin calendar.
+    /// </summary>
+    Task<Result<BookingResponse.Matrix>> GetMatrixAsync(BookingRequest.Matrix request, CancellationToken ctx = default);
 }

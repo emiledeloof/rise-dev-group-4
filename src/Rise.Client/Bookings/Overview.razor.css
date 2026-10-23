@@ -52,7 +52,8 @@
 
 .overview-muted,
 .overview-rate-name,
-.overview-rate-description {
+.overview-rate-description,
+.overview-rate-policy {
     font-size: 0.875rem;
     color: var(--color-text-muted);
 }

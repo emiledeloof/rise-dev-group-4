@@ -1,0 +1,676 @@
+/* rooms overview page styles, scoped to Overview.razor */
+/* mobile first, the base styles are for phones, the media queries at the bottom of each part add the big screens */
+
+/* ---------- hero ---------- */
+
+/* full width photo under the navbar, the text sits on it at the bottom */
+.rooms-hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: clamp(30rem, 78vh, 44rem);
+    /* olive from the theme, shown while the photo loads */
+    background-color: color-mix(in srgb, var(--color-primary) 80%, var(--color-bg));
+    color: var(--color-surface);
+    overflow: hidden;
+}
+
+/* photo fills the hero, with a slow zoom out when the page opens like the detail page */
+.rooms-hero-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: rooms-hero-zoom 1.8s ease-out;
+}
+
+@keyframes rooms-hero-zoom {
+    from {
+        transform: scale(1.08);
+        opacity: 0.6;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* dark veil, stronger at the bottom so the white text stays readable */
+.rooms-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-footer) 30%, transparent) 0%,
+        color-mix(in srgb, var(--color-footer) 10%, transparent) 35%,
+        color-mix(in srgb, var(--color-footer) 75%, transparent) 100%);
+}
+
+.rooms-hero-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-md) var(--space-lg);
+}
+
+/* label in white on the photo instead of the burgundy of the theme */
+.rooms-hero-eyebrow {
+    color: color-mix(in srgb, var(--color-surface) 85%, transparent);
+}
+
+.rooms-hero .rooms-hero-title {
+    color: var(--color-surface);
+    font-size: clamp(2.5rem, 7vw, 4.5rem);
+    line-height: 1.05;
+    margin-bottom: var(--space-md);
+    text-shadow: 0 2px 14px color-mix(in srgb, var(--color-footer) 40%, transparent);
+}
+
+/* short intro in serif italic, the luxury touch of the landing page tagline */
+.rooms-hero-intro {
+    max-width: 34rem;
+    margin-bottom: var(--space-lg);
+    font-family: var(--font-title);
+    font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+    font-style: italic;
+    line-height: 1.45;
+    color: color-mix(in srgb, var(--color-surface) 90%, transparent);
+}
+
+/* main btn and anchor link, one under the other on phones */
+.rooms-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md) var(--space-lg);
+}
+
+/* white text link with a thin line under it, the arrow goes down to the list */
+.rooms-hero-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-bottom: 2px;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-surface) 60%, transparent);
+    color: var(--color-surface);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.rooms-hero-link:hover {
+    color: var(--color-surface);
+    border-bottom-color: var(--color-surface);
+}
+
+@media (min-width: 768px) {
+    .rooms-hero-content {
+        padding: var(--space-xl) var(--space-lg) calc(var(--space-xl) + var(--space-md));
+    }
+}
+
+/* ---------- welcome note ---------- */
+
+/* white card pulled over the bottom of the hero, emblem, serif text and a short gold line in the middle */
+.rooms-welcome {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 46rem;
+    margin: calc(-1 * var(--space-md)) var(--space-md) 0;
+    padding: var(--space-lg) var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 16px 40px color-mix(in srgb, var(--color-footer) 12%, transparent);
+    text-align: center;
+}
+
+.rooms-welcome-emblem {
+    width: 3rem;
+    height: auto;
+    margin-bottom: var(--space-md);
+    opacity: 0.85;
+}
+
+/* serif italic like the tagline of the landing page */
+.rooms-welcome-text {
+    font-family: var(--font-title);
+    font-size: 1.2rem;
+    font-style: italic;
+    line-height: 1.55;
+    color: var(--color-text);
+}
+
+.rooms-welcome-line {
+    display: block;
+    width: 3rem;
+    height: 1px;
+    margin-top: var(--space-md);
+    background-color: var(--color-gold);
+}
+
+@media (min-width: 768px) {
+    .rooms-welcome {
+        width: calc(100% - 2 * var(--space-lg));
+        margin: calc(-1 * var(--space-lg)) auto 0;
+        padding: var(--space-lg) var(--space-xl);
+    }
+
+    .rooms-welcome-text {
+        font-size: 1.45rem;
+    }
+}
+
+/* ---------- sections ---------- */
+
+.rooms-section {
+    padding: var(--space-xl) var(--space-md);
+}
+
+/* slightly darker beige band, same as the rooms band of the landing page */
+.rooms-section-alt {
+    background-color: var(--color-bg-alt);
+}
+
+.rooms-inner {
+    max-width: 72rem;
+    margin: 0 auto;
+}
+
+/* centered title of each section with a short gold line under it */
+.rooms-heading {
+    margin-bottom: var(--space-lg);
+    text-align: center;
+}
+
+.rooms-heading h2 {
+    font-size: clamp(1.9rem, 4vw, 2.75rem);
+}
+
+.rooms-heading h2::after {
+    content: "";
+    display: block;
+    width: 3rem;
+    height: 1px;
+    margin: var(--space-md) auto 0;
+    background-color: var(--color-gold);
+}
+
+.rooms-muted {
+    color: var(--color-text-muted);
+}
+
+.rooms-link {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.rooms-link:hover {
+    color: var(--color-primary-dark);
+}
+
+.rooms-empty {
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    .rooms-section {
+        padding: calc(var(--space-xl) + var(--space-lg)) var(--space-lg);
+    }
+
+    .rooms-heading {
+        margin-bottom: var(--space-xl);
+    }
+}
+
+/* ---------- showcase ---------- */
+
+/* photo on top of the text on phones */
+.rooms-feature {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+    align-items: center;
+}
+
+.rooms-feature + .rooms-feature {
+    margin-top: var(--space-xl);
+}
+
+/* photo frame, rounded with a soft shadow */
+.rooms-feature-photo {
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    box-shadow: 0 18px 40px color-mix(in srgb, var(--color-footer) 14%, transparent);
+}
+
+/* plain olive block for a room without photo */
+.rooms-photo-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 4 / 3;
+    background-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-bg));
+    color: var(--color-primary);
+    font-size: 2.5rem;
+}
+
+/* big thin gold number above the name, eg 01 */
+.rooms-feature-number {
+    display: block;
+    font-family: var(--font-title);
+    font-size: 3rem;
+    font-weight: 300;
+    line-height: 1;
+    color: color-mix(in srgb, var(--color-gold) 70%, transparent);
+}
+
+.rooms-feature .rooms-feature-name {
+    margin: var(--space-xs) 0 var(--space-sm);
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+}
+
+/* text of the room, cut after 5 lines, the full text is on the detail page */
+.rooms-feature-description {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    overflow: hidden;
+    margin-bottom: var(--space-md);
+    max-width: 32rem;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+}
+
+/* capacity with its icon, between 2 thin lines */
+.rooms-feature-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm) var(--space-lg);
+    margin: 0 0 var(--space-lg);
+    padding: var(--space-md) 0;
+    list-style: none;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.9rem;
+}
+
+.rooms-feature-meta li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.rooms-feature-meta i {
+    color: var(--color-gold);
+}
+
+.rooms-feature-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md) var(--space-lg);
+}
+
+/* photo and text side by side, every 2nd room has the photo on the right */
+@media (min-width: 900px) {
+    .rooms-feature {
+        grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+        gap: var(--space-xl);
+    }
+
+    .rooms-feature.is-reversed {
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    }
+
+    .rooms-feature.is-reversed .rooms-feature-photo {
+        order: 2;
+    }
+
+    .rooms-feature + .rooms-feature {
+        margin-top: calc(var(--space-xl) + var(--space-lg));
+    }
+
+    .rooms-feature-number {
+        font-size: 4rem;
+    }
+}
+
+/* ---------- every stay ---------- */
+
+/* 1 column on phones, 2 on tablets, 4 on big screens */
+.rooms-experience {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rooms-experience-item {
+    padding: var(--space-lg) var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    text-align: center;
+}
+
+/* round olive icon with a thin gold ring */
+.rooms-experience-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-bottom: var(--space-md);
+    border-radius: 50%;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 50%, transparent);
+    color: var(--color-primary);
+    font-size: 1.25rem;
+}
+
+.rooms-experience-item h3 {
+    margin-bottom: var(--space-sm);
+    font-size: 1.35rem;
+}
+
+.rooms-experience-item p {
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+@media (min-width: 600px) {
+    .rooms-experience {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .rooms-experience {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: var(--space-lg);
+    }
+}
+
+/* ---------- mosaic ---------- */
+
+/* 2 columns on phones, the 1st photo takes the whole width */
+.rooms-mosaic {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 9rem;
+    gap: var(--space-sm);
+}
+
+.rooms-mosaic-tile {
+    position: relative;
+    display: block;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    background-color: var(--color-border);
+}
+
+.rooms-mosaic-tile:first-child {
+    grid-column: span 2;
+    grid-row: span 2;
+}
+
+.rooms-mosaic-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+}
+
+/* frosted glass label with the room name, like the glass arrows of the carousel */
+.rooms-mosaic-label {
+    position: absolute;
+    left: var(--space-sm);
+    bottom: var(--space-sm);
+    max-width: calc(100% - 2 * var(--space-sm));
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--color-footer) 35%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-surface) 35%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--color-surface);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rooms-mosaic-tile:hover img,
+.rooms-mosaic-tile:focus-visible img {
+    transform: scale(1.06);
+}
+
+/* 4 columns on big screens, the 1st photo is a big square on the left */
+@media (min-width: 768px) {
+    .rooms-mosaic {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-auto-rows: 13rem;
+        gap: var(--space-md);
+    }
+
+    .rooms-mosaic-label {
+        left: var(--space-md);
+        bottom: var(--space-md);
+        font-size: 0.8rem;
+    }
+}
+
+/* ---------- list of all rooms ---------- */
+
+.rooms-list {
+    display: grid;
+    gap: var(--space-md);
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0;
+    list-style: none;
+}
+
+/* card with the photo on top on phones, the whole card is a link */
+.rooms-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    color: var(--color-text);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.rooms-row:hover,
+.rooms-row:focus-visible {
+    color: var(--color-text);
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--color-gold) 45%, var(--color-border));
+    box-shadow: 0 14px 30px color-mix(in srgb, var(--color-footer) 12%, transparent);
+}
+
+/* photo or an olive block with a bed icon for a room without photo */
+.rooms-row-photo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 16 / 9;
+    background-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-bg));
+    color: var(--color-primary);
+    font-size: 1.75rem;
+    overflow: hidden;
+}
+
+.rooms-row-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+}
+
+.rooms-row:hover .rooms-row-photo img {
+    transform: scale(1.05);
+}
+
+.rooms-row-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+    padding: var(--space-md) var(--space-md) 0;
+}
+
+.rooms-row-name {
+    font-family: var(--font-title);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+/* 1 line of the text, the full text is on the detail page */
+.rooms-row-description {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.rooms-row-guests {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.rooms-row-guests i {
+    margin-right: var(--space-xs);
+    color: var(--color-gold);
+}
+
+/* link under the text on phones */
+.rooms-row-end {
+    display: flex;
+    align-items: center;
+    padding: var(--space-md);
+}
+
+.rooms-row-more {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    white-space: nowrap;
+}
+
+.rooms-row-more i {
+    margin-left: var(--space-xs);
+    transition: transform 0.25s ease;
+}
+
+.rooms-row:hover .rooms-row-more i {
+    transform: translateX(4px);
+}
+
+/* photo, text and link in one row on bigger screens */
+@media (min-width: 768px) {
+    .rooms-row {
+        grid-template-columns: 12rem minmax(0, 1fr) auto;
+        align-items: center;
+    }
+
+    /* fixed height, otherwise a portrait photo makes the row as tall as the photo */
+    .rooms-row-photo {
+        height: 9rem;
+        aspect-ratio: auto;
+    }
+
+    .rooms-row-text {
+        padding: var(--space-md) var(--space-lg);
+    }
+
+    .rooms-row-end {
+        padding: var(--space-md) var(--space-lg);
+    }
+}
+
+/* ---------- closing ---------- */
+
+/* dark olive band, white serif title in the middle */
+.rooms-closing {
+    padding: var(--space-xl) var(--space-md);
+    background-color: var(--color-primary-dark);
+    color: var(--color-surface);
+    text-align: center;
+}
+
+.rooms-closing-eyebrow {
+    color: color-mix(in srgb, var(--color-surface) 75%, transparent);
+}
+
+.rooms-closing h2 {
+    margin-bottom: var(--space-sm);
+    color: var(--color-surface);
+    font-size: clamp(1.9rem, 4vw, 2.75rem);
+}
+
+.rooms-closing p {
+    margin-bottom: var(--space-lg);
+    color: color-mix(in srgb, var(--color-surface) 80%, transparent);
+}
+
+/* white btn on the dark band */
+.rooms-closing ::deep .rooms-closing-cta {
+    background-color: var(--color-surface);
+    border-color: var(--color-surface);
+    color: var(--color-primary-dark);
+}
+
+.rooms-closing ::deep .rooms-closing-cta:hover {
+    background-color: var(--color-bg);
+    color: var(--color-primary-dark);
+}
+
+@media (min-width: 768px) {
+    .rooms-closing {
+        padding: calc(var(--space-xl) + var(--space-lg)) var(--space-lg);
+    }
+}
+
+/* ---------- less motion ---------- */
+
+/* no zoom or lift for guests who asked for less motion */
+@media (prefers-reduced-motion: reduce) {
+    .rooms-hero-photo {
+        animation: none;
+    }
+
+    .rooms-row,
+    .rooms-row-photo img,
+    .rooms-row-more i,
+    .rooms-mosaic-tile img {
+        transition: none;
+    }
+
+    .rooms-row:hover,
+    .rooms-row:focus-visible {
+        transform: none;
+    }
+
+    .rooms-row:hover .rooms-row-photo img,
+    .rooms-mosaic-tile:hover img,
+    .rooms-mosaic-tile:focus-visible img {
+        transform: none;
+    }
+}

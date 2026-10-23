@@ -60,6 +60,8 @@
                                     {
                                         <p class="overview-rate-description">@room.RateDescription</p>
                                     }
+                                    @* cancellation policy of the rate at booking time, always there so no if *@
+                                    <p class="overview-rate-policy">@room.CancellationText</p>
                                 </div>
                                 <span class="overview-room-price">€@room.TotalPrice.ToString("0")</span>
                             </li>

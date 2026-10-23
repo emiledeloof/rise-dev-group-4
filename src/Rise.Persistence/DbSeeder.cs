@@ -73,27 +73,66 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
 
         // the 3 real rooms of the estate, texts and photos from the current booking site
         // photos in Rise.Client/wwwroot/images/rooms, the 1st photo is the one on the room card
-        // only the non-refundable rate for now, the seeded bookings below use Rates[0]
-        // deluxe price = "from" price of the current booking site
-        // TODO: refundable rates (50% until 3 days, 100% until 7 days) once the client gives their prices
-        // TODO: real standard room price from the client
+        // 2 rates per room, non refundable first, the seeded bookings below use Rates[0]
+        // deluxe non refundable price = "from" price of the current booking site
+        // ! refundable prices are placeholders, a bit above the non refundable one
+        // TODO: real standard room price and real refundable prices from the client, asked to the BAs
         var standard = new Room("101", "Standard Room", 2,
             "Twin room with a private bathroom with shower, hairdryer and bidet. Air conditioning, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Breakfast included, baby cot available, non-smoking.");
-        standard.AddRate("Non-refundable", 133m, "No refund after booking");
+        // non-refundable policy to match the name, the default is refundable
+        standard.AddRate("Non-refundable", 133m, "No refund after booking").CancellationPolicy = CancellationPolicy.NonRefundable;
+        // refundable by default, 100% up to 30 days, 50% up to 7 days
+        standard.AddRate("Refundable", 150m);
         for (var i = 1; i <= 4; i++)
             standard.AddPhoto($"images/rooms/standard-room-{i}.jpg");
 
         var deluxe = new Room("102", "Deluxe Room", 2,
             "Bright room with a California king bed and a high ceiling. Private bathroom with shower, bathrobes, hairdryer and vanity mirror. Air conditioning, central heating, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Non-smoking.");
-        deluxe.AddRate("Non-refundable", 175m, "No refund after booking");
+        deluxe.AddRate("Non-refundable", 175m, "No refund after booking").CancellationPolicy = CancellationPolicy.NonRefundable;
+        deluxe.AddRate("Refundable", 195m);
         for (var i = 1; i <= 5; i++)
             deluxe.AddPhoto($"images/rooms/deluxe-room-{i}.jpg");
 
         var deluxeBathtub = new Room("103", "Deluxe Room with bathtub", 2,
             "Room with a California king bed, a high ceiling and sound-proofed windows. Private bathroom with bathtub, bathrobes, hairdryer and vanity mirror. Desk, iron, air conditioning, central heating, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Non-smoking.");
-        deluxeBathtub.AddRate("Non-refundable", 175m, "No refund after booking");
+        deluxeBathtub.AddRate("Non-refundable", 175m, "No refund after booking").CancellationPolicy = CancellationPolicy.NonRefundable;
+        deluxeBathtub.AddRate("Refundable", 195m);
         for (var i = 1; i <= 4; i++)
             deluxeBathtub.AddPhoto($"images/rooms/deluxe-room-bathtub-{i}.jpg");
+
+        // characteristics and amenities taken from the texts above
+        // TODO: size and view from the client, left empty so the page shows no made up values
+        standard.BedType = "2 single beds";
+        deluxe.BedType = "California king bed";
+        deluxeBathtub.BedType = "California king bed";
+
+        // pet and cot rules, only what the texts above say, the page already shows the max nb of guests
+        // TODO: pet policy and cots for the deluxe rooms from the client
+        standard.Policies = "A baby cot is available on request.\nNon-smoking room.";
+        deluxe.Policies = "Non-smoking room.";
+        deluxeBathtub.Policies = "Non-smoking room.";
+
+        // shared amenities, icons from Font Awesome (see css/app.css)
+        var wifi = new Amenity("Wi-Fi", "fa-wifi");
+        var airConditioning = new Amenity("Air conditioning", "fa-snowflake");
+        var heating = new Amenity("Central heating", "fa-temperature-high");
+        var tv = new Amenity("Flat-screen TV", "fa-tv");
+        var fridge = new Amenity("Fridge", "fa-temperature-low");
+        var coffeeMachine = new Amenity("Coffee machine", "fa-mug-hot");
+        var teaMaker = new Amenity("Tea maker", "fa-mug-saucer");
+        var shower = new Amenity("Shower", "fa-shower");
+        var bathtub = new Amenity("Bathtub", "fa-bath");
+        var hairdryer = new Amenity("Hairdryer", "fa-wind");
+        var bathrobes = new Amenity("Bathrobes", "fa-shirt");
+        var iron = new Amenity("Iron", "fa-shirt");
+        var nonSmoking = new Amenity("Non-smoking", "fa-ban-smoking");
+
+        foreach (var amenity in new[] { wifi, airConditioning, tv, fridge, coffeeMachine, teaMaker, shower, hairdryer, nonSmoking })
+            standard.AddAmenity(amenity);
+        foreach (var amenity in new[] { wifi, airConditioning, heating, tv, fridge, coffeeMachine, teaMaker, shower, hairdryer, bathrobes, nonSmoking })
+            deluxe.AddAmenity(amenity);
+        foreach (var amenity in new[] { wifi, airConditioning, heating, tv, fridge, coffeeMachine, teaMaker, bathtub, hairdryer, bathrobes, iron, nonSmoking })
+            deluxeBathtub.AddAmenity(amenity);
 
         dbContext.Rooms.AddRange(standard, deluxe, deluxeBathtub);
         await dbContext.SaveChangesAsync();

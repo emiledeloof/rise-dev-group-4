@@ -5,19 +5,60 @@
     background: var(--color-surface);
 }
 
+/*
+  column so the back link can sit at the bottom
+  sticky and as high as the screen, the back link stays at the bottom even on a long page
+*/
 .admin-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
     padding: 1.25rem 0.7rem;
     border-right: 1px solid var(--color-border);
 }
 
+/* link back to the guest site, pushed to the bottom, softer than the menu */
+.admin-back {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding: 0.5rem 0.6rem;
+    border-radius: var(--radius);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+.admin-back:hover {
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+/* real logo, emblem and name on one line, same look as the site navbar */
 .admin-brand {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin: 0 0 1rem;
     padding: 0 0.25rem;
-    color: var(--color-text);
-    font-family: var(--font-title);
-    font-size: 1.1rem;
-    line-height: 1.15;
+}
+
+.admin-brand-emblem {
+    height: 2.5rem;
+    width: auto;
+    flex-shrink: 0;
+}
+
+/* the name shrinks to fit the narrow sidebar, never wider than what is left */
+.admin-brand-name {
+    min-width: 0;
+    max-width: 100%;
+    max-height: 1.5rem;
+    width: auto;
+    height: auto;
+    margin-top: 0.25rem;
 }
 
 .admin-brand:hover {
@@ -57,7 +98,10 @@
         grid-template-columns: 1fr;
     }
 
+    /* on phones the sidebar is a block on top, not a full screen column */
     .admin-sidebar {
+        position: static;
+        height: auto;
         border-right: 0;
         border-bottom: 1px solid var(--color-border);
     }
@@ -65,5 +109,10 @@
     .admin-sidebar nav {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* no empty space to push it down on phones, just under the menu */
+    .admin-back {
+        margin-top: 0.5rem;
     }
 }

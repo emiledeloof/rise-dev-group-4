@@ -17,6 +17,26 @@ public class BookingRoom : Entity
     public decimal PricePerNight { get; private set; }
 
     /// <summary>
+    /// copied from the <see cref="Rate"/> at booking time, the admin list of cancellations needs the policy valid when the guest booked
+    /// </summary>
+    public CancellationPolicy CancellationPolicy { get; private set; }
+
+    /// <summary>
+    /// copy of <see cref="Rate.FullRefundDays"/> at booking time
+    /// </summary>
+    public int FullRefundDays { get; private set; }
+
+    /// <summary>
+    /// copy of <see cref="Rate.PartialRefundDays"/> at booking time
+    /// </summary>
+    public int PartialRefundDays { get; private set; }
+
+    /// <summary>
+    /// copy of <see cref="Rate.PartialRefundPercent"/> at booking time
+    /// </summary>
+    public int PartialRefundPercent { get; private set; }
+
+    /// <summary>
     /// Entity Framework Core Constructor
     /// </summary>
     private BookingRoom()
@@ -29,5 +49,10 @@ public class BookingRoom : Entity
         Room = Guard.Against.Null(room);
         Rate = Guard.Against.Null(rate);
         PricePerNight = rate.PricePerNight;
+        // * snapshot of the cancellation policy, later changes on the rate dont touch this booking
+        CancellationPolicy = rate.CancellationPolicy;
+        FullRefundDays = rate.FullRefundDays;
+        PartialRefundDays = rate.PartialRefundDays;
+        PartialRefundPercent = rate.PartialRefundPercent;
     }
 }

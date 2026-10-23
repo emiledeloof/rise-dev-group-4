@@ -12,6 +12,7 @@
         @* TODO: make each language clickable with the languages task *@
         <span class="site-footer-languages">EN · NL · FR · DE · IT · PL</span>
         @* discreet entry point for the admin, there is no login link in the navbar *@
-        <a href="/login" class="site-footer-admin" title="Admin login">Admin</a>
+        @* ! goes to /admin, not /login, a logged in admin lands on the dashboard, the others are sent to the login page first *@
+        <a href="/admin" class="site-footer-admin" title="Admin">Admin</a>
     </div>
 </footer>
