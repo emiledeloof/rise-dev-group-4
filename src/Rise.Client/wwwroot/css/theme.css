@@ -12,6 +12,8 @@
     --color-primary-dark: #4b5636;   /* olive green on hover */
     --color-accent: #7a2e2e;         /* burgundy, small labels and danger actions */
     --color-bg: #f5f3ee;             /* cream page bg */
+    --color-bg-alt: #eeebe3;         /* slightly darker beige band, eg the rooms band of the home */
+    --color-gold: #a67c1a;           /* review stars, thin lines and small numbers */
     --color-surface: #ffffff;        /* cards and forms */
     --color-border: #e4e1d8;         /* light beige borders of cards and inputs */
     --color-text: #2b2b2b;           /* main text and titles */

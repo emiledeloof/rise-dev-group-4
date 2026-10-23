@@ -144,7 +144,7 @@
 
 /* slightly darker beige band, used for the rooms */
 .home-section-alt {
-    background-color: #eeebe3; /* TODO: exact hex from the ba */
+    background-color: var(--color-bg-alt);
 }
 
 .home-inner {
@@ -261,7 +261,7 @@
 
 .review-stars {
     margin-bottom: var(--space-sm);
-    color: #a67c1a; /* gold stars */
+    color: var(--color-gold); /* gold stars */
     letter-spacing: 0.1em;
 }
 

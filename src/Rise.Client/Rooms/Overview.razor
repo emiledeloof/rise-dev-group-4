@@ -1,0 +1,198 @@
+@page "/rooms"
+@* overview of all the rooms, opened from the navbar, styles in Overview.razor.css *@
+@* first a showcase of the rooms, then a list of every room with a link to its detail page *@
+@* TODO: translate the texts with the languages task *@
+
+<PageTitle>Our rooms</PageTitle>
+
+@* ---------- hero, a photo of a room with the title on it ---------- *@
+<section class="rooms-hero">
+    <img class="rooms-hero-photo" src="images/home/hero-2-room.jpg" alt="" aria-hidden="true" />
+
+    <div class="rooms-hero-content">
+        <span class="eyebrow rooms-hero-eyebrow">Our rooms</span>
+        <h1 class="rooms-hero-title">Rooms made for slow days</h1>
+        <p class="rooms-hero-intro">
+            Granite walls, linen sheets and the quiet of the vineyards. Every room of the stazzu has its own character.
+        </p>
+
+        <div class="rooms-hero-actions">
+            <Button Href="search" Class="rooms-hero-cta">Check availability</Button>
+            @* same page with the anchor, a bare #all-rooms would go to the home because of the base href *@
+            <a class="rooms-hero-link" href="rooms#all-rooms">See all rooms <i class="fas fa-arrow-down" aria-hidden="true"></i></a>
+        </div>
+    </div>
+</section>
+
+@* ---------- welcome note, pulled over the bottom of the hero, static so it shows even when the rooms fail ---------- *@
+<section class="rooms-welcome" aria-label="Welcome">
+    <img class="rooms-welcome-emblem" src="images/logo/emblem.png" alt="" aria-hidden="true" />
+    <p class="rooms-welcome-text">
+        A stazzu is the traditional granite farmhouse of Gallura. Ours keeps its thick walls and quiet rhythm,
+        and each room was made to feel like a home among the vines.
+    </p>
+    <span class="rooms-welcome-line" aria-hidden="true"></span>
+</section>
+
+@if (_isLoading)
+{
+    @* empty on purpose, the api answers fast and a spinner would flash *@
+}
+else if (_errorMessage is not null)
+{
+    <section class="rooms-section">
+        <div class="rooms-inner">
+            <p class="rooms-muted rooms-empty">
+                @_errorMessage <a class="rooms-link" href="search">Search rooms <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+            </p>
+        </div>
+    </section>
+}
+else
+{
+    @* ---------- showcase, the first rooms in big blocks, left and right one after the other ---------- *@
+    <section class="rooms-section">
+        <div class="rooms-inner">
+            <div class="rooms-heading">
+                <span class="eyebrow">The rooms</span>
+                <h2>Each room, its own character</h2>
+            </div>
+
+            @for (var i = 0; i < FeaturedRooms.Count; i++)
+            {
+                var room = FeaturedRooms[i];
+                <article class="rooms-feature @(i % 2 == 1 ? "is-reversed" : "")">
+                    <div class="rooms-feature-photo">
+                        @* no photo gives a plain olive block, never a stock photo *@
+                        @if (room.PhotoUrls.Count > 0)
+                        {
+                            <PhotoCarousel Photos="@room.PhotoUrls" Alt="@room.Name" />
+                        }
+                        else
+                        {
+                            <div class="rooms-photo-empty" aria-hidden="true"><i class="fas fa-bed"></i></div>
+                        }
+                    </div>
+
+                    <div class="rooms-feature-text">
+                        @* position of the room, eg 01 *@
+                        <span class="rooms-feature-number" aria-hidden="true">@((i + 1).ToString("00"))</span>
+                        <h3 class="rooms-feature-name">@room.Name</h3>
+
+                        @if (!string.IsNullOrWhiteSpace(room.Description))
+                        {
+                            <p class="rooms-feature-description">@room.Description</p>
+                        }
+
+                        <ul class="rooms-feature-meta">
+                            <li><i class="fas fa-user-group" aria-hidden="true"></i><span>Up to @room.MaxGuests @(room.MaxGuests == 1 ? "guest" : "guests")</span></li>
+                        </ul>
+
+                        <div class="rooms-feature-actions">
+                            <Button Href="@($"rooms/{room.Id}")" Class="rooms-feature-cta">Discover the room</Button>
+                            <a class="rooms-link" href="search">Check availability <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+
+    @* ---------- what every guest gets on the estate, static texts of the landing page ---------- *@
+    <section class="rooms-section rooms-section-alt">
+        <div class="rooms-inner">
+            <div class="rooms-heading">
+                <span class="eyebrow">Every stay</span>
+                <h2>More than a room</h2>
+            </div>
+
+            <ul class="rooms-experience">
+                @foreach (var item in ExperienceList)
+                {
+                    <li class="rooms-experience-item">
+                        <span class="rooms-experience-icon"><i class="fas @item.Icon" aria-hidden="true"></i></span>
+                        <h3>@item.Title</h3>
+                        <p class="rooms-muted">@item.Text</p>
+                    </li>
+                }
+            </ul>
+        </div>
+    </section>
+
+    @* ---------- mosaic of room photos, each photo opens its room ---------- *@
+    @if (MosaicPhotos.Count > 0)
+    {
+        <section class="rooms-section">
+            <div class="rooms-inner">
+                <div class="rooms-heading">
+                    <span class="eyebrow">Gallery</span>
+                    <h2>A glimpse inside</h2>
+                </div>
+
+                <div class="rooms-mosaic">
+                    @foreach (var photo in MosaicPhotos)
+                    {
+                        <a class="rooms-mosaic-tile" href="rooms/@photo.RoomId">
+                            <img src="@photo.Url" alt="Photo of the @photo.RoomName" loading="lazy" />
+                            <span class="rooms-mosaic-label">@photo.RoomName</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+
+    @* ---------- list of every room, the nb of rooms is free so it is a simple list ---------- *@
+    <section class="rooms-section rooms-section-alt" id="all-rooms">
+        <div class="rooms-inner">
+            <div class="rooms-heading">
+                <span class="eyebrow">All rooms</span>
+                <h2>Find your room</h2>
+            </div>
+
+            <ul class="rooms-list">
+                @foreach (var room in _rooms)
+                {
+                    <li>
+                        @* the whole row is the link to the detail page *@
+                        <a class="rooms-row" href="rooms/@room.Id">
+                            <span class="rooms-row-photo">
+                                @if (room.PhotoUrls.Count > 0)
+                                {
+                                    <img src="@room.PhotoUrls[0]" alt="" loading="lazy" />
+                                }
+                                else
+                                {
+                                    <i class="fas fa-bed" aria-hidden="true"></i>
+                                }
+                            </span>
+
+                            <span class="rooms-row-text">
+                                <span class="rooms-row-name">@room.Name</span>
+                                @if (!string.IsNullOrWhiteSpace(room.Description))
+                                {
+                                    <span class="rooms-row-description">@room.Description</span>
+                                }
+                                <span class="rooms-row-guests"><i class="fas fa-user-group" aria-hidden="true"></i> Up to @room.MaxGuests @(room.MaxGuests == 1 ? "guest" : "guests")</span>
+                            </span>
+
+                            <span class="rooms-row-end">
+                                <span class="rooms-row-more">View room <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                            </span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </section>
+}
+
+@* ---------- closing invitation to book ---------- *@
+<section class="rooms-closing">
+    <div class="rooms-inner">
+        <span class="eyebrow rooms-closing-eyebrow">Your stay</span>
+        <h2>Ready for slow days among the vines?</h2>
+        <p>Choose your dates and see which rooms are free for your stay.</p>
+        <Button Href="search" Class="rooms-closing-cta">Check availability</Button>
+    </div>
+</section>
