@@ -261,6 +261,8 @@ public class ResultsPageShould : BunitContext
         room.RoomId.ShouldBe(1);
         room.RateId.ShouldBe(2);
         room.TotalPrice.ShouldBe(417m);
+        // * the policy text is kept for the overview
+        room.CancellationText.ShouldBe("Free cancellation up to 30 days before arrival, 50% refund up to 7 days before");
         Navigation.Uri.ShouldEndWith("/guests/create");
     }
 
@@ -272,7 +274,7 @@ public class ResultsPageShould : BunitContext
     {
         // arrange
         _draft.SetRooms(Today.AddDays(2), Today.AddDays(5),
-            [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 417m)]);
+            [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 417m, "Free cancellation up to 30 days before arrival, 50% refund up to 7 days before")]);
 
         // act
         var cut = RenderWithDates(2, 5);
@@ -289,7 +291,7 @@ public class ResultsPageShould : BunitContext
     {
         // arrange
         _draft.SetRooms(Today.AddDays(10), Today.AddDays(12),
-            [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 278m)]);
+            [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 278m, "Free cancellation up to 30 days before arrival, 50% refund up to 7 days before")]);
 
         // act
         var cut = RenderWithDates(2, 5);

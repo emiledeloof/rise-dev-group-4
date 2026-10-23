@@ -12,7 +12,17 @@
 
     <div class="room-card-body">
         @* room name in the title font *@
-        <h3>@Name</h3>
+        @* the name links to the room detail page when the page gives a url *@
+        <h3>
+            @if (!string.IsNullOrWhiteSpace(DetailsUrl))
+            {
+                <a href="@DetailsUrl" class="room-card-title-link">@Name</a>
+            }
+            else
+            {
+                @Name
+            }
+        </h3>
 
         @* short description, only shown when there is one *@
         @if (!string.IsNullOrWhiteSpace(Description))
@@ -22,6 +32,12 @@
 
         @* capacity, eg up to 2 guests *@
         <p class="room-card-meta">Up to @MaxGuests @(MaxGuests == 1 ? "guest" : "guests")</p>
+
+        @* link to the room detail page, only when the page gives a url *@
+        @if (!string.IsNullOrWhiteSpace(DetailsUrl))
+        {
+            <a href="@DetailsUrl" class="room-card-details-link">View details</a>
+        }
 
         @* rates of the room for the stay, cheapest first, styles in RoomCard.razor.css *@
         <div class="room-card-prices">
@@ -43,12 +59,14 @@
                             checked="@(rate.Id == SelectedRateId)"
                             @onchange="() => OnRateSelected.InvokeAsync(rate.Id)" />
 
-                        @* only the price, no rate name and no conditions for now, there is only one rate per room *@
-                        @* TODO: show the name and conditions again when the rooms get several rates *@
+                        @* rate name so the guest can tell the rates of the room apart, eg Non-refundable or Refundable *@
+                        @* the conditions are the policy line below, the description would say the same thing *@
+                        <span class="room-card-rate-name">@rate.Name</span>
                         @* detail eg €109 × 3 nights in room-card-rate-detail, total on the right in room-card-total *@
                         <span class="room-card-total">€@rate.TotalPrice.ToString("0")</span>
                         <span class="room-card-rate-detail">€@rate.PricePerNight.ToString("0") × @Nights @(Nights == 1 ? "night" : "nights")</span>
-
+                        @* cancellation policy of the rate under the price, on a 2nd row of the grid *@
+                        <span class="room-card-rate-policy">@CancellationPolicyText.Of(rate)</span>
                     </label>
                     </li>
                 }

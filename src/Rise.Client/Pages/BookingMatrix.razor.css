@@ -1,0 +1,366 @@
+/* ──────────────────────────────────────────────
+   Page wrapper
+─────────────────────────────────────────────── */
+.matrix-page {
+    padding: var(--space-lg) 2.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ──────────────────────────────────────────────
+   Header: title left, nav + action controls right
+─────────────────────────────────────────────── */
+.matrix-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.matrix-title {
+    font-family: var(--font-title);
+    font-size: 2.25rem;
+    font-weight: 400;
+    margin: 0;
+    color: var(--color-text);
+}
+
+.matrix-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.matrix-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.matrix-nav-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: var(--color-text);
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.matrix-nav-btn:hover {
+    background-color: var(--color-bg);
+    border-color: var(--color-text-muted);
+}
+
+.matrix-window-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1.25rem;
+    height: 2.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+    min-width: 12rem;
+}
+
+.matrix-top-actions {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.action-btn {
+    padding: 0.45rem 1rem;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.action-btn:hover {
+    background-color: var(--color-bg);
+    border-color: var(--color-text-muted);
+}
+
+/* ──────────────────────────────────────────────
+   Legend chips
+─────────────────────────────────────────────── */
+.matrix-legend {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+
+.legend-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.legend-chip.free     { background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface)); color: var(--color-primary-dark); }
+.legend-chip.booked   { background: var(--color-warning-bg); color: var(--color-text); }
+.legend-chip.closed   { background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface)); color: var(--color-accent); }
+.legend-chip.selected { background: color-mix(in srgb, var(--color-primary) 30%, var(--color-surface)); color: var(--color-primary-dark); }
+
+/* ──────────────────────────────────────────────
+   Scroll container (horizontal on smaller screens)
+─────────────────────────────────────────────── */
+.matrix-scroll {
+    overflow-x: auto;
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--color-border);
+}
+
+/* ──────────────────────────────────────────────
+   Grid
+─────────────────────────────────────────────── */
+.matrix-grid {
+    display: grid;
+    grid-template-columns: 13rem repeat(var(--window-days, 16), minmax(3.2rem, 1fr));
+    min-width: 60rem;
+    background: var(--color-surface);
+}
+
+/* ──────────────────────────────────────────────
+   Generic cell & borders
+─────────────────────────────────────────────── */
+.matrix-cell {
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    position: relative;
+}
+
+/* ──────────────────────────────────────────────
+   Header Row
+─────────────────────────────────────────────── */
+.matrix-room-header {
+    display: flex;
+    align-items: center;
+    padding-left: 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    background: var(--color-bg);
+    height: 3.5rem;
+}
+
+.matrix-day-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg);
+    height: 3.5rem;
+    padding: 0.2rem 0;
+    gap: 0.2rem;
+}
+
+.day-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+.day-num {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.today-circle {
+    background: var(--color-primary);
+    color: var(--color-surface);
+    border-radius: 50%;
+    width: 1.6rem;
+    height: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+
+/* ──────────────────────────────────────────────
+   Category / Room Name Banner (spans all columns)
+─────────────────────────────────────────────── */
+.matrix-category-banner {
+    grid-column: 1 / -1;
+    background: var(--color-bg);
+    padding: 0.4rem 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.category-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+}
+
+/* ──────────────────────────────────────────────
+   Room Label (Left cell in room row)
+─────────────────────────────────────────────── */
+.matrix-room-label {
+    display: flex;
+    align-items: center;
+    padding-left: 1.25rem;
+    background: var(--color-surface);
+    height: 4.5rem; /* Thicker row */
+}
+
+.room-number-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* ──────────────────────────────────────────────
+   Timeline Track (spans the 16 day columns)
+─────────────────────────────────────────────── */
+.matrix-timeline-track {
+    grid-column: 2 / -1;
+    position: relative;
+    height: 4.5rem; /* Thicker row */
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Flat single-layer grid for the timeline track */
+.track-flat-grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--window-days, 16), 1fr);
+}
+
+/* Free day cell — soft green, with a divider between free days */
+.flat-free-cell {
+    background-color: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface));
+    border-right: 1px solid var(--color-surface);
+}
+
+.flat-free-cell:last-child {
+    border-right: 0;
+}
+
+/* Booked cell — fills entire cell using warning-bg from theme, no internal borders */
+.flat-booking-cell {
+    background-color: var(--color-warning-bg);
+    /* no border-right so consecutive booked days merge seamlessly */
+    display: flex;
+    align-items: center;
+    padding: 0 0.75rem;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Guest name rendered directly inside the booked cell */
+.flat-booking-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* ──────────────────────────────────────────────
+   Bottom Action Section
+─────────────────────────────────────────────── */
+.matrix-bottom-actions {
+    margin-top: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.btn-new-booking {
+    align-self: flex-start;
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.65rem 1.4rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.btn-new-booking:hover {
+    background-color: var(--color-primary-dark);
+}
+
+.selection-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    padding: 1rem 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.selection-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.selection-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.selection-dates {
+    font-size: 0.88rem;
+    color: var(--color-text-muted);
+}
+
+.selection-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.btn-create-booking {
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.6rem 1.35rem;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.btn-create-booking:hover {
+    background-color: var(--color-primary-dark);
+}

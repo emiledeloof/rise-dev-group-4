@@ -28,6 +28,49 @@ public class Room : Entity
         set => _maxGuests = Guard.Against.NegativeOrZero(value);
     }
 
+    private int? _sizeInSquareMeters;
+    /// <summary>
+    /// floor area of the room, null when unknown
+    /// </summary>
+    public int? SizeInSquareMeters
+    {
+        get => _sizeInSquareMeters;
+        set => _sizeInSquareMeters = value is null ? null : Guard.Against.NegativeOrZero(value.Value);
+    }
+
+    private string? _bedType;
+    /// <summary>
+    /// e.g. California king bed or 2 single beds, null when unknown
+    /// </summary>
+    public string? BedType
+    {
+        get => _bedType;
+        set => _bedType = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private string? _view;
+    /// <summary>
+    /// e.g. Garden view, null when unknown
+    /// </summary>
+    public string? View
+    {
+        get => _view;
+        set => _view = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private string? _policies;
+    /// <summary>
+    /// free text with the occupancy, pet and cot rules of the room, null when the hotel wrote none
+    /// </summary>
+    public string? Policies
+    {
+        get => _policies;
+        set => _policies = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private readonly List<Amenity> _amenities = [];
+    public IReadOnlyList<Amenity> Amenities => _amenities.AsReadOnly();
+
     private readonly List<RoomPhoto> _photos = [];
     public IReadOnlyList<RoomPhoto> Photos => _photos.AsReadOnly();
 
@@ -50,6 +93,17 @@ public class Room : Entity
         Name = name;
         MaxGuests = maxGuests;
         Description = description;
+    }
+
+    /// <summary>
+    /// links an amenity to the room, adding the same amenity twice does nothing
+    /// </summary>
+    public void AddAmenity(Amenity amenity)
+    {
+        Guard.Against.Null(amenity);
+
+        if (!_amenities.Contains(amenity))
+            _amenities.Add(amenity);
     }
 
     public RoomPhoto AddPhoto(string url)

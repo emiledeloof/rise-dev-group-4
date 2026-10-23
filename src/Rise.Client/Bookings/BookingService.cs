@@ -6,13 +6,19 @@ namespace Rise.Client.Bookings;
 
 public class BookingService(HttpClient httpClient) : IBookingService
 {
-    public async Task<Result<BookingDto.Detail>> GetDetailAsync(
+    public async Task<Result<BookingDto.AdminDetail>> GetDetailAsync(
         int bookingId,
         CancellationToken cancellationToken = default)
     {
-        return (await httpClient.GetFromJsonAsync<Result<BookingDto.Detail>>(
-            $"/api/bookings/{bookingId}",
-            cancellationToken))!;
+        // GetAsync and not GetFromJsonAsync, an unknown booking comes back as a 404 that still holds the NotFound Result
+        var response = await httpClient.GetAsync($"/api/bookings/{bookingId}", cancellationToken);
+
+        // any other error, eg a 401 or a 503, has no Result body, so the page shows its error msg instead of crashing
+        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotFound)
+            return Result.Error($"The server answered {(int)response.StatusCode}.");
+
+        return (await response.Content.ReadFromJsonAsync<Result<BookingDto.AdminDetail>>(
+            cancellationToken: cancellationToken))!;
     }
 
     public async Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
@@ -57,6 +63,16 @@ public class BookingService(HttpClient httpClient) : IBookingService
     {
         return (await httpClient.GetFromJsonAsync<Result<BookingResponse.Index>>(
             $"/api/bookings{request}",
+            cancellationToken))!;
+    }
+
+    public async Task<Result<BookingResponse.Matrix>> GetMatrixAsync(
+        BookingRequest.Matrix request,
+        CancellationToken cancellationToken = default)
+    {
+        var qs = $"?windowStart={request.WindowStart:yyyy-MM-dd}&windowDays={request.WindowDays}";
+        return (await httpClient.GetFromJsonAsync<Result<BookingResponse.Matrix>>(
+            $"/api/bookings/matrix{qs}",
             cancellationToken))!;
     }
 }

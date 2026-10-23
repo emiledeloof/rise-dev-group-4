@@ -44,6 +44,23 @@
     font-size: 1.5rem;
 }
 
+/* name as a link to the detail page, keeps the title look */
+.room-card-title-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.room-card-title-link:hover {
+    text-decoration: underline;
+}
+
+/* small link to the detail page under the capacity */
+.room-card-details-link {
+    font-size: 0.875rem;
+    align-self: flex-start;
+    text-decoration: underline;
+}
+
 /* description in a smaller and softer text */
 .room-card-description {
     font-size: 0.875rem;
@@ -78,16 +95,21 @@
 }
 
 /*
-  one rate on 1 row and 3 columns
-  radio on the left, price per night next to it, total on the right
+  one rate on 3 rows and 3 columns
+  radio on the left, rate name next to it, total on the right
+  price per night and cancellation policy under the name, the dot leaves the radio column empty
   grid areas so the order of the tags in the razor does not matter
   the whole line is a label, so it looks clickable
 */
 .room-card-rate {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    grid-template-areas: "radio detail total";
+    grid-template-areas:
+        "radio name   total"
+        ".     detail detail"
+        ".     policy policy";
     column-gap: var(--space-sm);
+    row-gap: 2px;
     align-items: center;
     padding: var(--space-xs) var(--space-sm);
     border: 1px solid var(--color-border);
@@ -122,10 +144,25 @@
     text-align: right;
 }
 
-/* eg €109 × 3 nights next to the radio btn */
+/* eg Non-refundable, the 1st thing the guest reads on the line */
+.room-card-rate-name {
+    grid-area: name;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* eg €109 × 3 nights under the rate name */
 .room-card-rate-detail {
     grid-area: detail;
     font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+/* eg free cancellation up to 30 days before arrival, small and grey under the price */
+.room-card-rate-policy {
+    grid-area: policy;
+    font-size: 0.75rem;
     color: var(--color-text-muted);
 }
 

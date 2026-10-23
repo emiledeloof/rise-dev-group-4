@@ -5,6 +5,10 @@ public static class InvoiceDto
     public class Index
     {
         public required int Id { get; set; }
+        /// <summary>
+        /// Used to link the invoice to the booking detail page.
+        /// </summary>
+        public required int BookingId { get; set; }
         public required string BookingNumber { get; set; }
         /// <summary>
         /// Name of the guest who made the booking.

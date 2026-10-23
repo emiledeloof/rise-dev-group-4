@@ -11,6 +11,7 @@ using Rise.Services.Pricing;
 using Rise.Shared.Bookings;
 using Rise.Shared.Common;
 using Rise.Shared.Guests;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Rise.Services.Bookings;
 
@@ -112,6 +113,13 @@ public sealed class BookingService(
                     $"The selected rate is not available for room '{room.Name}'."));
             }
 
+            // server side check of the min nb of nights, the search already hides these rates but it can be bypassed
+            if (request.CheckOut.DayNumber - request.CheckIn.DayNumber < rate.MinNights)
+            {
+                return Result.Invalid(new ValidationError(
+                    $"Room '{room.Name}' needs at least {rate.MinNights} nights."));
+            }
+
             selections.Add((room, rate));
         }
 
@@ -182,22 +190,85 @@ public sealed class BookingService(
         return guest;
     }
 
-    public async Task<Result<BookingDto.Detail>> GetDetailAsync(int bookingId, CancellationToken ctx = default)
+    /// <summary>
+    /// Loads one booking with its guest, rooms, rates and payments for the admin detail page.
+    /// A deleted booking is treated as not found.
+    /// </summary>
+    public async Task<Result<BookingDto.AdminDetail>> GetDetailAsync(int bookingId, CancellationToken ctx = default)
     {
         var booking = await dbContext.Bookings
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(x => x.Guest)
             .Include(x => x.Rooms)
                 .ThenInclude(x => x.Room)
+            .Include(x => x.Rooms)
+                .ThenInclude(x => x.Rate)
             .Include(x => x.Payments)
-            .SingleOrDefaultAsync(x => x.Id == bookingId, ctx);
+            .SingleOrDefaultAsync(x => x.Id == bookingId && !x.IsDeleted, ctx);
 
         if (booking is null)
         {
             return Result.NotFound($"Booking with ID '{bookingId}' was not found.");
         }
 
-        return Result.Success(ToDetailDto(booking));
+        return Result.Success(ToAdminDetailDto(booking));
+    }
+
+    private static BookingDto.AdminDetail ToAdminDetailDto(Booking booking)
+    {
+        var nights = booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
+        var rooms = booking.Rooms
+            .Where(x => !x.IsDeleted)
+            .Select(x => new BookingDto.AdminRoomDto
+            {
+                RoomId = x.Room.Id,
+                RoomNumber = x.Room.RoomNumber,
+                RoomName = x.Room.Name,
+                RateName = x.Rate.Name,
+                PricePerNight = x.PricePerNight,
+                Total = PriceCalculator.Total(x.PricePerNight, nights),
+            })
+            .OrderBy(x => x.RoomNumber)
+            .ToList();
+        var payments = booking.Payments.Where(x => !x.IsDeleted).ToList();
+
+        return new BookingDto.AdminDetail
+        {
+            Id = booking.Id,
+            BookingNumber = booking.BookingNumber,
+            CreatedAt = booking.CreatedAt,
+            // same rule as GetIndexAsync
+            Status = payments.Any(x => x.IsPaid) ? "Paid" : "Pending",
+            CheckIn = booking.CheckIn,
+            CheckOut = booking.CheckOut,
+            Nights = nights,
+            TotalAmount = rooms.Sum(x => x.Total),
+            Guest = new BookingDto.AdminGuestDto
+            {
+                Id = booking.Guest.Id,
+                Name = booking.Guest.Name,
+                Email = booking.Guest.Email,
+                Phone = booking.Guest.Phone,
+                AddressLine1 = booking.Guest.Address.AddressLine1,
+                AddressLine2 = booking.Guest.Address.AddressLine2,
+                Country = booking.Guest.Address.Country,
+            },
+            Rooms = rooms,
+            Payments = payments
+                .OrderBy(x => x.Id)
+                .Select(x => new BookingDto.AdminPaymentDto
+                {
+                    Id = x.Id,
+                    Amount = x.Amount,
+                    PaidAt = x.PaidAt,
+                    InvoiceNumber = x.InvoiceNumber,
+                    CardBrand = x.CardBrand,
+                    CardLast4 = x.CardLast4,
+                    StripeReceiptUrl = x.StripeReceiptUrl,
+                })
+                .ToList(),
+        };
     }
 
     public async Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
@@ -343,4 +414,78 @@ public sealed class BookingService(
             TotalCount = totalCount,
         });
     }
+
+    /// <summary>
+    /// Returns all rooms with the bookings that overlap the requested date window,
+    /// used to render the admin booking matrix calendar.
+    /// </summary>
+    public async Task<Result<BookingResponse.Matrix>> GetMatrixAsync(
+        BookingRequest.Matrix request,
+        CancellationToken ctx = default)
+    {
+        var windowEnd = request.WindowStart.AddDays(request.WindowDays);
+
+        // Load all non-deleted rooms ordered by name
+        var rooms = await dbContext.Rooms
+            .AsNoTracking()
+            .Where(r => !r.IsDeleted)
+            .OrderBy(r => r.Name)
+            .Select(r => new { r.Id, r.RoomNumber, r.Name })
+            .ToListAsync(ctx);
+
+        // Load all paid booking-room entries that fall inside the window in one query,
+        // navigating from the owning side (BookingRoom → Booking, Booking → Guest/Payments).
+        // Pending (unpaid) bookings are excluded from the matrix.
+        var overlapping = await dbContext.BookingRooms
+            .AsNoTracking()
+            .Where(br => !br.IsDeleted
+                      && !br.Booking.IsDeleted
+                      && br.Booking.Payments.Any(p => p.PaidAt != null)
+                      && br.Booking.CheckIn < windowEnd
+                      && br.Booking.CheckOut > request.WindowStart)
+            .Select(br => new
+            {
+                RoomId = br.Room.Id,
+                br.Booking.Id,
+                br.Booking.BookingNumber,
+                GuestName = br.Booking.Guest.Name,
+                br.Booking.CheckIn,
+                br.Booking.CheckOut,
+                Status = "Paid",
+            })
+            .ToListAsync(ctx);
+
+        // Group bookings by room and build the response
+        var bookingsByRoom = overlapping
+            .GroupBy(br => br.RoomId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var rows = rooms.Select(r =>
+        {
+            var roomBookings = bookingsByRoom.TryGetValue(r.Id, out var brs) ? brs : [];
+            return new BookingDto.MatrixRow
+            {
+                RoomId = r.Id,
+                RoomNumber = r.RoomNumber,
+                RoomName = r.Name,
+                Bookings = roomBookings.Select(b => new BookingDto.MatrixBooking
+                {
+                    Id = b.Id,
+                    BookingNumber = b.BookingNumber,
+                    GuestName = b.GuestName,
+                    CheckIn = b.CheckIn,
+                    CheckOut = b.CheckOut,
+                    Status = b.Status,
+                }).ToList(),
+            };
+        }).ToList();
+
+        return Result.Success(new BookingResponse.Matrix
+        {
+            WindowStart = request.WindowStart,
+            WindowDays = request.WindowDays,
+            Rows = rows,
+        });
+    }
 }
+

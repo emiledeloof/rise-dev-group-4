@@ -108,4 +108,5 @@ public record DraftRoom(
     string RateName,
     string? RateDescription,
     decimal PricePerNight,
-    decimal TotalPrice);
+    decimal TotalPrice,
+    string CancellationText);

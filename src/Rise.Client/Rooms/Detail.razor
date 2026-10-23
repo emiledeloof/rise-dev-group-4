@@ -1,0 +1,174 @@
+@page "/rooms/{RoomId:int}"
+@* room detail page, opened from a card of the search results, styles in Detail.razor.css *@
+@* the 1st photo is the static hero on top, the other photos are in the slider of the gallery *@
+@* TODO: translate the texts with the languages task *@
+
+<PageTitle>@(_room?.Name ?? "Room")</PageTitle>
+
+@if (_isLoading)
+{
+    @* api still answering, short text while waiting *@
+    <div class="page">
+        <p>Loading room...</p>
+    </div>
+}
+else if (_room is null)
+{
+    @* unknown or deleted room, or the api call failed, msg set in the code-behind *@
+    <div class="page">
+        <p class="room-detail-empty">@_errorMessage</p>
+        <Button Variant="ButtonVariant.Secondary" Href="@BackUrl" Class="back-btn mt-3">@BackText</Button>
+    </div>
+}
+else
+{
+    @* ---------- hero, the main photo of the room with the name on it ---------- *@
+    @* no photo gives a plain olive hero, never a stock photo *@
+    <section class="room-hero @(HeroPhoto is null ? "is-empty" : "")">
+        @if (HeroPhoto is not null)
+        {
+            <img class="room-hero-photo" src="@HeroPhoto" alt="Photo of the @_room.Name" />
+        }
+
+        <div class="room-hero-content">
+            @* back to the results of the same dates, or to the search when the page was opened without dates *@
+            <a class="room-hero-back back-btn" href="@BackUrl">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i><span>@BackText</span>
+            </a>
+
+            <span class="eyebrow room-hero-eyebrow">Our rooms</span>
+            <h1 class="room-hero-title">@_room.Name</h1>
+
+            @* capacity, eg up to 2 guests *@
+            <p class="room-hero-meta"><i class="fas fa-user-group" aria-hidden="true"></i><span class="room-detail-meta">Up to @_room.MaxGuests @(_room.MaxGuests == 1 ? "guest" : "guests")</span></p>
+        </div>
+    </section>
+
+    <div class="page room-detail-body">
+        <div class="room-detail-layout">
+            <div class="room-detail-main">
+                @* ---------- what the room offers ---------- *@
+                <section class="room-detail-section">
+                    <span class="eyebrow">The room</span>
+                    <h2>About this room</h2>
+
+                    @* empty state when there is no description, never a made up text *@
+                    @if (!string.IsNullOrWhiteSpace(_room.Description))
+                    {
+                        <p class="room-detail-description">@_room.Description</p>
+                    }
+                    else
+                    {
+                        <p class="room-detail-empty room-detail-no-description">No description is available for this room yet.</p>
+                    }
+                </section>
+
+                @* ---------- characteristics and amenities ---------- *@
+                <section class="room-detail-section">
+                    <span class="eyebrow">Characteristics</span>
+                    <h2>Room details</h2>
+
+                    @* only the values the hotel filled in, unknown ones are left out *@
+                    @if (HasCharacteristics)
+                    {
+                        <ul class="room-detail-specs">
+                            @if (_room.SizeInSquareMeters is not null)
+                            {
+                                <li class="room-detail-spec room-detail-size"><i class="fas fa-ruler-combined" aria-hidden="true"></i><span>@_room.SizeInSquareMeters m²</span></li>
+                            }
+                            @if (_room.BedType is not null)
+                            {
+                                <li class="room-detail-spec room-detail-bed"><i class="fas fa-bed" aria-hidden="true"></i><span>@_room.BedType</span></li>
+                            }
+                            @if (_room.View is not null)
+                            {
+                                <li class="room-detail-spec room-detail-view"><i class="fas fa-mountain-sun" aria-hidden="true"></i><span>@_room.View</span></li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="room-detail-empty room-detail-no-specs">No room details are available yet.</p>
+                    }
+
+                    <h3 class="room-detail-subtitle">Amenities</h3>
+
+                    @* empty state when the room has no amenity, never a made up list *@
+                    @if (_room.Amenities.Count > 0)
+                    {
+                        <ul class="room-detail-amenities">
+                            @foreach (var amenity in _room.Amenities)
+                            {
+                                <li class="room-detail-amenity">
+                                    <i class="fas @(amenity.Icon ?? "fa-check")" aria-hidden="true"></i><span>@amenity.Name</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="room-detail-empty room-detail-no-amenities">No amenities are listed for this room yet.</p>
+                    }
+                </section>
+
+                @* ---------- occupancy, pet and cot rules ---------- *@
+                <section class="room-detail-section">
+                    <span class="eyebrow">Good to know</span>
+                    <h2>Occupancy &amp; policies</h2>
+
+                    @* capacity is always known, the rest is the text the hotel wrote *@
+                    <p class="room-detail-spec room-detail-occupancy"><i class="fas fa-user-group" aria-hidden="true"></i><span>Up to @_room.MaxGuests @(_room.MaxGuests == 1 ? "guest" : "guests")</span></p>
+
+                    @* empty state when the hotel wrote no rules, never a made up policy *@
+                    @if (_room.Policies is not null)
+                    {
+                        <p class="room-detail-policies">@_room.Policies</p>
+                    }
+                    else
+                    {
+                        <p class="room-detail-empty room-detail-no-policies">No pet or cot information is available for this room yet.</p>
+                    }
+                </section>
+
+                @* ---------- the other photos in the slider ---------- *@
+                @* nothing more to show when the room only has its hero photo *@
+                @if (HeroPhoto is null)
+                {
+                    <section class="room-detail-section">
+                        <span class="eyebrow">Gallery</span>
+                        <h2>Inside the room</h2>
+                        <p class="room-detail-empty room-detail-no-photos">No photos are available for this room yet.</p>
+                    </section>
+                }
+                else if (GalleryPhotos.Count > 0)
+                {
+                    <section class="room-detail-section">
+                        <span class="eyebrow">Gallery</span>
+                        <h2>Inside the room</h2>
+                        <div class="room-detail-photos">
+                            <PhotoCarousel Photos="@GalleryPhotos" Alt="@_room.Name" Zoomable="true" />
+                        </div>
+                    </section>
+                }
+            </div>
+
+            @* ---------- stay card, on the right on big screens, under the text on phones ---------- *@
+            <aside class="room-detail-stay">
+                <span class="eyebrow">Your stay</span>
+
+                @if (HasSearchDates)
+                {
+                    <p class="room-detail-stay-dates">@StayDatesText</p>
+                    <p class="room-detail-stay-meta">@Stay.Nights @(Stay.Nights == 1 ? "night" : "nights") · up to @_room.MaxGuests @(_room.MaxGuests == 1 ? "guest" : "guests")</p>
+                    <p class="room-detail-stay-hint">Pick your rate on the results page to book this room.</p>
+                }
+                else
+                {
+                    <p class="room-detail-stay-hint">Choose your dates to see if this room is free and what it costs.</p>
+                }
+
+                <Button Href="@CtaUrl" IsFullWidth="true" Class="room-detail-cta">@CtaText</Button>
+            </aside>
+        </div>
+    </div>
+}

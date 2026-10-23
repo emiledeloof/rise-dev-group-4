@@ -89,4 +89,34 @@ public class BookingShould
         act.ShouldThrow<ArgumentException>();
         booking.Rooms.Count.ShouldBe(1);
     }
+
+    /// <summary>
+    /// ! the booking keeps the cancellation policy valid at booking time, a later change on the rate doesnt touch it
+    /// </summary>
+    [Fact]
+    public void CopyTheCancellationPolicyOfTheRateWhenAddingARoom()
+    {
+        var room = new Room("101", "Single Room", 1);
+        var rate = room.AddRate("Flexible", 79m);
+        rate.FullRefundDays = 45;
+        rate.PartialRefundDays = 10;
+        rate.PartialRefundPercent = 30;
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut);
+
+        var bookingRoom = booking.AddRoom(room, rate);
+
+        bookingRoom.CancellationPolicy.ShouldBe(CancellationPolicy.Refundable);
+        bookingRoom.FullRefundDays.ShouldBe(45);
+        bookingRoom.PartialRefundDays.ShouldBe(10);
+        bookingRoom.PartialRefundPercent.ShouldBe(30);
+
+        // the admin changes the rate after the booking
+        rate.CancellationPolicy = CancellationPolicy.NonRefundable;
+        rate.FullRefundDays = 60;
+        rate.PartialRefundPercent = 0;
+
+        bookingRoom.CancellationPolicy.ShouldBe(CancellationPolicy.Refundable);
+        bookingRoom.FullRefundDays.ShouldBe(45);
+        bookingRoom.PartialRefundPercent.ShouldBe(30);
+    }
 }

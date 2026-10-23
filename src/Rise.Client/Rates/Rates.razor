@@ -1,0 +1,306 @@
+﻿@page "/admin/rates"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Shared.Identity
+
+<PageTitle>Rates</PageTitle>
+<div class="page">
+<div class="rate-page-heading">
+    <h1 class="title">Rates</h1>
+    <Button OnClick="OpenCreateFormAsync">New Rate</Button>
+</div>
+    
+    @if (_rates is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <div class="rate-filters">
+            <label class="rate-filter">
+            <span>Room type</span>
+            <div class="rate-select-wrap">
+                <select @bind="_selectedRoomName" @bind:after="ApplyFiltersAsync">
+                    <option value="">All rooms</option>
+                    @foreach (var roomName in _roomNames)
+                    {
+                        <option value="@roomName">@roomName</option>
+                    }
+                </select>
+                <span class="rate-select-arrow" aria-hidden="true"></span>
+            </div>
+            </label>
+
+            <label class="rate-filter">
+            <span>Policy</span>
+            <div class="rate-select-wrap">
+                <select @bind="_selectedPolicy" @bind:after="ApplyFiltersAsync">
+                    <option value="">All policies</option>
+                    @foreach (var policy in _policies)
+                    {
+                        <option value="@policy">@policy</option>
+                    }
+                </select>
+                <span class="rate-select-arrow" aria-hidden="true"></span>
+            </div>
+            </label>
+        </div>
+        
+        <div class="box rate-list">
+
+            @if (_errorMessage is not null)
+            {
+                <p class="notification is-danger is-light">@_errorMessage</p>
+            }
+            else if (!_rates.Any())
+            {
+                <p class="rate-muted">No rates yet.</p>
+            }
+            else
+            {
+                <div class="rate-table-scroll">
+                    <table class="rate-table">
+                        <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Room type</th>
+                            <th scope="col">From–to</th>
+                            <th scope="col">Min nights</th>
+                            <th scope="col">Policy</th>
+                            <th scope="col">VAT</th>
+                            <th scope="col">Price/night</th>
+                            <th scope="col">Active</th>
+                            <th scope="col"><span class="is-sr-only">Actions</span></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var rate in _rates)
+                        {
+                            <tr @key="rate.Id">
+                                <td>@rate.Name</td>
+                                <td>@rate.RoomName</td>
+                                <td class="rate-placeholder">&mdash;</td>
+                                <td>@rate.MinNights</td>
+                                @* real cancellation policy, green pill when refundable, red when not *@
+                                <td>
+                                    <span class="@(rate.IsRefundable ? "rate-policy-fully" : "rate-policy-non")">@FormatPolicy(rate)</span>
+                                </td>
+                                <td class="rate-placeholder">&mdash;</td>
+                                <td class="rate-price">@FormatPrice(rate.PricePerNight)</td>
+                                <td>
+                                    <span class="rate-switch" aria-hidden="true">
+                                        <span></span>
+                                    </span>
+                                </td>
+                                <td>
+                                    <Button Variant="ButtonVariant.Secondary" OnClick="() => StartEdit(rate)" Class="rate-edit-btn">Edit</Button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (TotalPages > 1)
+                {
+                    <nav class="pagination is-centered is-small mt-4" role="navigation" aria-label="pagination">
+                        <button class="pagination-previous"
+                                disabled="@(_currentPage <= 1)"
+                                @onclick="PreviousPageAsync">
+                            Previous
+                        </button>
+                        <button class="pagination-next"
+                                disabled="@(_currentPage >= TotalPages)"
+                                @onclick="NextPageAsync">
+                            Next
+                        </button>
+                        <ul class="pagination-list">
+                            @for (var page = 1; page <= TotalPages; page++)
+                            {
+                                var p = page; // capture for the lambda
+                                <li>
+                                    <button class="pagination-link @(p == _currentPage ? "is-current" : "")"
+                                            aria-label="Page @p"
+                                            aria-current="@(p == _currentPage ? "page" : null)"
+                                            @onclick="() => GoToPageAsync(p)">
+                                        @p
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+
+                <p class="rate-muted rate-count">
+                    Showing @_rates.Count() of @_totalCount rate@(_totalCount == 1 ? "" : "s")
+                </p>
+            }
+        </div>
+
+        @* what the last save changed, hidden again when an other edit starts *@
+        @if (_successMessage is not null)
+        {
+            <p class="notification is-success is-light rate-success">@_successMessage</p>
+        }
+
+        @* edit form of one rate, only open after a click on edit, same look as the create panel *@
+        @if (_editModel is not null)
+        {
+            <section class="rate-create-panel rate-edit-panel" aria-labelledby="edit-rate-heading">
+                <h3 id="edit-rate-heading">Edit @_originalRate!.Name · @_originalRate!.RoomName</h3>
+
+                @* same validator as the server, SaveEditAsync only runs when every rule passes *@
+                <EditForm Model="_editModel" OnValidSubmit="SaveEditAsync">
+                    <FluentValidationValidator />
+                    <div class="rate-create-fields">
+                        <label class="rate-create-field">
+                            <span>Price per night (€)</span>
+                            <InputNumber @bind-Value="_editModel.PricePerNight" id="price" step="0.01" />
+                            <ValidationMessage For="() => _editModel.PricePerNight" class="help is-danger" />
+                        </label>
+
+                        <label class="rate-create-field">
+                            <span>Minimum nights</span>
+                            <InputNumber @bind-Value="_editModel.MinNights" id="min-nights" />
+                            <ValidationMessage For="() => _editModel.MinNights" class="help is-danger" />
+                        </label>
+                    </div>
+
+                    @* checked = refundable, unchecked = non refundable *@
+                    <label class="checkbox rate-refundable">
+                        <InputCheckbox @bind-Value="_editModel.IsRefundable" id="is-refundable" />
+                        Refundable
+                    </label>
+
+                    @* refund values only for a refundable rate, they show and hide as soon as the box is clicked *@
+                    @if (_editModel.IsRefundable)
+                    {
+                        <div class="rate-create-fields">
+                            <label class="rate-create-field">
+                                <span>Full refund up to (days before arrival)</span>
+                                <InputNumber @bind-Value="_editModel.FullRefundDays" id="full-refund-days" />
+                                <ValidationMessage For="() => _editModel.FullRefundDays" class="help is-danger" />
+                            </label>
+
+                            <label class="rate-create-field">
+                                <span>Partial refund up to (days before arrival)</span>
+                                <InputNumber @bind-Value="_editModel.PartialRefundDays" id="partial-refund-days" />
+                                <ValidationMessage For="() => _editModel.PartialRefundDays" class="help is-danger" />
+                            </label>
+
+                            <label class="rate-create-field">
+                                <span>Partial refund (%)</span>
+                                <InputNumber @bind-Value="_editModel.PartialRefundPercent" id="partial-refund-percent" />
+                                <ValidationMessage For="() => _editModel.PartialRefundPercent" class="help is-danger" />
+                            </label>
+                        </div>
+                    }
+
+                    @* the api refused or failed the save *@
+                    @if (_saveErrorMessage is not null)
+                    {
+                        <p class="notification is-danger is-light">@_saveErrorMessage</p>
+                    }
+
+                    <div class="rate-create-actions">
+                        <Button Type="submit">Save</Button>
+                        <Button Variant="ButtonVariant.Secondary" OnClick="CancelEdit">Cancel</Button>
+                    </div>
+                </EditForm>
+            </section>
+        }
+
+        @if (_isCreateOpen)
+        {
+            <section class="rate-create-panel" aria-labelledby="create-rate-heading">
+                <h3 id="create-rate-heading">@CreateRateHeading</h3>
+
+                <EditForm Model="_createModel" OnValidSubmit="CreateRateAsync">
+                    <FluentValidationValidator/>
+                    <div class="rate-create-fields">
+                        <label class="rate-create-field">
+                            <span>Name</span>
+                            <InputText @bind-Value="_createModel.Name" />
+                            <ValidationMessage For="@(() => _createModel.Name)" class="help is-danger"/>
+                        </label>
+                        
+                        <label class="rate-filter">
+                            <span>Room type</span>
+                            <div class="rate-select-wrap">
+                                <InputSelect @bind-Value="_createModel.RoomName">
+                                    <option value="">Select a room</option>
+                                    @foreach (var roomName in _createRoomNames)
+                                    {
+                                        <option value="@roomName">@roomName</option>
+                                    }
+                                </InputSelect>
+                                <span class="rate-select-arrow" aria-hidden="true"></span>
+                            </div>
+                            <ValidationMessage For="@(() => _createModel.RoomName)" class="help is-danger" />
+                        </label>
+
+                        <label class="rate-create-field">
+                            <span>Price per night (€)</span>
+                            <InputNumber @bind-Value="_createModel.PricePerNight" step="0.01" />
+                            <ValidationMessage For="@(() => _createModel.PricePerNight)" class="help is-danger"/>
+                        </label>
+
+                        <label class="rate-create-field">
+                            <span>Conditions / description</span>
+                            <InputText @bind-Value="_createModel.Description" />
+                            <ValidationMessage For="@(() => _createModel.Description)" class="help is-danger" />
+                        </label>
+                    </div>
+
+                    @* min nights and cancellation policy, own wrapper so the fields above keep their order *@
+                    <div class="rate-create-policy">
+                        <label class="rate-create-field">
+                            <span>Minimum nights</span>
+                            <InputNumber @bind-Value="_createModel.MinNights" id="create-min-nights" />
+                            <ValidationMessage For="@(() => _createModel.MinNights)" class="help is-danger" />
+                        </label>
+                    </div>
+
+                    @* ! unchecked by default, a new rate is non refundable until the admin checks it *@
+                    <label class="checkbox rate-refundable">
+                        <InputCheckbox @bind-Value="_createModel.IsRefundable" id="create-is-refundable" />
+                        Refundable
+                    </label>
+
+                    @if (_createModel.IsRefundable)
+                    {
+                        <div class="rate-create-policy">
+                            <label class="rate-create-field">
+                                <span>Full refund up to (days before arrival)</span>
+                                <InputNumber @bind-Value="_createModel.FullRefundDays" id="create-full-refund-days" />
+                                <ValidationMessage For="@(() => _createModel.FullRefundDays)" class="help is-danger" />
+                            </label>
+
+                            <label class="rate-create-field">
+                                <span>Partial refund up to (days before arrival)</span>
+                                <InputNumber @bind-Value="_createModel.PartialRefundDays" id="create-partial-refund-days" />
+                                <ValidationMessage For="@(() => _createModel.PartialRefundDays)" class="help is-danger" />
+                            </label>
+
+                            <label class="rate-create-field">
+                                <span>Partial refund (%)</span>
+                                <InputNumber @bind-Value="_createModel.PartialRefundPercent" id="create-partial-refund-percent" />
+                                <ValidationMessage For="@(() => _createModel.PartialRefundPercent)" class="help is-danger" />
+                            </label>
+                        </div>
+                    }
+
+                    @if (_createErrorMessage is not null)
+                    {
+                        <p class="notification is-danger is-light">@_createErrorMessage</p>
+                    }
+
+                    <div class="rate-create-actions">
+                        <Button Type="submit" IsDisabled="_isCreating">Save rate</Button>
+                        <Button Variant="ButtonVariant.Secondary" OnClick="CloseCreateForm">Cancel</Button>
+                    </div>
+                </EditForm>
+            </section>
+        }
+    }
+</div>

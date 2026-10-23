@@ -121,4 +121,115 @@ public class RoomShould
 
         act.ShouldThrow<ArgumentException>();
     }
+
+    [Fact]
+    public void HaveNoCharacteristicsByDefault()
+    {
+        var room = new Room("101", "Single Room", 1);
+
+        room.SizeInSquareMeters.ShouldBeNull();
+        room.BedType.ShouldBeNull();
+        room.View.ShouldBeNull();
+        room.Amenities.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void NotAcceptAnInvalidSize(int size)
+    {
+        var room = new Room("101", "Single Room", 1);
+
+        Action act = () => room.SizeInSquareMeters = size;
+
+        act.ShouldThrow<ArgumentException>();
+    }
+
+    /// <summary>
+    /// an empty text is stored as unknown, so the page shows no blank value
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void StoreAnEmptyBedTypeOrViewAsUnknown(string value)
+    {
+        var room = new Room("101", "Single Room", 1)
+        {
+            BedType = value,
+            View = value,
+        };
+
+        room.BedType.ShouldBeNull();
+        room.View.ShouldBeNull();
+    }
+
+    [Fact]
+    public void HaveNoPoliciesByDefault()
+    {
+        var room = new Room("101", "Single Room", 1);
+
+        room.Policies.ShouldBeNull();
+    }
+
+    [Fact]
+    public void TrimThePolicies()
+    {
+        var room = new Room("101", "Single Room", 1)
+        {
+            Policies = "  No pets allowed.  ",
+        };
+
+        room.Policies.ShouldBe("No pets allowed.");
+    }
+
+    /// <summary>
+    /// an empty text is stored as no policies, so the page shows its empty state
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void StoreEmptyPoliciesAsUnknown(string? value)
+    {
+        var room = new Room("101", "Single Room", 1)
+        {
+            Policies = value,
+        };
+
+        room.Policies.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AddAnAmenity()
+    {
+        var room = new Room("101", "Single Room", 1);
+        var wifi = new Amenity("Wi-Fi", "fa-wifi");
+
+        room.AddAmenity(wifi);
+
+        room.Amenities.ShouldHaveSingleItem().ShouldBe(wifi);
+    }
+
+    [Fact]
+    public void NotAddTheSameAmenityTwice()
+    {
+        var room = new Room("101", "Single Room", 1);
+        var wifi = new Amenity("Wi-Fi");
+
+        room.AddAmenity(wifi);
+        room.AddAmenity(wifi);
+
+        room.Amenities.ShouldHaveSingleItem();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("   ")]
+    [InlineData("")]
+    public void NotCreateAnAmenityWithAnInvalidName(string? name)
+    {
+        Action act = () => new Amenity(name!);
+
+        act.ShouldThrow<ArgumentException>();
+    }
 }

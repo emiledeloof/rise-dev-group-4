@@ -119,7 +119,7 @@ public partial class Results
         {
             var room = _rooms.First(r => r.Id == s.Key);
             var rate = room.Rates.First(x => x.Id == s.Value);
-            return new DraftRoom(room.Id, room.Name, rate.Id, rate.Name, rate.Description, rate.PricePerNight, rate.TotalPrice);
+            return new DraftRoom(room.Id, room.Name, rate.Id, rate.Name, rate.Description, rate.PricePerNight, rate.TotalPrice, CancellationPolicyText.Of(rate));
         });
 
         Draft.SetRooms(CheckIn!.Value, CheckOut!.Value, rooms);
@@ -147,6 +147,9 @@ public partial class Results
             var rate = room.Rates.First(x => x.Id == s.Value);
             return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice);
         }).ToList();
+
+    // url of the detail page of a room, keeps the dates so its back btn returns to these results
+    private string DetailsUrlOf(int roomId) => $"rooms/{roomId}?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}";
 
     // rate chosen for a room, null when the room is not in the selection
     // TryGetValue gives true and the value when the key is there, false otherwise

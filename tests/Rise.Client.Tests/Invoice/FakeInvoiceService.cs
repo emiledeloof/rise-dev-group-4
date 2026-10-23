@@ -15,6 +15,7 @@ public class FakeInvoiceService : IInvoiceService
             .Select(i => new InvoiceDto.Index
             {
                 Id = i,
+                BookingId = i,
                 BookingNumber = $"20261001-000{i}",
                 GuestName = $"Guest {i}",
                 Amount = i * 100m,

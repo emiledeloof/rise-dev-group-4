@@ -1,0 +1,361 @@
+/* admin booking detail styles, scoped to AdminDetail.razor */
+/* mobile first: one column of cards, guest and price go next to the stay from 1024px */
+
+.booking-detail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+/* small pill back link like the back link of the room detail, but on the light admin bg */
+.booking-detail-back {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.8125rem;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.booking-detail-back:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+/* ---------- header ---------- */
+
+.booking-detail-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--space-sm) var(--space-md);
+}
+
+/* booking number as the big serif title of the page, wraps on small phones */
+.booking-detail-number {
+    margin: 0;
+    font-family: var(--font-title);
+    font-size: clamp(1.75rem, 6vw, 2.5rem);
+    font-weight: 500;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.booking-detail-created {
+    margin-top: var(--space-xs);
+}
+
+/* ---------- cards ---------- */
+
+.booking-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+}
+
+.booking-detail-main,
+.booking-detail-aside {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    min-width: 0;
+}
+
+/* white cards with a thin beige border, same as the summary blocks of the site */
+.booking-detail-card {
+    margin: 0 !important; /* bulma adds a margin under every .box */
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.booking-detail-card ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.booking-detail-muted {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.booking-detail-error {
+    color: var(--color-text-muted);
+}
+
+.booking-detail-subtitle {
+    margin: var(--space-md) 0 var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* small uppercase label above a value, eg CHECK-IN */
+.booking-detail-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+/* ---------- stay ---------- */
+
+/* check-in and check-out stacked on phones, side by side with the nights between them from 480px */
+.booking-detail-dates {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border-radius: var(--radius);
+    background-color: var(--color-bg);
+}
+
+.booking-detail-date {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.booking-detail-date-day {
+    font-family: var(--font-title);
+    font-size: 1.5rem;
+    line-height: 1.15;
+}
+
+/* nb of nights with a thin line on each side */
+.booking-detail-nights {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: var(--color-primary);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.booking-detail-nights::before,
+.booking-detail-nights::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background-color: var(--color-border);
+}
+
+/* the 1st line is only shown next to the icon on wide screens */
+.booking-detail-nights::before {
+    display: none;
+}
+
+/* assigned rooms, the room number in an olive badge */
+.booking-detail-rooms {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-sm);
+}
+
+.booking-detail-room {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+}
+
+.booking-detail-room-number {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0 var(--space-xs);
+    border-radius: var(--radius);
+    background-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+    color: var(--color-primary-dark);
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.booking-detail-room-name {
+    font-weight: 500;
+}
+
+/* ---------- payments ---------- */
+
+.booking-detail-payment {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm) var(--space-md);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.booking-detail-payment:last-child {
+    border-bottom: none;
+}
+
+.booking-detail-payment-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-sm);
+}
+
+.booking-detail-payment-amount {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ---------- guest ---------- */
+
+.booking-detail-guest-name {
+    margin: 0 0 var(--space-md);
+    font-family: var(--font-title);
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.booking-detail-facts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin: 0;
+}
+
+.booking-detail-facts > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.booking-detail-facts > div:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.booking-detail-facts dt {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.booking-detail-facts dt i {
+    width: 1rem;
+    color: var(--color-primary);
+    text-align: center;
+}
+
+/* long emails and addresses wrap instead of making the page scroll sideways */
+.booking-detail-facts dd {
+    margin: 0;
+    padding-left: calc(1rem + var(--space-sm));
+    overflow-wrap: anywhere;
+}
+
+.booking-detail-facts dd a {
+    color: var(--color-text);
+}
+
+.booking-detail-facts dd a:hover {
+    color: var(--color-primary);
+}
+
+/* ---------- price ---------- */
+
+.booking-detail-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    font-size: 0.875rem;
+}
+
+.booking-detail-price-row .booking-detail-muted {
+    margin-left: var(--space-xs);
+    font-size: 0.8125rem;
+}
+
+/* total of the stay in the title font, same idea as the selection summary */
+.booking-detail-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+}
+
+.booking-detail-total-amount {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* ---------- bigger screens ---------- */
+
+@media (min-width: 480px) {
+    .booking-detail-dates {
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+    }
+
+    .booking-detail-date:last-child {
+        text-align: right;
+    }
+
+    .booking-detail-nights {
+        min-width: 7rem;
+    }
+
+    .booking-detail-nights::before {
+        display: block;
+    }
+
+    .booking-detail-rooms {
+        grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    }
+}
+
+@media (min-width: 768px) {
+    .booking-detail-card {
+        padding: var(--space-lg);
+    }
+}
+
+/* guest and price stay in view next to the stay while scrolling */
+@media (min-width: 1024px) {
+    .booking-detail-layout {
+        grid-template-columns: minmax(0, 1fr) 22rem;
+        align-items: start;
+    }
+
+    .booking-detail-aside {
+        position: sticky;
+        top: var(--space-lg);
+    }
+}

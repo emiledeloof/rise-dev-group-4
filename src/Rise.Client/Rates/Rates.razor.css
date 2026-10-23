@@ -1,0 +1,299 @@
+﻿.rate-list {
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.rate-table-scroll {
+    overflow-x: auto;
+}
+
+.rate-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.rate-table th {
+    padding: 0.7rem 1rem;
+    background: #f1f0eb;
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.rate-table td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-size: 0.875rem;
+}
+
+.rate-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.rate-table .rate-placeholder {
+    color: var(--color-text-muted);
+}
+
+.rate-price {
+    font-weight: 600;
+}
+
+.rate-policy-partial {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: #f2e3bd;
+    color: #514326;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.rate-policy-non {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: #f2c8bd;
+    color: #512a26;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.rate-policy-fully {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: #ddf2bd;
+    color: #415126;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.rate-switch {
+    display: inline-flex;
+    width: 2.2rem;
+    height: 1.25rem;
+    align-items: center;
+    padding: 0.15rem;
+    border-radius: 999px;
+    background: var(--color-primary-dark);
+}
+
+.rate-switch span {
+    width: 0.95rem;
+    height: 0.95rem;
+    margin-left: auto;
+    border-radius: 50%;
+    background: white;
+}
+
+.rate-muted {
+    padding: 1rem;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+}
+
+.rate-count {
+    margin: 0;
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .rate-table th,
+    .rate-table td {
+        padding-right: 0.75rem;
+        padding-left: 0.75rem;
+    }
+}
+
+/* filters */
+.rate-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.rate-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+.rate-filter select {
+    appearance: none;
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.4rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+}
+
+.rate-filter ::deep select {
+    appearance: none;
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 2rem 0 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.4rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+}
+
+@media (max-width: 640px) {
+    .rate-filters {
+        grid-template-columns: 1fr;
+    }
+}
+
+.rate-select-wrap {
+    position: relative;
+}
+
+.rate-select-arrow {
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 1.5px solid var(--color-border);
+    border-bottom: 1.5px solid var(--color-border);
+    pointer-events: none;
+    transform: translateY(-70%) rotate(45deg);
+    transition: transform 180ms ease;
+}
+
+.rate-select-wrap:focus-within .rate-select-arrow {
+    transform: translateY(-30%) rotate(225deg);
+}
+
+/* create new rate */
+.rate-page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.rate-create-panel {
+    margin-top: 1rem;
+    padding: 1.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.rate-create-panel h2 {
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.rate-create-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.rate-create-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+.rate-create-field ::deep input,
+.rate-create-field ::deep select {
+    appearance: none;
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.4rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+}
+
+.rate-create-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+    .rate-create-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* edit a rate, merged from the old rate pricing page */
+
+/* refundable checkbox between the 2 groups of fields */
+.rate-refundable {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    color: var(--color-text);
+    font-size: 0.875rem;
+}
+
+/* refund fields under the checkbox, same grid as the create fields */
+.rate-edit-panel .rate-refundable + .rate-create-fields {
+    margin-top: 1rem;
+}
+
+/* msg after a save, under the table */
+.rate-success {
+    margin-top: 1rem;
+}
+
+/* small edit btn at the end of each row, ::deep since it comes from the Button component */
+.rate-table ::deep .rate-edit-btn {
+    padding: 0.25rem 0.75rem;
+    height: auto;
+    font-size: 0.8rem;
+}
+
+/* min nights and refund fields of the create form, same grid as the other fields */
+.rate-create-policy {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+    .rate-create-policy {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ! edit column always visible, it stays on the right while the table scrolls */
+.rate-table th:last-child,
+.rate-table td:last-child {
+    position: sticky;
+    right: 0;
+    background: var(--color-surface);
+}
+
+.rate-table th:last-child {
+    background: #f1f0eb;
+}

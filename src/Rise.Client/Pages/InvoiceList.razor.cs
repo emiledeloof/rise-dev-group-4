@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Rise.Shared.Common;
 using Rise.Shared.Invoice;
@@ -32,22 +31,6 @@ public partial class InvoiceList
         }
 
         invoices = result.Value.Invoices;
-    }
-
-    // same format as the mockup, eg €432.00
-    private static string FormatAmount(decimal amount)
-        => $"€{amount.ToString("0.00", CultureInfo.InvariantCulture)}";
-
-    private static string FormatDate(DateTime date)
-        => date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
-
-    // Stripe sends lowercase brands like "visa" or "mastercard", eg Visa •••• 4242
-    private static string FormatCard(string? brand, string last4)
-    {
-        var name = string.IsNullOrWhiteSpace(brand)
-            ? "Card"
-            : char.ToUpperInvariant(brand[0]) + brand[1..];
-        return $"{name} •••• {last4}";
     }
 
     // TODO: drop "/test" once we use live Stripe keys

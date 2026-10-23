@@ -15,6 +15,8 @@ public class PhotoCarouselShould : BunitContext
     public PhotoCarouselShould(ITestOutputHelper outputHelper)
     {
         Services.AddXunitLogger(outputHelper);
+        // the lightbox takes the focus when it opens
+        JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
     // renders the carousel with the given photos for the deluxe room
@@ -22,6 +24,13 @@ public class PhotoCarouselShould : BunitContext
         Render<PhotoCarousel>(p => p
             .Add(x => x.Photos, photos)
             .Add(x => x.Alt, "Deluxe Room"));
+
+    // renders the carousel of the room detail, where a click on the photo opens it large
+    private IRenderedComponent<PhotoCarousel> RenderZoomableCarousel(params string[] photos) =>
+        Render<PhotoCarousel>(p => p
+            .Add(x => x.Photos, photos)
+            .Add(x => x.Alt, "Deluxe Room")
+            .Add(x => x.Zoomable, true));
 
     // src of the photo on screen
     private static string CurrentPhoto(IRenderedComponent<PhotoCarousel> cut) =>
@@ -133,5 +142,171 @@ public class PhotoCarouselShould : BunitContext
 
         // assert
         cut.FindAll(".carousel").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// the home cards have no detail mode, the photo is not a btn
+    /// </summary>
+    [Fact]
+    public void NotOpenTheLightboxWhenNotZoomable()
+    {
+        // arrange and act
+        var cut = RenderCarousel("a.jpg", "b.jpg");
+
+        // assert
+        cut.FindAll(".carousel-zoom").ShouldBeEmpty();
+        cut.FindAll(".lightbox").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// a click on the photo opens the photo on screen large, fitted to the screen
+    /// </summary>
+    [Fact]
+    public void OpenTheLightboxOnTheCurrentPhoto()
+    {
+        // arrange
+        var cut = RenderZoomableCarousel("a.jpg", "b.jpg", "c.jpg");
+        cut.Find(".carousel-next").Click();
+
+        // act
+        cut.Find(".carousel-zoom").Click();
+
+        // assert
+        cut.Find(".lightbox-photo").GetAttribute("src").ShouldBe("b.jpg");
+        cut.Find(".lightbox-counter").TextContent.ShouldBe("2 / 3");
+        cut.Find(".lightbox-stage").ClassList.ShouldNotContain("is-original");
+    }
+
+    /// <summary>
+    /// the size btn switches between the original size and fitted to the screen
+    /// </summary>
+    [Fact]
+    public void SwitchToTheOriginalSize()
+    {
+        // arrange
+        var cut = RenderZoomableCarousel("a.jpg", "b.jpg");
+        cut.Find(".carousel-zoom").Click();
+
+        // act
+        cut.Find(".lightbox-size").Click();
+
+        // assert
+        cut.Find(".lightbox-stage").ClassList.ShouldContain("is-original");
+
+        // act again
+        cut.Find(".lightbox-size").Click();
+
+        // assert again
+        cut.Find(".lightbox-stage").ClassList.ShouldNotContain("is-original");
+    }
+
+    /// <summary>
+    /// the arrows in the lightbox switch the photo, also in the slider behind it
+    /// </summary>
+    [Fact]
+    public void ShowTheNextPhotoInTheLightbox()
+    {
+        // arrange
+        var cut = RenderZoomableCarousel("a.jpg", "b.jpg", "c.jpg");
+        cut.Find(".carousel-zoom").Click();
+
+        // act
+        cut.Find(".lightbox-next").Click();
+
+        // assert
+        cut.Find(".lightbox-photo").GetAttribute("src").ShouldBe("b.jpg");
+        CurrentPhoto(cut).ShouldBe("b.jpg");
+    }
+
+    /// <summary>
+    /// the arrow keys switch the photo too
+    /// </summary>
+    [Fact]
+    public void SwitchThePhotoWithTheArrowKeys()
+    {
+        // arrange
+        var cut = RenderZoomableCarousel("a.jpg", "b.jpg", "c.jpg");
+        cut.Find(".carousel-zoom").Click();
+
+        // act
+        cut.Find(".lightbox").KeyDown(Key.Left);
+
+        // assert
+        cut.Find(".lightbox-photo").GetAttribute("src").ShouldBe("c.jpg");
+    }
+
+    /// <summary>
+    /// a zoomed photo does not keep the zoom for the next photo, it is fitted to the screen again
+    /// </summary>
+    [Fact]
+    public void FitTheNextPhotoToTheScreen()
+    {
+        // arrange
+        var cut = RenderZoomableCarousel("a.jpg", "b.jpg", "c.jpg");
+        cut.Find(".carousel-zoom").Click();
+        cut.Find(".lightbox-size").Click();
+
+        // act
+        cut.Find(".lightbox-next").Click();
+
+        // assert
+        cut.Find(".lightbox-photo").GetAttribute("src").ShouldBe("b.jpg");
+        cut.Find(".lightbox-stage").ClassList.ShouldNotContain("is-original");
+    }
+
+    /// <summary>
+    /// switching the photo with an arrow key also ends the zoom
+    /// </summary>
+    [Fact]
+    public void FitThePhotoToTheScreenAfterAnArrowKey()
+    {
+        // arrange
+        var cut = RenderZoomableCarousel("a.jpg", "b.jpg", "c.jpg");
+        cut.Find(".carousel-zoom").Click();
+        cut.Find(".lightbox-size").Click();
+
+        // act
+        cut.Find(".lightbox").KeyDown(Key.Left);
+
+        // assert
+        cut.Find(".lightbox-photo").GetAttribute("src").ShouldBe("c.jpg");
+        cut.Find(".lightbox-stage").ClassList.ShouldNotContain("is-original");
+    }
+
+    /// <summary>
+    /// the close btn goes back to the slider
+    /// </summary>
+    [Fact]
+    public void CloseTheLightboxWithTheCloseButton()
+    {
+        // arrange
+        var cut = RenderZoomableCarousel("a.jpg", "b.jpg");
+        cut.Find(".carousel-zoom").Click();
+
+        // act
+        cut.Find(".lightbox-close").Click();
+
+        // assert
+        cut.FindAll(".lightbox").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// escape closes the lightbox, the next open is fitted to the screen again
+    /// </summary>
+    [Fact]
+    public void CloseTheLightboxWithEscape()
+    {
+        // arrange
+        var cut = RenderZoomableCarousel("a.jpg", "b.jpg");
+        cut.Find(".carousel-zoom").Click();
+        cut.Find(".lightbox-size").Click();
+
+        // act
+        cut.Find(".lightbox").KeyDown(Key.Escape);
+
+        // assert
+        cut.FindAll(".lightbox").ShouldBeEmpty();
+        cut.Find(".carousel-zoom").Click();
+        cut.Find(".lightbox-stage").ClassList.ShouldNotContain("is-original");
     }
 }

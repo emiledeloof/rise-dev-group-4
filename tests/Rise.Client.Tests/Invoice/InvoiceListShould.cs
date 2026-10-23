@@ -40,7 +40,7 @@ public class InvoiceListShould : BunitContext
         var firstRow = cut.FindAll("ul li")[0];
         firstRow.TextContent.ShouldContain("Visa •••• 4242");
         firstRow.TextContent.ShouldContain("via Stripe");
-        firstRow.QuerySelectorAll("a").Select(a => a.GetAttribute("href"))
+        firstRow.QuerySelectorAll(".invoice-stripe a").Select(a => a.GetAttribute("href"))
             .ShouldBe(["https://pay.stripe.com/receipts/test_1", "https://dashboard.stripe.com/test/payments/pi_test_1"]);
     }
 
@@ -50,6 +50,14 @@ public class InvoiceListShould : BunitContext
         var cut = Render<InvoiceList>();
         var openRow = cut.FindAll("ul li")[1];
         openRow.TextContent.ShouldNotContain("Stripe");
-        openRow.QuerySelectorAll("a").ShouldBeEmpty();
+        openRow.QuerySelectorAll(".invoice-stripe a").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void LinkTheBookingToItsDetail()
+    {
+        var cut = Render<InvoiceList>();
+
+        cut.FindAll("a.invoice-booking-link")[1].GetAttribute("href").ShouldBe("admin/bookings/2");
     }
 }
