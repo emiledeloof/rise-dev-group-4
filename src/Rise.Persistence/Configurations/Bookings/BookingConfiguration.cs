@@ -17,6 +17,14 @@ internal class BookingConfiguration : EntityConfiguration<Booking>
         builder.Property(x => x.CheckIn).IsRequired();
         builder.Property(x => x.CheckOut).IsRequired();
 
+        // * composite index on the stay dates, used by the availability search in RoomService
+        // not unique, several bookings can start or end the same day
+        // ! order matters, checkin first then checkout
+        builder.HasIndex(x => new { x.CheckIn, x.CheckOut });
+
+        // sort by checkout on the admin booking list, low gain
+        builder.HasIndex(x => x.CheckOut);
+
         builder.HasOne(x => x.Guest)
             .WithMany(x => x.Bookings)
             .IsRequired()
