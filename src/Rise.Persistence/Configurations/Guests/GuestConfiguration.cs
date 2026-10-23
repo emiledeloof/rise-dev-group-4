@@ -13,6 +13,8 @@ internal class GuestConfiguration : EntityConfiguration<Guest>
     {
         base.Configure(builder);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(250);
+        // sort by guest name on the admin booking list, low gain
+        builder.HasIndex(x => x.Name);
         builder.Property(x => x.Email).IsRequired().HasMaxLength(250);
         builder.HasIndex(x => x.Email).IsUnique();
         builder.Property(x => x.Phone).IsRequired().HasMaxLength(50);

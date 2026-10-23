@@ -319,7 +319,11 @@ namespace Rise.Persistence.Migrations
                     b.HasIndex("BookingNumber")
                         .IsUnique();
 
+                    b.HasIndex("CheckOut");
+
                     b.HasIndex("GuestId");
+
+                    b.HasIndex("CheckIn", "CheckOut");
 
                     b.ToTable("Booking", (string)null);
                 });
@@ -448,6 +452,10 @@ namespace Rise.Persistence.Migrations
 
                     b.HasIndex("BookingId");
 
+                    b.HasIndex("InvoiceNumber");
+
+                    b.HasIndex("PaidAt");
+
                     b.HasIndex("StripeCheckoutSession")
                         .IsUnique();
 
@@ -496,6 +504,8 @@ namespace Rise.Persistence.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("Name");
 
                     b.ToTable("Guest", (string)null);
                 });
@@ -596,6 +606,8 @@ namespace Rise.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Name");
+
                     b.HasIndex("RoomId");
 
                     b.ToTable("Rate", (string)null);
@@ -657,6 +669,8 @@ namespace Rise.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name");
 
                     b.HasIndex("RoomNumber")
                         .IsUnique();

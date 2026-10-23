@@ -15,6 +15,8 @@ internal class RoomConfiguration : EntityConfiguration<Room>
         builder.Property(x => x.RoomNumber).IsRequired().HasMaxLength(20);
         builder.HasIndex(x => x.RoomNumber).IsUnique();
         builder.Property(x => x.Name).IsRequired().HasMaxLength(250);
+        // lookup by room name in RateService and sorts by name, low gain with few rooms
+        builder.HasIndex(x => x.Name);
         builder.Property(x => x.MaxGuests).IsRequired();
         builder.Property(x => x.BedType).HasMaxLength(100);
         builder.Property(x => x.View).HasMaxLength(100);
