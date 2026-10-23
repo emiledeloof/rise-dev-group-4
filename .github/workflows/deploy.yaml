@@ -64,6 +64,24 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify Tag Belongs to Release Branch
+        run: |
+          echo "Verifying tag ${{ github.ref_name }} points to a commit on origin/release..."
+          
+          # Ensure remote release ref exists locally
+          git fetch origin release:refs/remotes/origin/release
+
+          # Check if the tagged commit is reachable from origin/release
+          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/release; then
+            echo "::error::Tag ${{ github.ref_name }} (${{ github.sha }}) is NOT an ancestor of 'origin/release'!"
+            echo "Deployments are restricted strictly to commits merged into the release branch."
+            exit 1
+          fi
+
+          echo "Lineage verified: commit exists on origin/release."
 
       - name: Extract Semantic Version
         id: vars
