@@ -15,8 +15,8 @@ public class RoomService(HttpClient httpClient) : IRoomService
     /// </summary>
     public async Task<Result<RoomResponse.Available>> GetAvailableAsync(SearchRequest.StayPeriod request, CancellationToken ctx = default)
     {
-        // dates in the url as yyyy-MM-dd, same format as the search page uses, eg ?checkIn=2026-10-10&checkOut=2026-10-12
-        var url = $"/api/rooms/available?checkIn={request.CheckIn:yyyy-MM-dd}&checkOut={request.CheckOut:yyyy-MM-dd}";
+        // dates and guests in the url, same format as the search page uses, eg ?checkIn=2026-10-10&checkOut=2026-10-12&adults=2
+        var url = $"/api/rooms/available?checkIn={request.CheckIn:yyyy-MM-dd}&checkOut={request.CheckOut:yyyy-MM-dd}&adults={request.Adults}";
 
         // GET on the endpoint and read the json answer as a Result
         return (await httpClient.GetFromJsonAsync<Result<RoomResponse.Available>>(url, cancellationToken: ctx))!;

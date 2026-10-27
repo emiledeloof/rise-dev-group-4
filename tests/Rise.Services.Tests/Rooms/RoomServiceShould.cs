@@ -561,4 +561,22 @@ public class RoomServiceShould
         // assert
         names.ShouldBe(new[] { DoubleRoom, SingleRoom });
     }
+
+    /// <summary>
+    /// the availability response includes the total estate capacity dynamically calculated from active rooms
+    /// </summary>
+    [Fact]
+    public async Task IncludeTotalEstateCapacityInAvailabilityResponse()
+    {
+        // arrange: seeded db has DoubleRoom (2) + SingleRoom (1) = 3 total capacity
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(IncludeTotalEstateCapacityInAvailabilityResponse));
+        var stay = Stay(15, 18);
+
+        // act
+        var result = await new RoomService(dbContext).GetAvailableAsync(stay);
+
+        // assert
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.TotalCapacity.ShouldBe(3);
+    }
 }

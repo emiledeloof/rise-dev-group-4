@@ -23,6 +23,9 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         var checkOut = request.CheckOut!.Value;
         var nights = request.Nights;
 
+        // total resort capacity dynamically from the database
+        var totalEstateCapacity = await dbContext.Rooms.Where(r => !r.IsDeleted).SumAsync(r => r.MaxGuests, ctx);
+
         // rooms not deleted
         var query = dbContext.Rooms.Where(r => !r.IsDeleted);
 
@@ -72,7 +75,8 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
 
         return Result.Success(new RoomResponse.Available
         {
-            Rooms = rooms
+            Rooms = rooms,
+            TotalCapacity = totalEstateCapacity
         });
     }
 
@@ -123,6 +127,7 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
 
         // all the rooms, not only the ones sent back, so the page can link to the others
         var totalCount = await query.CountAsync(ctx);
+        var totalCapacity = await query.SumAsync(r => r.MaxGuests, ctx);
 
         // the rooms are seeded in display order, so the id keeps that order
         var rooms = await query
@@ -152,7 +157,8 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         return Result.Success(new RoomResponse.List
         {
             Rooms = rooms,
-            TotalCount = totalCount
+            TotalCount = totalCount,
+            TotalCapacity = totalCapacity
         });
     }
 }

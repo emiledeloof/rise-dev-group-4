@@ -8,10 +8,31 @@ namespace Rise.Shared.Search;
 public static partial class SearchRequest
 {
     /// <summary>
-    /// dates of the stay the guest is looking for, used by the search form and the availability endpoint
+    /// dates and guest requirements of the stay the guest is looking for,
+    /// used by the search form and the availability endpoint
     /// </summary>
     public class StayPeriod
     {
+        /// <summary>
+        /// minimum number of adults required for a booking
+        /// </summary>
+        public const int MinAdults = 1;
+
+        /// <summary>
+        /// default maximum guest capacity of the estate when dynamic data is not yet loaded
+        /// </summary>
+        public const int DefaultMaxCapacity = 6;
+
+        /// <summary>
+        /// fallback constant for initial resort capacity (backward-compatible)
+        /// </summary>
+        public const int MaxCapacity = DefaultMaxCapacity;
+
+        /// <summary>
+        /// default number of adults in search forms
+        /// </summary>
+        public const int DefaultAdults = 2;
+
         /// <summary>
         /// arrival date, null until the guest picks one
         /// </summary>
@@ -21,6 +42,16 @@ public static partial class SearchRequest
         /// departure date, null until the guest picks one
         /// </summary>
         public DateOnly? CheckOut { get; set; }
+
+        /// <summary>
+        /// number of adult guests, defaults to 2
+        /// </summary>
+        public int Adults { get; set; } = DefaultAdults;
+
+        /// <summary>
+        /// dynamic maximum guest capacity of the estate, defaults to DefaultMaxCapacity and can be updated from room data
+        /// </summary>
+        public int? DynamicMaxCapacity { get; set; }
 
         /// <summary>
         /// nb of nights between check in and check out, 0 when a date is missing or the period is invalid
@@ -36,7 +67,7 @@ public static partial class SearchRequest
         public class Validator : AbstractValidator<StayPeriod>
         {
             /// <summary>
-            /// sets up the date rules
+            /// sets up the date and guest validation rules
             /// </summary>
             public Validator()
             {
@@ -62,6 +93,15 @@ public static partial class SearchRequest
                     .Must((period, checkOut) => checkOut > period.CheckIn)
                     .When(x => x.CheckIn.HasValue && x.CheckOut.HasValue)
                     .WithMessage("Check-out must be after check-in.");
+
+                // guest count rules (ENOG acceptance criteria: At least 1 adult required, maximum capacity can't be exceeded)
+                RuleFor(x => x.Adults)
+                    .GreaterThanOrEqualTo(MinAdults)
+                    .WithMessage("At least 1 adult is required.");
+
+                RuleFor(x => x.Adults)
+                    .Must((period, adults) => adults <= (period.DynamicMaxCapacity ?? MaxCapacity))
+                    .WithMessage(period => $"Maximum capacity of {period.DynamicMaxCapacity ?? MaxCapacity} guests cannot be exceeded.");
             }
         }
     }

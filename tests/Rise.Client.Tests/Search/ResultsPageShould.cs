@@ -87,6 +87,35 @@ public class ResultsPageShould : BunitContext
     }
 
     /// <summary>
+    /// the page sends the adults count from the url to the api
+    /// </summary>
+    [Fact]
+    public void AskTheApiForAdultsOfTheUrl()
+    {
+        // arrange and act
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=4");
+        Render<Results>();
+
+        // assert
+        var request = _roomService.Requests.Last();
+        request.Adults.ShouldBe(4);
+    }
+
+    /// <summary>
+    /// subtitle shows the stay period nights and guest count
+    /// </summary>
+    [Fact]
+    public void ShowGuestCountInSubtitle()
+    {
+        // arrange and act
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=3");
+        var cut = Render<Results>();
+
+        // assert
+        cut.Find("p.subtitle").TextContent.ShouldContain("3 guests");
+    }
+
+    /// <summary>
     /// no free room shows the message and the btn to change the dates
     /// </summary>
     [Fact]
