@@ -156,4 +156,138 @@ public class AdminDetailShould : BunitContext
 
         cut.Find(".booking-detail-back").GetAttribute("href").ShouldBe("admin/booking-list");
     }
+
+    private static BookingDto.AdminDetail Cancelled(decimal refund)
+    {
+        var booking = TestAdminDetails.Full();
+        booking.Status = "Cancelled";
+        booking.Cancellation = new BookingDto.AdminCancellationDto
+        {
+            CancelledAt = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc),
+            Reason = "Guest is ill",
+            RefundAmount = refund,
+        };
+        return booking;
+    }
+
+    [Fact]
+    public void PrefillTheRefundOfThePolicyInTheCancelDialog()
+    {
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-cancel-open").Click();
+
+        cut.Find("#booking-cancel-refund").GetAttribute("value").ShouldBe("360");
+        cut.Find(".booking-cancel-refund-hint").TextContent.ShouldContain("€360.00 of €720.00 paid");
+        cut.Find(".booking-cancel-dialog .booking-detail-refund-note").TextContent.ShouldContain("does not pay it back");
+    }
+
+    [Fact]
+    public void NotCancelWithoutReason()
+    {
+        var cut = RenderPage();
+        cut.Find(".booking-detail-cancel-open").Click();
+
+        cut.Find(".booking-cancel-dialog form").Submit();
+
+        _bookingService.CancelRequests.ShouldBeEmpty();
+        cut.Find(".booking-cancel-dialog .help.is-danger").TextContent.ShouldBe("Please enter a reason for the cancellation.");
+    }
+
+    [Fact]
+    public void CloseTheCancelDialogWhenKeepingTheBooking()
+    {
+        var cut = RenderPage();
+        cut.Find(".booking-detail-cancel-open").Click();
+
+        cut.FindAll(".booking-cancel-actions button")[0].Click();
+
+        cut.FindAll(".booking-cancel-dialog").ShouldBeEmpty();
+        _bookingService.CancelRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void CancelTheBookingAndAcknowledgeIt()
+    {
+        var cut = RenderPage();
+        cut.Find(".booking-detail-cancel-open").Click();
+        cut.Find("#booking-cancel-reason").Change("Guest is ill");
+        // the page reloads the booking after cancelling
+        _bookingService.AdminDetailAnswer = Result.Success(Cancelled(360m));
+
+        cut.Find(".booking-cancel-dialog form").Submit();
+
+        var request = _bookingService.CancelRequests.ShouldHaveSingleItem();
+        request.BookingId.ShouldBe(7);
+        request.Reason.ShouldBe("Guest is ill");
+        request.RefundAmount.ShouldBe(360m);
+        cut.FindAll(".booking-cancel-dialog").ShouldBeEmpty();
+        cut.Find(".booking-detail-cancel-success").TextContent.ShouldContain("A refund of €360.00 is recorded");
+        cut.Find(".booking-detail-status .tag.is-danger").TextContent.Trim().ShouldBe("Cancelled");
+    }
+
+    [Fact]
+    public void ShowWhyTheServerRefusedTheCancellation()
+    {
+        _bookingService.CancelAnswer = Result.Conflict("Booking 20261004-SVM-000007 is already cancelled.");
+        var cut = RenderPage();
+        cut.Find(".booking-detail-cancel-open").Click();
+        cut.Find("#booking-cancel-reason").Change("Guest is ill");
+
+        cut.Find(".booking-cancel-dialog form").Submit();
+
+        cut.Find(".booking-cancel-error").TextContent.ShouldBe("Booking 20261004-SVM-000007 is already cancelled.");
+        cut.FindAll(".booking-cancel-dialog").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void ShowTheCancellationAndKeepTheOriginalTerms()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(Cancelled(360m));
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-cancelled-at").TextContent.ShouldBe("10 Oct 2026");
+        cut.Find(".booking-detail-cancel-reason").TextContent.ShouldBe("Guest is ill");
+        cut.Find(".booking-detail-refund").TextContent.ShouldBe("€360.00");
+        cut.Find(".booking-detail-cancellation .booking-detail-refund-note").TextContent.ShouldContain("does not refund automatically");
+        cut.Find(".booking-detail-total-amount").TextContent.ShouldBe("€720.00");
+        cut.FindAll(".booking-detail-room").Count.ShouldBe(2);
+        cut.FindAll(".booking-detail-payment").Count.ShouldBe(1);
+        cut.FindAll(".booking-detail-cancel-open").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void ShowNoRefundForACancellationWithoutRefund()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(Cancelled(0m));
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-refund").TextContent.ShouldBe("No refund");
+        cut.FindAll(".booking-detail-cancellation .booking-detail-refund-note").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void WarnAboutAPaymentAfterTheCancellation()
+    {
+        var booking = Cancelled(0m);
+        booking.Payments.Single().PaidAt = booking.Cancellation!.CancelledAt.AddHours(1);
+        _bookingService.AdminDetailAnswer = Result.Success(booking);
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-paid-after-cancel").TextContent.ShouldContain("A payment came in after the cancellation");
+    }
+
+    [Fact]
+    public void NotWarnAboutAPaymentBeforeTheCancellation()
+    {
+        // paid on 4 Oct, cancelled on 10 Oct with a partial refund
+        _bookingService.AdminDetailAnswer = Result.Success(Cancelled(360m));
+
+        var cut = RenderPage();
+
+        cut.FindAll(".booking-detail-paid-after-cancel").ShouldBeEmpty();
+    }
 }

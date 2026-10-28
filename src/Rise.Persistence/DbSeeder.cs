@@ -193,7 +193,14 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         var shortPayment = shortBooking.AddPayment(rooms[1].Rates[0].PricePerNight, "cs_test_seed_0006");
         shortPayment.MarkAsPaid(new DateTime(2026, 10, 6, 18, 45, 0, DateTimeKind.Utc), "in_test_seed_0006", "INV-2026-0004");
 
-        dbContext.Bookings.AddRange(paidBooking, openBooking, familyBooking, suiteBooking, shortBooking);
+        // Paid on the refundable rate, then cancelled by the guest with a full refund.
+        var cancelledBooking = new Booking("20261007-0006", guests[2], new DateOnly(2026, 11, 20), new DateOnly(2026, 11, 23));
+        cancelledBooking.AddRoom(rooms[1], rooms[1].Rates[1]);
+        var cancelledPayment = cancelledBooking.AddPayment(3 * rooms[1].Rates[1].PricePerNight, "cs_test_seed_0007");
+        cancelledPayment.MarkAsPaid(new DateTime(2026, 10, 7, 10, 20, 0, DateTimeKind.Utc), "in_test_seed_0007", "INV-2026-0005");
+        cancelledBooking.Cancel(new DateTime(2026, 10, 12, 16, 5, 0, DateTimeKind.Utc), "Guest asked to cancel by phone, flight was cancelled", cancelledBooking.PaidAmount);
+
+        dbContext.Bookings.AddRange(paidBooking, openBooking, familyBooking, suiteBooking, shortBooking, cancelledBooking);
         await dbContext.SaveChangesAsync();
     }
 }

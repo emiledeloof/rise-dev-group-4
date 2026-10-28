@@ -17,6 +17,7 @@ public sealed class StripeWebhookService(
         CancellationToken cancellationToken = default)
     {
         var localPayment = await dbContext.Payments
+            .Include(x => x.Booking)
             .SingleOrDefaultAsync(x => x.Id == payment.PaymentId, cancellationToken);
 
         if (localPayment is null)
@@ -35,6 +36,12 @@ public sealed class StripeWebhookService(
             localPayment.SetStripePaymentDetails(details.PaymentIntentId, details.ReceiptUrl, details.CardBrand, details.CardLast4);
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // ! the guest finished an open checkout after the admin cancelled, the money is real so it stays paid,
+        // the admin detail page shows a warning, the refund is done by hand
+        if (localPayment.Booking.IsCancelled)
+            Log.Warning("Payment {PaymentId} was paid after booking {BookingNumber} was cancelled, refund it by hand.",
+                localPayment.Id, localPayment.Booking.BookingNumber);
 
         return Result.Success();
     }

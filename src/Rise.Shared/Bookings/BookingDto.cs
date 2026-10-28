@@ -33,7 +33,7 @@ public static class BookingDto
         /// </summary>
         public required List<string> RoomNumbers { get; set; }
         /// <summary>
-        /// Derived payment status: "Paid" when at least one payment is settled, otherwise "Pending".
+        /// "Cancelled" for a cancelled booking, else "Paid" when at least one payment is settled, otherwise "Pending".
         /// </summary>
         public required string Status { get; set; }
     }
@@ -83,7 +83,7 @@ public static class BookingDto
         public required string BookingNumber { get; set; }
         public required DateTime CreatedAt { get; set; }
         /// <summary>
-        /// Derived payment status: "Paid" when at least one payment is settled, otherwise "Pending".
+        /// "Cancelled" for a cancelled booking, else "Paid" when at least one payment is settled, otherwise "Pending".
         /// </summary>
         public required string Status { get; set; }
         public required DateOnly CheckIn { get; set; }
@@ -93,6 +93,19 @@ public static class BookingDto
         /// Total of all rooms for the whole stay.
         /// </summary>
         public required decimal TotalAmount { get; set; }
+        /// <summary>
+        /// Sum of the settled payments, the most that can be refunded.
+        /// </summary>
+        public required decimal PaidAmount { get; set; }
+        /// <summary>
+        /// Refund due when cancelled today according to the cancellation policy copied at booking time,
+        /// prefills the cancel form, never more than <see cref="PaidAmount"/>.
+        /// </summary>
+        public required decimal SuggestedRefundAmount { get; set; }
+        /// <summary>
+        /// Null while the booking is not cancelled.
+        /// </summary>
+        public AdminCancellationDto? Cancellation { get; set; }
 
         public required AdminGuestDto Guest { get; set; }
         public required List<AdminRoomDto> Rooms { get; set; } = [];
@@ -131,6 +144,16 @@ public static class BookingDto
         /// Price of this room for all nights.
         /// </summary>
         public required decimal Total { get; set; }
+    }
+
+    /// <summary>
+    /// When and why the booking was cancelled and the refund the admin decided on.
+    /// </summary>
+    public class AdminCancellationDto
+    {
+        public required DateTime CancelledAt { get; set; }
+        public required string Reason { get; set; }
+        public required decimal RefundAmount { get; set; }
     }
 
     public class AdminPaymentDto

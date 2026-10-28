@@ -99,6 +99,28 @@ public class FakeBookingService : IBookingService
     public Task<Result<BookingResponse.Index>> GetIndexAsync(QueryRequest.SkipTake request, CancellationToken ctx = default)
         => Task.FromResult(IndexAnswer);
 
+    /// <summary>
+    /// what CancelAsync sends back, a cancelled booking with a refund of 360 by default
+    /// </summary>
+    public Result<BookingResponse.Cancel> CancelAnswer { get; set; } = Result.Success(new BookingResponse.Cancel
+    {
+        BookingId = 7,
+        BookingNumber = "20261004-SVM-000007",
+        CancelledAt = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc),
+        RefundAmount = 360m,
+    });
+
+    /// <summary>
+    /// every cancellation the page sent
+    /// </summary>
+    public List<BookingRequest.Cancel> CancelRequests { get; } = [];
+
+    public Task<Result<BookingResponse.Cancel>> CancelAsync(BookingRequest.Cancel request, CancellationToken ctx = default)
+    {
+        CancelRequests.Add(request);
+        return Task.FromResult(CancelAnswer);
+    }
+
     public Result<BookingResponse.Matrix>? MatrixAnswer { get; set; }
 
     public Task<Result<BookingResponse.Matrix>> GetMatrixAsync(BookingRequest.Matrix request, CancellationToken ctx = default)

@@ -23,6 +23,24 @@ public class Booking : Entity
     public IReadOnlyList<Payment> Payments => _payments.AsReadOnly();
 
     /// <summary>
+    /// Set by <see cref="Cancel"/>, a cancelled booking keeps its rooms, prices and payments for the admin.
+    /// </summary>
+    public DateTime? CancelledAt { get; private set; }
+    public string? CancellationReason { get; private set; }
+
+    /// <summary>
+    /// Refund the admin decided on when cancelling, the website never refunds it, the admin does it by hand.
+    /// </summary>
+    public decimal? RefundAmount { get; private set; }
+
+    public bool IsCancelled => CancelledAt is not null;
+
+    /// <summary>
+    /// Sum of the settled payments, the most that can be refunded.
+    /// </summary>
+    public decimal PaidAmount => _payments.Where(x => x.IsPaid && !x.IsDeleted).Sum(x => x.Amount);
+
+    /// <summary>
     /// Entity Framework Core Constructor
     /// </summary>
     private Booking()
@@ -62,6 +80,25 @@ public class Booking : Entity
         var bookingRoom = new BookingRoom(this, room, rate);
         _rooms.Add(bookingRoom);
         return bookingRoom;
+    }
+
+    /// <summary>
+    /// Cancels the booking and records the refund decision, the payments must be loaded to check the refund.
+    /// </summary>
+    public void Cancel(DateTime cancelledAt, string reason, decimal refundAmount)
+    {
+        if (IsCancelled)
+            throw new InvalidOperationException("The booking is already cancelled.");
+
+        Guard.Against.NullOrWhiteSpace(reason);
+        Guard.Against.Negative(refundAmount);
+
+        if (refundAmount > PaidAmount)
+            throw new ArgumentException("The refund can't be more than the amount paid.", nameof(refundAmount));
+
+        CancelledAt = cancelledAt;
+        CancellationReason = reason.Trim();
+        RefundAmount = refundAmount;
     }
 
     public Payment AddPayment(decimal amount, string? stripeCheckoutSession = null)

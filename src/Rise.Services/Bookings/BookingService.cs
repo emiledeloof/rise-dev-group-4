@@ -41,6 +41,9 @@ public sealed class BookingService(
         if (booking.Rooms.Count == 0)
             return Result.Invalid(new ValidationError("The booking has no rooms."));
 
+        if (booking.IsCancelled)
+            return Result.Conflict("The booking has been cancelled.");
+
         if (booking.Payments.Any(x => x.IsPaid))
             return Result.Conflict("The booking has already been paid.");
 
@@ -125,11 +128,12 @@ public sealed class BookingService(
 
         // same overlap rule as RoomService.GetAvailableAsync
         // TODO: two simultaneous requests can both pass this check, add a Postgres exclusion constraint
-        // or a serializable transaction once bookings get a status (InMemory tests don't support transactions)
+        // or a serializable transaction (InMemory tests don't support transactions)
         var takenRoomIds = await dbContext.BookingRooms
             .Where(br => roomIds.Contains(br.Room.Id)
                 && !br.IsDeleted
                 && !br.Booking.IsDeleted
+                && br.Booking.CancelledAt == null
                 && br.Booking.CheckIn < request.CheckOut
                 && br.Booking.CheckOut > request.CheckIn)
             .Select(br => br.Room.Id)
@@ -232,6 +236,7 @@ public sealed class BookingService(
             .OrderBy(x => x.RoomNumber)
             .ToList();
         var payments = booking.Payments.Where(x => !x.IsDeleted).ToList();
+        var paidAmount = booking.PaidAmount;
 
         return new BookingDto.AdminDetail
         {
@@ -239,11 +244,21 @@ public sealed class BookingService(
             BookingNumber = booking.BookingNumber,
             CreatedAt = booking.CreatedAt,
             // same rule as GetIndexAsync
-            Status = payments.Any(x => x.IsPaid) ? "Paid" : "Pending",
+            Status = booking.IsCancelled ? BookingStatus.Cancelled : payments.Any(x => x.IsPaid) ? BookingStatus.Paid : BookingStatus.Pending,
             CheckIn = booking.CheckIn,
             CheckOut = booking.CheckOut,
             Nights = nights,
             TotalAmount = rooms.Sum(x => x.Total),
+            PaidAmount = paidAmount,
+            SuggestedRefundAmount = Math.Min(SuggestedRefund(booking, nights), paidAmount),
+            Cancellation = booking.CancelledAt is { } cancelledAt
+                ? new BookingDto.AdminCancellationDto
+                {
+                    CancelledAt = cancelledAt,
+                    Reason = booking.CancellationReason!,
+                    RefundAmount = booking.RefundAmount ?? 0,
+                }
+                : null,
             Guest = new BookingDto.AdminGuestDto
             {
                 Id = booking.Guest.Id,
@@ -269,6 +284,57 @@ public sealed class BookingService(
                 })
                 .ToList(),
         };
+    }
+
+    /// <summary>
+    /// Refund of every room according to the policy copied at booking time, as if the booking is cancelled today.
+    /// </summary>
+    private static decimal SuggestedRefund(Booking booking, int nights)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        return booking.Rooms
+            .Where(x => !x.IsDeleted)
+            .Sum(x => Math.Round(
+                PriceCalculator.Total(x.PricePerNight, nights) * RefundCalculator.RefundPercent(x, booking.CheckIn, today) / 100m,
+                2));
+    }
+
+    /// <summary>
+    /// Cancels the booking and records the refund the admin decided on.
+    /// ! no refund is executed here, the admin pays it back by hand in Stripe
+    /// </summary>
+    public async Task<Result<BookingResponse.Cancel>> CancelAsync(BookingRequest.Cancel request, CancellationToken ctx = default)
+    {
+        var booking = await dbContext.Bookings
+            .Include(x => x.Payments)
+            .SingleOrDefaultAsync(x => x.Id == request.BookingId && !x.IsDeleted, ctx);
+
+        if (booking is null)
+        {
+            return Result.NotFound($"Booking with ID '{request.BookingId}' was not found.");
+        }
+
+        if (booking.IsCancelled)
+        {
+            return Result.Conflict($"Booking {booking.BookingNumber} is already cancelled.");
+        }
+
+        if (request.RefundAmount > booking.PaidAmount)
+        {
+            return Result.Invalid(new ValidationError(
+                $"The refund can't be more than the amount paid (€{booking.PaidAmount.ToString("0.00", CultureInfo.InvariantCulture)})."));
+        }
+
+        booking.Cancel(DateTime.UtcNow, request.Reason, request.RefundAmount);
+        await dbContext.SaveChangesAsync(ctx);
+
+        return Result.Success(new BookingResponse.Cancel
+        {
+            BookingId = booking.Id,
+            BookingNumber = booking.BookingNumber,
+            CancelledAt = booking.CancelledAt!.Value,
+            RefundAmount = request.RefundAmount,
+        });
     }
 
     public async Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
@@ -348,7 +414,7 @@ public sealed class BookingService(
 
     /// <summary>
     /// Returns a paginated list of all bookings for the admin overview.
-    /// Status is "Paid" when at least one payment has been settled, otherwise "Pending".
+    /// Status is "Cancelled" for a cancelled booking, else "Paid" when at least one payment has been settled, otherwise "Pending".
     /// </summary>
     public async Task<Result<BookingResponse.Index>> GetIndexAsync(
         QueryRequest.SkipTake request,
@@ -386,7 +452,7 @@ public sealed class BookingService(
                 GuestEmail = b.Guest.Email,
                 RoomPrices = b.Rooms.Select(r => r.PricePerNight).ToList(),
                 RoomNumbers = b.Rooms.Select(r => r.Room.RoomNumber).ToList(),
-                Status = b.Payments.Any(p => p.PaidAt != null) ? "Paid" : "Pending",
+                Status = b.CancelledAt != null ? BookingStatus.Cancelled : b.Payments.Any(p => p.PaidAt != null) ? BookingStatus.Paid : BookingStatus.Pending,
             })
             .ToListAsync(ctx);
 
@@ -436,11 +502,12 @@ public sealed class BookingService(
         // Load all non-deleted booking-room entries that overlap the window in one query,
         // navigating from the owning side (BookingRoom → Booking, Booking → Guest/Payments).
         // Both paid (Occupied) and unpaid (Temporary) bookings are included so the matrix
-        // can colour-code them differently.
+        // can colour-code them differently. Cancelled bookings are excluded.
         var overlapping = await dbContext.BookingRooms
             .AsNoTracking()
             .Where(br => !br.IsDeleted
                       && !br.Booking.IsDeleted
+                      && br.Booking.CancelledAt == null
                       && br.Booking.CheckIn < windowEnd
                       && br.Booking.CheckOut > request.WindowStart)
             .Select(br => new

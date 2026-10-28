@@ -83,6 +83,26 @@ public class StripeWebhookServiceShould
     }
 
     [Fact]
+    public async Task MarkPaymentOfCancelledBookingAsPaid()
+    {
+        // Arrange
+        var (dbContext, payment) = await CreateSeededDbContextAsync(nameof(MarkPaymentOfCancelledBookingAsPaid));
+        await using var _ = dbContext;
+        payment.Booking.Cancel(SessionCreated, "Guest asked to cancel by phone", 0m);
+        await dbContext.SaveChangesAsync();
+        var service = new StripeWebhookService(dbContext, paymentGateway);
+
+        // Act
+        var result = await service.HandleCheckoutSessionCompletedAsync(
+            new StripeCheckoutSessionCompleted(SessionId, payment.Id, ChargeCreated));
+
+        // Assert
+        result.IsSuccess.ShouldBeTrue();
+        payment.IsPaid.ShouldBeTrue();
+        payment.Booking.IsCancelled.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task NotLoadStripeDetailsWhenAlreadyPaid()
     {
         // Arrange

@@ -140,6 +140,23 @@ public class RoomServiceShould
     }
 
     /// <summary>
+    /// a cancelled booking does not block the room anymore
+    /// </summary>
+    [Fact]
+    public async Task IgnoreCancelledBookings()
+    {
+        // arrange, same data but the booking is cancelled
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(IgnoreCancelledBookings),
+            (_, booking) => booking.Cancel(DateTime.UtcNow, "Guest is ill", 0m));
+
+        // act
+        var names = await FreeRoomNamesAsync(dbContext, Stay(10, 12));
+
+        // assert
+        names.ShouldBe(new[] { DoubleRoom, SingleRoom });
+    }
+
+    /// <summary>
     /// a soft deleted room is never shown, even when it's free
     /// </summary>
     [Fact]

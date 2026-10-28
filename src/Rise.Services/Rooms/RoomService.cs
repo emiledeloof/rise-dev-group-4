@@ -32,11 +32,12 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         // keep only the rooms with at least 1 rate bookable for this nb of nights
         query = query.Where(r => r.Rates.Any(x => !x.IsDeleted && x.MinNights <= nights));
         // no booking of the room overlaps the stay, ie starts before our check out and ends after our check in
-        // TODO: also ignore cancelled bookings once the domain has a status
+        // cancelled bookings free their rooms
         query = query.Where(r => !dbContext.BookingRooms.Any(br =>
             br.Room.Id == r.Id
             && !br.IsDeleted
             && !br.Booking.IsDeleted
+            && br.Booking.CancelledAt == null
             && br.Booking.CheckIn < checkOut
             && br.Booking.CheckOut > checkIn));
 
