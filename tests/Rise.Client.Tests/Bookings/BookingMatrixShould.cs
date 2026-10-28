@@ -178,5 +178,46 @@ public class BookingMatrixShould : BunitContext
         // The grid must not be rendered
         cut.FindAll(".matrix-grid").Count.ShouldBe(0);
     }
-}
 
+    // ──────────────────────────────────────────────
+    // Hover Popup
+    // ──────────────────────────────────────────────
+
+    [Fact]
+    public void ShowPopupOnMouseEnterBookingCellAndHideOnMouseLeave()
+    {
+        _bookingService.MatrixAnswer = Result.Success(SingleRoomMatrix("Suite",
+            bookings:
+            [
+                new BookingDto.MatrixBooking
+                {
+                    Id = 7,
+                    BookingNumber = "20261001-SVM-000001",
+                    GuestName = "Anna Paid",
+                    CheckIn = WindowStart.AddDays(1),
+                    CheckOut = WindowStart.AddDays(4),
+                    Status = CellStatus.Occupied,
+                },
+            ]));
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.Full());
+
+        var cut = Render<BookingMatrix>();
+
+        // Initially popup is hidden
+        cut.FindAll(".booking-popup").Count.ShouldBe(0);
+
+        // Hover over the booking cell
+        var bookingCell = cut.Find(".matrix-cell-occupied");
+        bookingCell.MouseEnter(new Microsoft.AspNetCore.Components.Web.MouseEventArgs { ClientX = 120, ClientY = 220 });
+
+        // Popup should now be rendered with details
+        cut.Find(".booking-popup").ShouldNotBeNull();
+        cut.Find(".popup-booking-number").TextContent.ShouldBe("20261004-SVM-000007");
+
+        // Leave hover
+        bookingCell.MouseLeave();
+
+        // Popup is hidden again
+        cut.FindAll(".booking-popup").Count.ShouldBe(0);
+    }
+}

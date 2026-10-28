@@ -83,12 +83,19 @@
                                     CellStatus.Temporary => "matrix-cell-temporary",
                                     _                    => "matrix-cell-available",
                                 };
-                                <div class="@cssClass" style="grid-column: span @cellItem.ColSpan;">
-                                    @if (cellItem.Booking is not null)
-                                    {
+                                @if (cellItem.Booking is not null)
+                                {
+                                    <div class="@cssClass"
+                                         style="grid-column: span @cellItem.ColSpan;"
+                                         @onmouseenter="e => ShowPopup(cellItem.Booking.Id, e.ClientX, e.ClientY)"
+                                         @onmouseleave="HidePopup">
                                         <span class="cell-guest-name">@cellItem.Booking.GuestName</span>
-                                    }
-                                </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="@cssClass" style="grid-column: span @cellItem.ColSpan;"></div>
+                                }
                             }
                         </div>
                     </div>
@@ -101,5 +108,7 @@
             <button class="btn-new-booking" type="button">New booking</button>
         </div>*@
     }
+
+    <BookingPopup BookingId="_popupBookingId" X="_popupX" Y="_popupY" />
 </div>
 

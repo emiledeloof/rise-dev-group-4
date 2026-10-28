@@ -13,6 +13,10 @@ public partial class BookingMatrix
     private BookingResponse.Matrix? _matrix;
     private string? _errorMessage;
 
+    private int? _popupBookingId;
+    private double _popupX;
+    private double _popupY;
+
     [Inject] public required IBookingService BookingService { get; set; }
 
     private IEnumerable<DateOnly> Days =>
@@ -58,6 +62,18 @@ public partial class BookingMatrix
 
     private static bool IsToday(DateOnly day)
         => day == DateOnly.FromDateTime(DateTime.Today);
+
+    private void ShowPopup(int bookingId, double x, double y)
+    {
+        _popupBookingId = bookingId;
+        _popupX = x + 14;
+        _popupY = y - 10;
+    }
+
+    private void HidePopup()
+    {
+        _popupBookingId = null;
+    }
 
     public record MatrixCellItem(
         int ColSpan,

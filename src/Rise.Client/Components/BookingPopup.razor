@@ -1,0 +1,78 @@
+@using Rise.Client.Common
+@using Rise.Shared.Bookings
+
+@if (BookingId is not null)
+{
+    <div class="booking-popup" style="left: clamp(1rem, @(X)px, calc(100vw - 23rem)); top: clamp(1rem, @(Y)px, calc(100vh - 20rem));">
+        @if (_loading)
+        {
+            <div class="popup-skeleton">
+                <div class="skeleton-line skeleton-header"></div>
+                <div class="skeleton-line skeleton-text"></div>
+                <div class="skeleton-line skeleton-text-short"></div>
+            </div>
+        }
+        else if (_errorMessage is not null || _detail is null)
+        {
+            <!-- AC2: meaningful empty state -->
+            <div class="popup-empty-state">
+                <span class="popup-empty-icon" aria-hidden="true">📋</span>
+                <p class="popup-empty-title">Details unavailable</p>
+            </div>
+        }
+        else
+        {
+            <!-- AC1: key information -->
+            <div class="popup-header">
+                <span class="popup-booking-number">@_detail.BookingNumber</span>
+                <span class="popup-status">
+                    @if (_detail.Status == "Paid")
+                    {
+                        <span class="tag is-primary is-light">Paid</span>
+                    }
+                    else
+                    {
+                        <span class="tag is-warning is-light">Pending</span>
+                    }
+                </span>
+            </div>
+
+            <div class="popup-body">
+                <div class="popup-guest">
+                    <span class="popup-guest-name">@_detail.Guest.Name</span>
+                    <div class="popup-contact">
+                        @if (!string.IsNullOrWhiteSpace(_detail.Guest.Email))
+                        {
+                            <span class="popup-contact-item popup-guest-email">
+                                <i class="fas fa-envelope" aria-hidden="true"></i> @_detail.Guest.Email
+                            </span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_detail.Guest.Phone))
+                        {
+                            <span class="popup-contact-item popup-guest-phone">
+                                <i class="fas fa-phone" aria-hidden="true"></i> @_detail.Guest.Phone
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                <div class="popup-stay">
+                    <div class="popup-dates">
+                        <span class="popup-checkin">@Format.Date(_detail.CheckIn)</span>
+                        <span class="popup-dates-separator">–</span>
+                        <span class="popup-checkout">@Format.Date(_detail.CheckOut)</span>
+                        <span class="popup-nights">(@_detail.Nights @(_detail.Nights == 1 ? "night" : "nights"))</span>
+                    </div>
+
+                    @if (_detail.Rooms.Count > 0)
+                    {
+                        <div class="popup-rooms">
+                            <span class="popup-label">Rooms:</span>
+                            <span class="popup-rooms-list">@string.Join(", ", _detail.Rooms.Select(r => r.RoomNumber))</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
