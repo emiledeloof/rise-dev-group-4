@@ -75,7 +75,7 @@ public class Room : Entity
     public IReadOnlyList<RoomPhoto> Photos => _photos.AsReadOnly();
 
     /// <summary>
-    /// MVP: one rate per room, modelled as a collection so more rates can be added later.
+    /// A room can have multiple rates, including rates with overlapping availability periods.
     /// </summary>
     private readonly List<Rate> _rates = [];
     public IReadOnlyList<Rate> Rates => _rates.AsReadOnly();
@@ -113,9 +113,9 @@ public class Room : Entity
         return photo;
     }
 
-    public Rate AddRate(string name, decimal pricePerNight, string? description = null)
+    public Rate AddRate(string name, decimal pricePerNight, string? description = null, DateOnly? validFrom = null, DateOnly? validTo = null)
     {
-        var rate = new Rate(this, name, pricePerNight, description);
+        var rate = new Rate(this, name, pricePerNight, description, validFrom, validTo);
         _rates.Add(rate);
         return rate;
     }

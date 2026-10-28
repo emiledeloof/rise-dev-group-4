@@ -4,6 +4,7 @@ using Rise.Shared.Identity;
 using Rise.Shared.RatePricing;
 using Rise.Shared.Rates;
 using Rise.Shared.Rooms;
+using Rise.Shared.Settings;
 using Shouldly;
 using Xunit.Abstractions;
 
@@ -35,10 +36,12 @@ public class RatesPageShould : BunitContext
         rows[0].TextContent.ShouldContain("€90.00");
 
         var selects = cut.FindAll(".rate-filter select");
-        selects.Count.ShouldBe(2);
+        selects.Count.ShouldBe(3);
         selects[0].QuerySelectorAll("option").Select(option => option.TextContent)
             .ShouldBe(["All rooms", "Double Room", "Single Room"]);
         selects[1].QuerySelectorAll("option").Select(option => option.TextContent)
+            .ShouldBe(["All date ranges", "01 Oct 2026 - 31 Oct 2026"]);
+        selects[2].QuerySelectorAll("option").Select(option => option.TextContent)
             .ShouldBe(["All policies", "Non-refundable", "Refundable"]);
 
         _rateService.IndexRequests.ShouldHaveSingleItem()
@@ -47,6 +50,57 @@ public class RatesPageShould : BunitContext
                 request.Skip.ShouldBe(0);
                 request.Take.ShouldBe(10);
             });
+    }
+
+    [Fact]
+    public void ShowVatInclusivePriceAndOriginalPriceWhenVatIsEnabled()
+    {
+        _ratePricingService.GeneralSettingsAnswer = Result.Success(new GeneralSettingsDto
+        {
+            IsVatEnabled = true,
+            VatPercentage = 20m,
+        });
+
+        var cut = Render<Rates>();
+
+        var priceCell = cut.Find(".rate-table tbody tr:first-child .rate-price");
+        priceCell.QuerySelector("span")!.TextContent.ShouldBe("€108.00");
+        priceCell.QuerySelector(".rate-price-before-vat")!.TextContent.ShouldBe("€90.00");
+
+        cut.FindAll(".rate-edit-btn")[0].Click();
+        cut.Find("#price").GetAttribute("value").ShouldBe("90");
+    }
+
+    [Fact]
+    public void ShowOnlyOriginalPriceWhenVatIsDisabled()
+    {
+        _ratePricingService.GeneralSettingsAnswer = Result.Success(new GeneralSettingsDto
+        {
+            IsVatEnabled = false,
+            VatPercentage = 20m,
+        });
+
+        var cut = Render<Rates>();
+
+        var priceCell = cut.Find(".rate-table tbody tr:first-child .rate-price");
+        priceCell.TextContent.Trim().ShouldBe("€90.00");
+        priceCell.QuerySelector(".rate-price-before-vat").ShouldBeNull();
+    }
+
+    [Fact]
+    public void ShowOnlyOriginalPriceWhenEnabledVatPercentageIsZero()
+    {
+        _ratePricingService.GeneralSettingsAnswer = Result.Success(new GeneralSettingsDto
+        {
+            IsVatEnabled = true,
+            VatPercentage = 0m,
+        });
+
+        var cut = Render<Rates>();
+
+        var priceCell = cut.Find(".rate-table tbody tr:first-child .rate-price");
+        priceCell.TextContent.Trim().ShouldBe("€90.00");
+        priceCell.QuerySelector(".rate-price-before-vat").ShouldBeNull();
     }
 
     [Fact]
@@ -64,6 +118,12 @@ public class RatesPageShould : BunitContext
         filteredRequest.RoomName.ShouldBe("Double Room");
         filteredRequest.Policy.ShouldBeNull();
         filteredRequest.Skip.ShouldBe(0);
+
+        await cut.FindAll(".rate-filter select")[1].ChangeAsync("2026-10-01 - 2026-10-31");
+        var dateFilteredRequest = _rateService.IndexRequests[^1];
+        dateFilteredRequest.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+        dateFilteredRequest.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
+        dateFilteredRequest.FilterByDateRange.ShouldBeTrue();
     }
 
     [Fact]
@@ -74,6 +134,7 @@ public class RatesPageShould : BunitContext
             Rates = [],
             RoomNames = [],
             Policies = [],
+            DateRanges = [],
             TotalCount = 0,
         });
 
@@ -100,7 +161,7 @@ public class RatesPageShould : BunitContext
         cut.Find("button").Click();
         cut.FindAll(".rate-create-fields input")[0].Change("Standard");
         cut.Find("input[type='number']").Change("79");
-        cut.FindAll(".rate-create-fields input")[^1].Change("Flexible cancellation");
+        cut.FindAll(".rate-create-fields")[0].QuerySelectorAll("input")[2].Change("Flexible cancellation");
 
         cut.Find(".rate-create-panel form").Submit();
 
@@ -130,6 +191,7 @@ public class RatesPageShould : BunitContext
             Name = "Standard",
             RoomName = "Deluxe Room",
             PricePerNight = 79m,
+            IsActive = true,
             Description = "Flexible cancellation",
         });
 
@@ -142,6 +204,7 @@ public class RatesPageShould : BunitContext
             request.Name.ShouldBe("Standard");
             request.RoomName.ShouldBe("Deluxe Room");
             request.PricePerNight.ShouldBe(79m);
+            request.IsActive.ShouldBeTrue();
             request.Description.ShouldBe("Flexible cancellation");
         });
         cut.Find(".rate-table tbody").TextContent.ShouldContain("Standard");
@@ -177,7 +240,9 @@ public class RatesPageShould : BunitContext
         cut.Find("#price").GetAttribute("value").ShouldBe("79");
         cut.Find("#min-nights").GetAttribute("value").ShouldBe("1");
         cut.Find("#is-refundable").HasAttribute("checked").ShouldBeTrue();
+        cut.FindAll("#is-active").ShouldBeEmpty();
         cut.Find("#full-refund-days").GetAttribute("value").ShouldBe("30");
+        cut.Find(".rate-edit-panel .drp-value").TextContent.ShouldBe("1 Oct 2026 – 31 Oct 2026");
     }
 
     /// <summary>
@@ -210,12 +275,44 @@ public class RatesPageShould : BunitContext
         {
             request.RateId.ShouldBe(2);
             request.PricePerNight.ShouldBe(85m);
+            request.IsActive.ShouldBeTrue();
             request.MinNights.ShouldBe(3);
         });
         cut.FindAll(".rate-edit-panel").ShouldBeEmpty();
         cut.Find(".rate-success").TextContent.ShouldBe("Saved: price and minimum nights.");
         // 1 load on open, 1 after the save
         _rateService.IndexRequests.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void EditAvailabilityDatesUsingTheCalendar()
+    {
+        var cut = Render<Rates>();
+        cut.FindAll(".rate-edit-btn")[1].Click();
+        cut.Find(".rate-edit-panel .drp-field").Click();
+        cut.Find("[aria-label='3 October 2026']").Click();
+        cut.Find("[aria-label='8 October 2026']").Click();
+
+        cut.Find(".rate-edit-panel form").Submit();
+
+        var edit = _ratePricingService.EditRequests.ShouldHaveSingleItem();
+        edit.StartDate.ShouldBe(new DateOnly(2026, 10, 3));
+        edit.EndDate.ShouldBe(new DateOnly(2026, 10, 8));
+        cut.Find(".rate-success").TextContent.ShouldContain("availability dates");
+    }
+
+    [Fact]
+    public void ClearAvailabilityDatesWhenEditingARate()
+    {
+        var cut = Render<Rates>();
+        cut.FindAll(".rate-edit-btn")[1].Click();
+        cut.FindAll(".rate-edit-panel .rate-date-picker button")[1].Click();
+
+        cut.Find(".rate-edit-panel form").Submit();
+
+        var edit = _ratePricingService.EditRequests.ShouldHaveSingleItem();
+        edit.StartDate.ShouldBeNull();
+        edit.EndDate.ShouldBeNull();
     }
 
     /// <summary>
@@ -232,6 +329,37 @@ public class RatesPageShould : BunitContext
 
         cut.Find(".rate-edit-panel .notification.is-danger").TextContent
             .ShouldContain("The changes could not be saved.");
+    }
+
+    [Fact]
+    public void ToggleRateActiveStatusWithoutOpeningTheEditForm()
+    {
+        var cut = Render<Rates>();
+        var inactiveRate = cut.Find("input[role='switch'][aria-label='Activate Non-refundable']");
+
+        inactiveRate.Change(true);
+
+        _ratePricingService.EditRequests.ShouldHaveSingleItem().ShouldSatisfyAllConditions(request =>
+        {
+            request.RateId.ShouldBe(1);
+            request.IsActive.ShouldBeTrue();
+            request.PricePerNight.ShouldBe(90m);
+        });
+        cut.Find(".rate-table tbody tr").GetAttribute("class").ShouldBeNull();
+        cut.FindAll(".rate-edit-panel").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void KeepInactiveRateMutedWhenItsStatusCannotBeSaved()
+    {
+        _ratePricingService.EditAnswer = Result.Error("Server error");
+        var cut = Render<Rates>();
+
+        cut.Find("input[role='switch'][aria-label='Activate Non-refundable']").Change(true);
+
+        cut.Find(".rate-table tbody tr").GetAttribute("class").ShouldBe("rate-inactive-row");
+        cut.Find(".rate-success.notification.is-danger").TextContent
+            .ShouldContain("The rate status could not be updated.");
     }
 
     /// <summary>
@@ -277,6 +405,7 @@ public class RatesPageShould : BunitContext
             Name = "Standard",
             RoomName = "Deluxe Room",
             PricePerNight = 79m,
+            IsActive = true,
             Description = "Flexible cancellation",
         });
         var cut = Render<Rates>();
@@ -302,6 +431,7 @@ public class RatesPageShould : BunitContext
             Name = "Standard",
             RoomName = "Deluxe Room",
             PricePerNight = 79m,
+            IsActive = true,
             Description = "Flexible cancellation",
         });
         var cut = Render<Rates>();
@@ -318,12 +448,49 @@ public class RatesPageShould : BunitContext
         request.PartialRefundPercent.ShouldBe(50);
     }
 
+    [Fact]
+    public void OpenGeneralSettingsWithSavedVatValuesAndNoVatColumn()
+    {
+        _ratePricingService.GeneralSettingsAnswer = Result.Success(new GeneralSettingsDto
+        {
+            IsVatEnabled = true,
+            VatPercentage = 12m,
+        });
+        var cut = Render<Rates>();
+
+        cut.FindAll(".rate-page-heading button")[1].Click();
+
+        cut.Find("#general-vat-percentage").GetAttribute("value").ShouldBe("12");
+        cut.Find("input[role='switch'][aria-label='Enable VAT']").HasAttribute("checked").ShouldBeTrue();
+        cut.Find(".rate-vat-status").TextContent.ShouldBe("VAT active · 12%");
+        cut.FindAll(".rate-table th").Select(header => header.TextContent).ShouldNotContain("VAT");
+    }
+
+    [Fact]
+    public void SaveGlobalVatSettingsAndShowTheActiveStatus()
+    {
+        var cut = Render<Rates>();
+
+        cut.FindAll(".rate-page-heading button")[1].Click();
+        cut.Find("input[role='switch'][aria-label='Enable VAT']").Change(true);
+        cut.Find("#general-vat-percentage").Change("21");
+        cut.Find(".rate-settings-panel form").Submit();
+
+        _ratePricingService.GeneralSettingsRequests.ShouldHaveSingleItem().ShouldSatisfyAllConditions(request =>
+        {
+            request.IsVatEnabled.ShouldBeTrue();
+            request.VatPercentage.ShouldBe(21m);
+        });
+        cut.Find(".rate-vat-status").TextContent.ShouldBe("VAT active · 21%");
+        cut.FindAll(".rate-settings-panel").ShouldBeEmpty();
+    }
+
     private static void OpenAndFillCreateForm(IRenderedComponent<Rates> cut)
     {
         cut.Find(".rate-page-heading button").Click();
         cut.FindAll(".rate-create-fields input")[0].Change("Standard");
         cut.Find("input[type='number']").Change("79");
-        cut.FindAll(".rate-create-fields input")[^1].Change("Flexible cancellation");
+        cut.FindAll(".rate-create-fields")[0].QuerySelectorAll("input")[2].Change("Flexible cancellation");
         cut.Find(".rate-create-fields select").Change("Deluxe Room");
     }
 }

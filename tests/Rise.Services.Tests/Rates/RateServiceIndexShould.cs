@@ -24,6 +24,7 @@ public class RateServiceIndexShould
         var nonRefundable = doubleRoom.AddRate("Non-refundable", 90m, "No refund");
         nonRefundable.CancellationPolicy = CancellationPolicy.NonRefundable;
         nonRefundable.MinNights = 2;
+        nonRefundable.IsActive = false;
         doubleRoom.AddRate("Deleted rate", 70m, "Archived policy").IsDeleted = true;
 
         var singleRoom = new Room("102", SingleRoom, 1);
@@ -51,6 +52,59 @@ public class RateServiceIndexShould
         result.IsSuccess.ShouldBeTrue();
         result.Value.TotalCount.ShouldBe(2);
         result.Value.Rates.Select(rate => rate.RoomName).Distinct().ShouldBe([DoubleRoom]);
+    }
+
+    [Fact]
+    public async Task FilterByDateRangeAndKeepOverlappingRatesForTheSameRoom()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(nameof(FilterByDateRangeAndKeepOverlappingRatesForTheSameRoom))
+            .Options;
+        await using var dbContext = new ApplicationDbContext(options);
+
+        var room = new Room("101", DoubleRoom, 2);
+        room.AddRate("Autumn", 120m, validFrom: new DateOnly(2026, 10, 1), validTo: new DateOnly(2026, 10, 31));
+        room.AddRate("Autumn special", 100m, validFrom: new DateOnly(2026, 10, 1), validTo: new DateOnly(2026, 10, 31));
+        room.AddRate("Any dates", 90m);
+        dbContext.Rooms.Add(room);
+        await dbContext.SaveChangesAsync();
+
+        var result = await new RateService(dbContext).GetIndexAsync(new RateRequest.Index
+        {
+            StartDate = new DateOnly(2026, 10, 1),
+            EndDate = new DateOnly(2026, 10, 31),
+            FilterByDateRange = true,
+        });
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.TotalCount.ShouldBe(2);
+        result.Value.Rates.Select(rate => rate.Name).OrderBy(name => name)
+            .ShouldBe(["Autumn", "Autumn special"]);
+        result.Value.DateRanges.ShouldContain("2026-10-01 - 2026-10-31");
+    }
+
+    [Fact]
+    public async Task FilterDateRangesWithAnOpenEndExactly()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(nameof(FilterDateRangesWithAnOpenEndExactly))
+            .Options;
+        await using var dbContext = new ApplicationDbContext(options);
+
+        var room = new Room("101", DoubleRoom, 2);
+        room.AddRate("Until October", 120m, validTo: new DateOnly(2026, 10, 31));
+        room.AddRate("From October", 100m, validFrom: new DateOnly(2026, 10, 1));
+        dbContext.Rooms.Add(room);
+        await dbContext.SaveChangesAsync();
+
+        var result = await new RateService(dbContext).GetIndexAsync(new RateRequest.Index
+        {
+            EndDate = new DateOnly(2026, 10, 31),
+            FilterByDateRange = true,
+        });
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Rates.Select(rate => rate.Name).ShouldBe(["Until October"]);
     }
 
     /// <summary>
@@ -88,9 +142,9 @@ public class RateServiceIndexShould
     }
 
     [Fact]
-    public async Task ReturnOnlyActiveRatesAndAllFilterOptions()
+    public async Task ReturnOnlyNonDeletedRatesAndAllFilterOptions()
     {
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnOnlyActiveRatesAndAllFilterOptions));
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnOnlyNonDeletedRatesAndAllFilterOptions));
 
         var result = await new RateService(dbContext).GetIndexAsync(new RateRequest.Index
         {
@@ -151,6 +205,7 @@ public class RateServiceIndexShould
         var nonRefundable = result.Value.Rates.Single(rate => rate.Name == "Non-refundable");
         nonRefundable.MinNights.ShouldBe(2);
         nonRefundable.IsRefundable.ShouldBeFalse();
+        nonRefundable.IsActive.ShouldBeFalse();
 
         var flexible = result.Value.Rates.Single(rate => rate.Name == "Flexible");
         flexible.MinNights.ShouldBe(1);
@@ -158,5 +213,6 @@ public class RateServiceIndexShould
         flexible.FullRefundDays.ShouldBe(30);
         flexible.PartialRefundDays.ShouldBe(7);
         flexible.PartialRefundPercent.ShouldBe(50);
+        flexible.IsActive.ShouldBeTrue();
     }
 }

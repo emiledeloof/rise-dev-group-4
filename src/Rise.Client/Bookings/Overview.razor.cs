@@ -31,7 +31,7 @@ public partial class Overview
 
     // results page with the dates of the draft, the picked rooms are shown again there
     private string RoomsUrl =>
-        $"/search/results?checkIn={Draft.CheckIn:yyyy-MM-dd}&checkOut={Draft.CheckOut:yyyy-MM-dd}";
+        $"/search/results?checkIn={Draft.CheckIn:yyyy-MM-dd}&checkOut={Draft.CheckOut:yyyy-MM-dd}&adults={Draft.Adults}";
 
     /// <summary>
     /// a missing step sends the guest back to it, eg after a page refresh the draft is empty

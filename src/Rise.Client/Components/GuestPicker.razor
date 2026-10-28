@@ -1,0 +1,49 @@
+@* guest selector popup for the search bar, styles in GuestPicker.razor.css *@
+<div class="gp">
+    @* field showing current guest count, opens or closes the counter panel *@
+    <button type="button"
+            class="gp-field"
+            aria-expanded="@(_isOpen ? "true" : "false")"
+            aria-label="Guests selector"
+            @onclick="Toggle">
+        <span class="gp-label">Guests</span>
+        <span class="gp-value">@FieldText</span>
+    </button>
+
+    @if (_isOpen)
+    {
+        <div class="gp-panel" role="dialog" aria-label="Choose number of guests">
+            <div class="gp-row">
+                <div class="gp-info">
+                    <span class="gp-title">Adults</span>
+                    <span class="gp-subtitle">Ages 18 or above</span>
+                </div>
+
+                <div class="gp-counter">
+                    <button type="button"
+                            class="gp-counter-btn"
+                            disabled="@(!CanDecreaseAdults)"
+                            aria-label="Decrease adults"
+                            @onclick="DecreaseAdults">
+                        −
+                    </button>
+
+                    <span class="gp-count" aria-live="polite">@Value</span>
+
+                    <button type="button"
+                            class="gp-counter-btn"
+                            disabled="@(!CanIncreaseAdults)"
+                            aria-label="Increase adults"
+                            @onclick="IncreaseAdults">
+                        +
+                    </button>
+                </div>
+            </div>
+
+            <div class="gp-footer">
+                <span class="gp-capacity-hint">Max @Max guests</span>
+                <button type="button" class="gp-done-btn" aria-label="Close guest picker" @onclick="Close">Done</button>
+            </div>
+        </div>
+    }
+</div>

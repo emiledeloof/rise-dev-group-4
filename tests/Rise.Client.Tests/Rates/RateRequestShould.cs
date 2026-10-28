@@ -14,6 +14,9 @@ public class RateRequestShould
             Take = 10,
             RoomName = "Double Room",
             Policy = "No refund & more",
+            StartDate = new DateOnly(2026, 10, 1),
+            EndDate = new DateOnly(2026, 10, 31),
+            FilterByDateRange = true,
         };
 
         var query = request.ToString();
@@ -22,6 +25,9 @@ public class RateRequestShould
         query.ShouldContain("&Policy=No%20refund%20%26%20more");
         query.ShouldContain("&Skip=10");
         query.ShouldContain("&Take=10");
+        query.ShouldContain("&StartDate=2026-10-01");
+        query.ShouldContain("&EndDate=2026-10-31");
+        query.ShouldContain("&FilterByDateRange=True");
     }
 
     [Fact]
@@ -31,5 +37,21 @@ public class RateRequestShould
 
         query.ShouldContain("&RoomName=");
         query.ShouldContain("&Policy=");
+        query.ShouldNotContain("&StartDate=");
+        query.ShouldNotContain("&EndDate=");
+    }
+
+    [Fact]
+    public void IncludeOnlyTheSpecifiedDateForAnOpenEndedDateRange()
+    {
+        var query = new RateRequest.Index
+        {
+            EndDate = new DateOnly(2026, 10, 31),
+            FilterByDateRange = true,
+        }.ToString();
+
+        query.ShouldNotContain("&StartDate=");
+        query.ShouldContain("&EndDate=2026-10-31");
+        query.ShouldContain("&FilterByDateRange=True");
     }
 }

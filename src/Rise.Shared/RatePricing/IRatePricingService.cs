@@ -1,3 +1,5 @@
+using Rise.Shared.Settings;
+
 namespace Rise.Shared.RatePricing;
 
 /// <summary>
@@ -10,4 +12,8 @@ public interface IRatePricingService
     /// </summary>
     // * Result without data, the page only needs to know success or error
     Task<Result> EditAsync(RatePricingRequest.Edit request, CancellationToken ctx = default);
+    Task<Result<GeneralSettingsDto>> GetGeneralSettingsAsync(CancellationToken ctx = default);
+    Task<Result<GeneralSettingsDto>> UpdateGeneralSettingsAsync(
+        GeneralSettingsRequest.Update request,
+        CancellationToken ctx = default);
 }

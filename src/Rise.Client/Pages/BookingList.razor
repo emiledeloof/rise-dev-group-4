@@ -2,6 +2,7 @@
 @layout AdminLayout
 @attribute [Authorize(Roles = AppRoles.Administrator)]
 @using Rise.Client.Common
+@using Rise.Shared.Bookings
 @using Rise.Shared.Identity
 
 <PageTitle>Bookings</PageTitle>
@@ -49,7 +50,11 @@
                             <div class="booking-amount">
                                 <span>@Format.Amount(booking.TotalAmount)</span>
                                 <span class="booking-list-status">
-                                    @if (booking.Status == "Paid")
+                                    @if (booking.Status == BookingStatus.Cancelled)
+                                    {
+                                        <span class="tag is-danger is-light">Cancelled</span>
+                                    }
+                                    else if (booking.Status == BookingStatus.Paid)
                                     {
                                         <span class="tag is-primary is-light">Paid</span>
                                     }

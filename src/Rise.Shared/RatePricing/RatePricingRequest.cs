@@ -16,8 +16,14 @@ public static partial class RatePricingRequest
         // new price for 1 night in eur
         public decimal PricePerNight { get; set; }
 
+        public bool IsActive { get; set; } = true;
+
         // min nb of nights a guest must book
         public int MinNights { get; set; }
+
+        // Null bounds mean the rate has no lower or upper availability limit.
+        public DateOnly? StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
 
         // true for a refundable rate, false for non-refundable, shared cant see the domain enum
         public bool IsRefundable { get; set; }
@@ -51,6 +57,13 @@ public static partial class RatePricingRequest
                 RuleFor(x => x.MinNights)
                     .GreaterThan(0)
                     .WithMessage("A stay must be at least 1 night.");
+
+                RuleFor(x => x.EndDate)
+                    .Must((request, endDate) =>
+                        request.StartDate is null ||
+                        endDate is null ||
+                        request.StartDate.Value < endDate.Value)
+                    .WithMessage("Start date must be before end date.");
 
                 // ! refund rules only for a refundable rate, the values are ignored otherwise
                 RuleFor(x => x.PartialRefundPercent)

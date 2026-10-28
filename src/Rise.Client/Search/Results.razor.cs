@@ -7,7 +7,7 @@ using Rise.Client.Components;
 namespace Rise.Client.Search;
 
 /// <summary>
-/// results page of the stay search, shows the rooms free for the chosen dates
+/// results page of the stay search, shows the rooms free for the chosen dates and guests
 /// </summary>
 public partial class Results
 {
@@ -22,8 +22,18 @@ public partial class Results
     /// </summary>
     [SupplyParameterFromQuery] private DateOnly? CheckOut { get; set; }
 
-    // dates of the url grouped in a stay period, to reuse its Nights calculation
-    private SearchRequest.StayPeriod Stay => new() { CheckIn = CheckIn, CheckOut = CheckOut };
+    /// <summary>
+    /// number of adults read from the url, eg adults=2
+    /// </summary>
+    [SupplyParameterFromQuery] private int? Adults { get; set; }
+
+    // dates and guests of the url grouped in a stay period, to reuse its Nights calculation
+    private SearchRequest.StayPeriod Stay => new()
+    {
+        CheckIn = CheckIn,
+        CheckOut = CheckOut,
+        Adults = Adults ?? SearchRequest.StayPeriod.DefaultAdults,
+    };
 
     // blazor service used to change page from the code, same as in Search/Index.razor.cs
     [Inject] public required NavigationManager Navigation { get; set; }
@@ -41,7 +51,7 @@ public partial class Results
     private string? _errorMessage;
 
     // rooms the guest picked, key = id of the room, value = id of the chosen rate
-    // a dictionary so a room can only be there once, with one rate
+    // one selected rate per room; the room can still offer multiple rates to choose from
     private readonly Dictionary<int, int> _selection = [];
 
     /// <summary>
@@ -96,6 +106,7 @@ public partial class Results
 
     // puts the rooms of the draft back in the selection, only when the dates are the same
     // and only the room and rate pairs the api still sends, a room booked meanwhile is dropped
+    // a rate that needs a longer stay is dropped too, eg its min nb of nights was raised meanwhile
     private void RestoreSelectionFromDraft()
     {
         if (Draft.CheckIn != CheckIn || Draft.CheckOut != CheckOut)
@@ -104,7 +115,7 @@ public partial class Results
         foreach (var picked in Draft.Rooms)
         {
             var room = _rooms!.FirstOrDefault(r => r.Id == picked.RoomId);
-            if (room is not null && room.Rates.Any(x => x.Id == picked.RateId))
+            if (room is not null && room.Rates.Any(x => x.Id == picked.RateId && MinStayText.IsBookable(x, Stay.Nights)))
                 _selection[picked.RoomId] = picked.RateId;
         }
     }
@@ -122,7 +133,7 @@ public partial class Results
             return new DraftRoom(room.Id, room.Name, rate.Id, rate.Name, rate.Description, rate.PricePerNight, rate.TotalPrice, CancellationPolicyText.Of(rate));
         });
 
-        Draft.SetRooms(CheckIn!.Value, CheckOut!.Value, rooms);
+        Draft.SetRooms(CheckIn!.Value, CheckOut!.Value, Stay.Adults, rooms);
         Navigation.NavigateTo("/guests/create");
     }
 
@@ -148,8 +159,8 @@ public partial class Results
             return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice);
         }).ToList();
 
-    // url of the detail page of a room, keeps the dates so its back btn returns to these results
-    private string DetailsUrlOf(int roomId) => $"rooms/{roomId}?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}";
+    // url of the detail page of a room, keeps the dates and guests so its back btn returns to these results
+    private string DetailsUrlOf(int roomId) => $"rooms/{roomId}?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}&adults={Stay.Adults}";
 
     // rate chosen for a room, null when the room is not in the selection
     // TryGetValue gives true and the value when the key is there, false otherwise

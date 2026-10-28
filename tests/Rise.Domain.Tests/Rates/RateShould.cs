@@ -9,12 +9,20 @@ public class RateShould
     {
         var room = new Room("101", "Single Room", 1);
 
-        var rate = room.AddRate("  Standard  ", 79m, "Flexible cancellation");
+        var rate = room.AddRate(
+            "  Standard  ",
+            79m,
+            "Flexible cancellation",
+            new DateOnly(2026, 10, 1),
+            new DateOnly(2026, 10, 31));
 
         rate.Room.ShouldBe(room);
         rate.Name.ShouldBe("Standard");
         rate.PricePerNight.ShouldBe(79m);
+        rate.IsActive.ShouldBeTrue();
         rate.Description.ShouldBe("Flexible cancellation");
+        rate.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+        rate.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
         room.Rates.ShouldContain(rate);
     }
 
@@ -83,4 +91,5 @@ public class RateShould
 
         Should.Throw<ArgumentOutOfRangeException>(() => rate.PartialRefundPercent = percent);
     }
+
 }

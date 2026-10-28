@@ -2,6 +2,7 @@
 @layout AdminLayout
 @attribute [Authorize(Roles = AppRoles.Administrator)]
 @using Rise.Shared.Identity
+@using Rise.Shared.Bookings
 
 <PageTitle>Booking matrix</PageTitle>
 
@@ -24,9 +25,9 @@
     </div>
 
     <div class="matrix-legend">
-        <span class="legend-chip free">Free</span>
-        <span class="legend-chip booked">Booked</span>
-        <span class="legend-chip closed">Closed</span>
+        <span class="legend-chip available">Available</span>
+        <span class="legend-chip occupied">Occupied</span>
+        <span class="legend-chip temporary">Temporary</span>
     </div>
 
     @if (_matrix is null && _errorMessage is null)
@@ -36,6 +37,13 @@
     else if (_errorMessage is not null)
     {
         <p class="notification is-danger is-light">@_errorMessage</p>
+    }
+    else if (_matrix is not null && _matrix.Rows.Count == 0)
+    {
+        <div class="matrix-empty-state">
+            <p class="empty-state-title">No rooms found</p>
+            <p class="empty-state-body">There are no rooms configured for this property yet.</p>
+        </div>
     }
     else if (_matrix is not null)
     {
@@ -69,15 +77,24 @@
                         <div class="track-flat-grid" style="--window-days:@_matrix.WindowDays">
                             @foreach (var cellItem in GetRowCells(row))
                             {
-                                @if (cellItem.IsBooking && cellItem.Booking is not null)
+                                var cssClass = cellItem.Status switch
                                 {
-                                    <div class="flat-booking-cell" style="grid-column: span @cellItem.ColSpan;">
-                                        <span class="flat-booking-name">@cellItem.Booking.GuestName</span>
+                                    CellStatus.Occupied  => "matrix-cell-occupied",
+                                    CellStatus.Temporary => "matrix-cell-temporary",
+                                    _                    => "matrix-cell-available",
+                                };
+                                @if (cellItem.Booking is not null)
+                                {
+                                    <div class="@cssClass"
+                                         style="grid-column: span @cellItem.ColSpan;"
+                                         @onmouseenter="e => ShowPopup(cellItem.Booking.Id, e.ClientX, e.ClientY)"
+                                         @onmouseleave="HidePopup">
+                                        <span class="cell-guest-name">@cellItem.Booking.GuestName</span>
                                     </div>
                                 }
                                 else
                                 {
-                                    <div class="flat-free-cell" style="grid-column: span @cellItem.ColSpan;"></div>
+                                    <div class="@cssClass" style="grid-column: span @cellItem.ColSpan;"></div>
                                 }
                             }
                         </div>
@@ -91,5 +108,7 @@
             <button class="btn-new-booking" type="button">New booking</button>
         </div>*@
     }
+
+    <BookingPopup BookingId="_popupBookingId" X="_popupX" Y="_popupY" />
 </div>
 

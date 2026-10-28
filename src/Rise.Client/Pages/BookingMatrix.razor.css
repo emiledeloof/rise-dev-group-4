@@ -115,10 +115,9 @@
     font-weight: 500;
 }
 
-.legend-chip.free     { background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface)); color: var(--color-primary-dark); }
-.legend-chip.booked   { background: var(--color-warning-bg); color: var(--color-text); }
-.legend-chip.closed   { background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface)); color: var(--color-accent); }
-.legend-chip.selected { background: color-mix(in srgb, var(--color-primary) 30%, var(--color-surface)); color: var(--color-primary-dark); }
+.legend-chip.available { background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface)); color: var(--color-primary-dark); }
+.legend-chip.occupied  { background: var(--color-warning-bg); color: var(--color-text); }
+.legend-chip.temporary { background: color-mix(in srgb, var(--color-gold) 20%, var(--color-surface)); color: var(--color-gold); border: 1px dashed var(--color-gold); }
 
 /* ──────────────────────────────────────────────
    Scroll container (horizontal on smaller screens)
@@ -251,20 +250,23 @@
     grid-template-columns: repeat(var(--window-days, 16), 1fr);
 }
 
-/* Free day cell — soft green, with a divider between free days */
-.flat-free-cell {
+/* ──────────────────────────────────────────────
+   Status cells — each maps to a CellStatus value
+─────────────────────────────────────────────── */
+
+/* Available — soft olive green; vertical dividers keep columns readable */
+.matrix-cell-available {
     background-color: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface));
     border-right: 1px solid var(--color-surface);
 }
 
-.flat-free-cell:last-child {
+.matrix-cell-available:last-child {
     border-right: 0;
 }
 
-/* Booked cell — fills entire cell using warning-bg from theme, no internal borders */
-.flat-booking-cell {
+/* Occupied — warm amber; no internal borders so multi-day spans merge */
+.matrix-cell-occupied {
     background-color: var(--color-warning-bg);
-    /* no border-right so consecutive booked days merge seamlessly */
     display: flex;
     align-items: center;
     padding: 0 0.75rem;
@@ -272,8 +274,19 @@
     position: relative;
 }
 
-/* Guest name rendered directly inside the booked cell */
-.flat-booking-name {
+/* Temporary — provisional booking using gold tint from theme with dashed border */
+.matrix-cell-temporary {
+    background-color: color-mix(in srgb, var(--color-gold) 18%, var(--color-surface));
+    border-right: 1px dashed var(--color-gold);
+    display: flex;
+    align-items: center;
+    padding: 0 0.75rem;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Guest name label — shared by Occupied and Temporary cells */
+.cell-guest-name {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--color-text);
@@ -363,4 +376,34 @@
 
 .btn-create-booking:hover {
     background-color: var(--color-primary-dark);
+}
+
+/* ──────────────────────────────────────────────
+   Empty state (AC2: no rooms configured)
+─────────────────────────────────────────────── */
+.matrix-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xl) var(--space-lg);
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    line-height: 1;
+}
+
+.empty-state-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.empty-state-body {
+    font-size: 0.9rem;
+    margin: 0;
 }

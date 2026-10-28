@@ -19,7 +19,7 @@
 
 .rate-table th {
     padding: 0.7rem 1rem;
-    background: #f1f0eb;
+    background: var(--color-bg-alt);
     color: var(--color-text-muted);
     font-size: 0.7rem;
     font-weight: 600;
@@ -44,6 +44,13 @@
 
 .rate-price {
     font-weight: 600;
+}
+
+.rate-price-before-vat {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 400;
 }
 
 .rate-policy-partial {
@@ -76,22 +83,77 @@
     font-weight: 600;
 }
 
+.rate-table tbody tr.rate-inactive-row td {
+    color: var(--color-text-muted);
+    background: var(--color-surface-inactive);
+}
+
+.rate-table tbody tr.rate-inactive-row td:last-child {
+    background: var(--color-surface-inactive);
+}
+
+.rate-table .rate-policy-fully,
+.rate-table .rate-policy-non {
+    transition: opacity 180ms ease;
+}
+
+.rate-inactive-row .rate-policy-fully,
+.rate-inactive-row .rate-policy-non {
+    opacity: 0.55;
+}
+
 .rate-switch {
+    position: relative;
     display: inline-flex;
     width: 2.2rem;
     height: 1.25rem;
-    align-items: center;
-    padding: 0.15rem;
-    border-radius: 999px;
-    background: var(--color-primary-dark);
+    cursor: pointer;
+}
+
+.rate-switch ::deep input {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    cursor: inherit;
+    opacity: 0;
 }
 
 .rate-switch span {
+    width: 100%;
+    border-radius: 999px;
+    background: var(--color-control-off);
+    transition: background-color 180ms ease;
+}
+
+.rate-switch span::after {
+    position: absolute;
+    top: 0.15rem;
+    left: 0.15rem;
     width: 0.95rem;
     height: 0.95rem;
-    margin-left: auto;
     border-radius: 50%;
     background: white;
+    content: "";
+    transition: transform 180ms ease;
+}
+
+.rate-switch ::deep input:checked + span {
+    background: var(--color-primary-dark);
+}
+
+.rate-switch ::deep input:checked + span::after {
+    transform: translateX(0.95rem);
+}
+
+.rate-switch ::deep input:focus-visible + span {
+    outline: 2px solid var(--color-primary-dark);
+    outline-offset: 2px;
+}
+
+.rate-switch ::deep input:disabled + span {
+    cursor: wait;
+    opacity: 0.65;
 }
 
 .rate-muted {
@@ -116,7 +178,7 @@
 /* filters */
 .rate-filters {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.75rem;
     margin-bottom: 1rem;
 }
@@ -183,10 +245,38 @@
 /* create new rate */
 .rate-page-heading {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 1rem;
+}
+
+.rate-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.rate-vat-status {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+}
+
+.rate-vat-enabled {
+    color: var(--color-primary-dark);
+    font-weight: 600;
+}
+
+.rate-settings-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1rem;
+    color: var(--color-text);
+    font-size: 0.875rem;
 }
 
 .rate-create-panel {
@@ -215,6 +305,33 @@
     gap: 0.35rem;
     color: var(--color-text-muted);
     font-size: 0.8rem;
+}
+
+.rate-date-picker {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.rate-date-picker ::deep .drp {
+    width: 100%;
+    max-width: 100%;
+}
+
+.rate-date-picker ::deep .drp-field {
+    min-height: 2.5rem;
+    padding: 0.35rem 0.75rem;
+}
+
+.rate-date-picker ::deep .drp-label {
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.rate-date-picker ::deep .drp-panel {
+    width: max-content;
+    max-width: min(22rem, calc(100vw - 2rem));
 }
 
 .rate-create-field ::deep input,
@@ -295,5 +412,5 @@
 }
 
 .rate-table th:last-child {
-    background: #f1f0eb;
+    background: var(--color-bg-alt);
 }

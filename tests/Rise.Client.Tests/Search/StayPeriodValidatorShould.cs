@@ -114,4 +114,69 @@ public class StayPeriodValidatorShould
         // missing date, same day or check out before check in all give 0, never a negative nb
         Period(checkIn, checkOut).Nights.ShouldBe(0);
     }
+
+    /// <summary>
+    /// guest counts between 1 and the maximum capacity (6) are accepted
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(6)]
+    public void AcceptValidAdultsCount(int adults)
+    {
+        var period = Period(10, 13);
+        period.Adults = adults;
+
+        _validator.Validate(period).IsValid.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// at least 1 adult is required (ENOG acceptance criteria)
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void RejectLessThanOneAdult(int adults)
+    {
+        var period = Period(10, 13);
+        period.Adults = adults;
+
+        var result = _validator.Validate(period);
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(SearchRequest.StayPeriod.Adults));
+    }
+
+    /// <summary>
+    /// exceeding the resort's maximum capacity is refused (ENOG acceptance criteria)
+    /// </summary>
+    [Theory]
+    [InlineData(7)]
+    [InlineData(10)]
+    public void RejectExceedingMaxCapacity(int adults)
+    {
+        var period = Period(10, 13);
+        period.Adults = adults;
+
+        var result = _validator.Validate(period);
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(SearchRequest.StayPeriod.Adults));
+    }
+
+    /// <summary>
+    /// dynamic maximum capacity from room data is respected when set
+    /// </summary>
+    [Fact]
+    public void RespectDynamicMaxCapacityWhenProvided()
+    {
+        var period = Period(10, 13);
+        period.DynamicMaxCapacity = 8;
+        period.Adults = 8;
+
+        _validator.Validate(period).IsValid.ShouldBeTrue();
+
+        period.Adults = 9;
+        var result = _validator.Validate(period);
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(SearchRequest.StayPeriod.Adults));
+    }
 }

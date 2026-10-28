@@ -21,6 +21,8 @@ public class RateCreateEndpointShould
             RoomName = "Deluxe Room",
             PricePerNight = 79m,
             Description = "Flexible cancellation",
+            StartDate = new DateOnly(2026, 10, 1),
+            EndDate = new DateOnly(2026, 10, 31),
         };
         rateService.CreateAsync(request, Arg.Any<CancellationToken>())
             .Returns(Result.Success(new RateResponse.Create
@@ -29,7 +31,10 @@ public class RateCreateEndpointShould
                 Name = request.Name,
                 RoomName = request.RoomName,
                 PricePerNight = request.PricePerNight,
+                IsActive = request.IsActive,
                 Description = request.Description,
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
             }));
 
         var result = await new Create(rateService).ExecuteAsync(request, CancellationToken.None);
@@ -37,6 +42,8 @@ public class RateCreateEndpointShould
         result.IsSuccess.ShouldBeTrue();
         result.Value.Name.ShouldBe("Standard");
         result.Value.RoomName.ShouldBe("Deluxe Room");
+        result.Value.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+        result.Value.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
         await rateService.Received(1).CreateAsync(request, CancellationToken.None);
     }
 
@@ -78,6 +85,8 @@ public class RateCreateEndpointShould
             RoomName = room.Name,
             PricePerNight = 79m,
             Description = "Flexible cancellation",
+            StartDate = new DateOnly(2026, 10, 1),
+            EndDate = new DateOnly(2026, 10, 31),
         };
 
         var result = await endpoint.ExecuteAsync(request, CancellationToken.None);
@@ -88,5 +97,7 @@ public class RateCreateEndpointShould
         savedRate.PricePerNight.ShouldBe(79m);
         savedRate.Description.ShouldBe("Flexible cancellation");
         savedRate.Room.Id.ShouldBe(room.Id);
+        savedRate.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+        savedRate.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
     }
 }

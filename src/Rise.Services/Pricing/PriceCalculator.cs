@@ -19,4 +19,12 @@ public static class PriceCalculator
         // price of 1 night times the nb of nights
         return pricePerNight * nights;
     }
+
+    /// <summary>
+    /// Applies VAT to a nightly price and rounds the result to the currency precision.
+    /// </summary>
+    public static decimal InclusiveOfVat(decimal price, bool isVatEnabled, decimal vatPercentage)
+        => isVatEnabled && vatPercentage > 0m
+            ? Math.Round(price * (1m + vatPercentage / 100m), 2, MidpointRounding.AwayFromZero)
+            : price;
 }

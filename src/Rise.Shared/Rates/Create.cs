@@ -8,8 +8,11 @@ public static partial class RateRequest
     {
         public required string Name { get; set; }
         public required decimal PricePerNight { get; set; }
+        public bool IsActive { get; set; } = true;
         public string? Description { get; set; }
         public required string RoomName { get; set; }
+        public DateOnly? StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
 
         // min nb of nights a guest must book, 1 by default
         public int MinNights { get; set; } = 1;
@@ -68,6 +71,13 @@ public static partial class RateRequest
                     .GreaterThanOrEqualTo(0)
                     .WithMessage("The number of days can't be negative.")
                     .When(x => x.IsRefundable);
+
+                RuleFor(x => x.EndDate)
+                    .Must((request, endDate) =>
+                        request.StartDate is null ||
+                        endDate is null ||
+                        request.StartDate.Value < endDate.Value)
+                    .WithMessage("Start date must be before end date.");
             }
         }
     }
@@ -80,7 +90,10 @@ public static partial class RateResponse
         public required int Id { get; set; }
         public required string Name { get; set; }
         public required decimal PricePerNight { get; set; }
+        public required bool IsActive { get; set; }
         public string? Description { get; set; }
         public required string RoomName { get; set; }
+        public DateOnly? StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
     }
 }

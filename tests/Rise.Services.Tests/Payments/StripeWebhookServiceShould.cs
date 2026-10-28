@@ -27,7 +27,7 @@ public class StripeWebhookServiceShould
 
         var guest = new Guest("Jan Janssens", "jan.janssens@example.com", "+32 470 12 34 56",
             new GuestAddress("Koningstraat 12", null, "Belgium"));
-        var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
+        var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
         var payment = booking.AddPayment(100m, SessionId);
 
         dbContext.Guests.Add(guest);
@@ -80,6 +80,26 @@ public class StripeWebhookServiceShould
         payment.IsPaid.ShouldBeTrue();
         payment.PaidAt.ShouldBe(SessionCreated);
         payment.StripePaymentIntent.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task MarkPaymentOfCancelledBookingAsPaid()
+    {
+        // Arrange
+        var (dbContext, payment) = await CreateSeededDbContextAsync(nameof(MarkPaymentOfCancelledBookingAsPaid));
+        await using var _ = dbContext;
+        payment.Booking.Cancel(SessionCreated, "Guest asked to cancel by phone", 0m);
+        await dbContext.SaveChangesAsync();
+        var service = new StripeWebhookService(dbContext, paymentGateway);
+
+        // Act
+        var result = await service.HandleCheckoutSessionCompletedAsync(
+            new StripeCheckoutSessionCompleted(SessionId, payment.Id, ChargeCreated));
+
+        // Assert
+        result.IsSuccess.ShouldBeTrue();
+        payment.IsPaid.ShouldBeTrue();
+        payment.Booking.IsCancelled.ShouldBeTrue();
     }
 
     [Fact]

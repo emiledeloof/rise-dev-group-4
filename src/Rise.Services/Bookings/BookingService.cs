@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
+using Rise.Domain.Settings;
 using Rise.Persistence;
 using Rise.Services.Payments;
 using Rise.Services.Pricing;
@@ -40,6 +41,9 @@ public sealed class BookingService(
 
         if (booking.Rooms.Count == 0)
             return Result.Invalid(new ValidationError("The booking has no rooms."));
+
+        if (booking.IsCancelled)
+            return Result.Conflict("The booking has been cancelled.");
 
         if (booking.Payments.Any(x => x.IsPaid))
             return Result.Conflict("The booking has already been paid.");
@@ -106,7 +110,7 @@ public sealed class BookingService(
         foreach (var selection in request.Rooms)
         {
             var room = rooms.Single(x => x.Id == selection.RoomId);
-            var rate = room.Rates.SingleOrDefault(x => x.Id == selection.RateId && !x.IsDeleted);
+            var rate = room.Rates.SingleOrDefault(x => x.Id == selection.RateId && !x.IsDeleted && x.IsActive);
             if (rate is null)
             {
                 return Result.Invalid(new ValidationError(
@@ -120,18 +124,30 @@ public sealed class BookingService(
                     $"Room '{room.Name}' needs at least {rate.MinNights} nights."));
             }
 
+            var lastNight = request.CheckOut.AddDays(-1);
+            if ((rate.StartDate is not null && rate.StartDate > request.CheckIn)
+                || (rate.EndDate is not null && rate.EndDate < lastNight))
+            {
+                return Result.Invalid(new ValidationError(
+                    $"The selected rate is not available for room '{room.Name}' on these dates."));
+            }
+
             selections.Add((room, rate));
         }
 
-        // same overlap rule as RoomService.GetAvailableAsync
+        // server side check of the nb of guests, the search already hides rooms that are too small but it can be bypassed
+        var capacity = selections.Sum(x => x.Room.MaxGuests);
+        if (request.Adults > capacity)
+        {
+            return Result.Invalid(new ValidationError(
+                $"The selected rooms fit at most {capacity} guests."));
+        }
+
         // TODO: two simultaneous requests can both pass this check, add a Postgres exclusion constraint
-        // or a serializable transaction once bookings get a status (InMemory tests don't support transactions)
+        // or a serializable transaction (InMemory tests don't support transactions)
         var takenRoomIds = await dbContext.BookingRooms
-            .Where(br => roomIds.Contains(br.Room.Id)
-                && !br.IsDeleted
-                && !br.Booking.IsDeleted
-                && br.Booking.CheckIn < request.CheckOut
-                && br.Booking.CheckOut > request.CheckIn)
+            .Overlapping(request.CheckIn, request.CheckOut)
+            .Where(br => roomIds.Contains(br.Room.Id))
             .Select(br => br.Room.Id)
             .Distinct()
             .ToListAsync(ctx);
@@ -144,14 +160,20 @@ public sealed class BookingService(
         }
 
         var guest = await UpsertGuestAsync(request.Guest, ctx);
+        var settings = await dbContext.GeneralSettings
+            .AsNoTracking()
+            .SingleAsync(item => item.Id == GeneralSettings.SingletonId, ctx);
 
         var bookingNumber = await GenerateBookingNumberAsync(ctx);
-        var booking = new Booking(bookingNumber, guest, request.CheckIn, request.CheckOut);
+        var booking = new Booking(bookingNumber, guest, request.CheckIn, request.CheckOut, request.Adults);
 
         foreach (var (room, rate) in selections)
         {
-            // the booking copies the price per night of the rate, so the server price is used, not the client one
-            booking.AddRoom(room, rate);
+            var pricePerNight = PriceCalculator.InclusiveOfVat(
+                rate.PricePerNight,
+                settings.IsVatEnabled,
+                settings.VatPercentage);
+            booking.AddRoom(room, rate, pricePerNight);
         }
 
         // guest and booking are saved together, one SaveChanges is atomic
@@ -191,8 +213,9 @@ public sealed class BookingService(
     }
 
     /// <summary>
-    /// Loads one booking with its guest, rooms, rates and payments for the admin detail page.
-    /// A deleted booking is treated as not found.
+    /// Loads one booking with its guest, rooms and payments for the admin detail page.
+    /// The rate and cancellation policy come from the copy on the booked room, not from the current rate.
+    /// A deleted booking is treated as not found, a cancelled one is still returned.
     /// </summary>
     public async Task<Result<BookingDto.AdminDetail>> GetDetailAsync(int bookingId, CancellationToken ctx = default)
     {
@@ -202,8 +225,6 @@ public sealed class BookingService(
             .Include(x => x.Guest)
             .Include(x => x.Rooms)
                 .ThenInclude(x => x.Room)
-            .Include(x => x.Rooms)
-                .ThenInclude(x => x.Rate)
             .Include(x => x.Payments)
             .SingleOrDefaultAsync(x => x.Id == bookingId && !x.IsDeleted, ctx);
 
@@ -218,20 +239,36 @@ public sealed class BookingService(
     private static BookingDto.AdminDetail ToAdminDetailDto(Booking booking)
     {
         var nights = booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
-        var rooms = booking.Rooms
-            .Where(x => !x.IsDeleted)
-            .Select(x => new BookingDto.AdminRoomDto
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        // a cancelled booking shows the refund of the day it was cancelled, an open one the refund of today
+        var referenceDate = booking.CancelledAt is { } cancelled ? DateOnly.FromDateTime(cancelled) : today;
+        var bookedRooms = booking.Rooms.Where(x => !x.IsDeleted).ToList();
+        var rooms = bookedRooms
+            .Select(x =>
             {
-                RoomId = x.Room.Id,
-                RoomNumber = x.Room.RoomNumber,
-                RoomName = x.Room.Name,
-                RateName = x.Rate.Name,
-                PricePerNight = x.PricePerNight,
-                Total = PriceCalculator.Total(x.PricePerNight, nights),
+                var isRefundable = x.CancellationPolicy is CancellationPolicy.Refundable;
+                return new BookingDto.AdminRoomDto
+                {
+                    RoomId = x.Room.Id,
+                    RoomNumber = x.Room.RoomNumber,
+                    RoomName = x.Room.Name,
+                    RateName = x.RateName,
+                    PricePerNight = x.PricePerNight,
+                    Total = PriceCalculator.Total(x.PricePerNight, nights),
+                    IsRefundable = isRefundable,
+                    FullRefundDays = x.FullRefundDays,
+                    PartialRefundDays = x.PartialRefundDays,
+                    PartialRefundPercent = x.PartialRefundPercent,
+                    FullRefundUntil = isRefundable ? booking.CheckIn.AddDays(-x.FullRefundDays) : null,
+                    PartialRefundUntil = isRefundable ? booking.CheckIn.AddDays(-x.PartialRefundDays) : null,
+                    RefundPercent = RefundCalculator.RefundPercent(x, booking.CheckIn, referenceDate),
+                    RefundAmount = RoomRefund(x, booking.CheckIn, nights, referenceDate),
+                };
             })
             .OrderBy(x => x.RoomNumber)
             .ToList();
         var payments = booking.Payments.Where(x => !x.IsDeleted).ToList();
+        var paidAmount = booking.PaidAmount;
 
         return new BookingDto.AdminDetail
         {
@@ -239,11 +276,23 @@ public sealed class BookingService(
             BookingNumber = booking.BookingNumber,
             CreatedAt = booking.CreatedAt,
             // same rule as GetIndexAsync
-            Status = payments.Any(x => x.IsPaid) ? "Paid" : "Pending",
+            Status = booking.IsCancelled ? BookingStatus.Cancelled : payments.Any(x => x.IsPaid) ? BookingStatus.Paid : BookingStatus.Pending,
             CheckIn = booking.CheckIn,
             CheckOut = booking.CheckOut,
             Nights = nights,
+            Adults = booking.Adults,
             TotalAmount = rooms.Sum(x => x.Total),
+            PaidAmount = paidAmount,
+            SuggestedRefundAmount = Math.Min(bookedRooms.Sum(x => RoomRefund(x, booking.CheckIn, nights, today)), paidAmount),
+            RefundReferenceDate = referenceDate,
+            Cancellation = booking.CancelledAt is { } cancelledAt
+                ? new BookingDto.AdminCancellationDto
+                {
+                    CancelledAt = cancelledAt,
+                    Reason = booking.CancellationReason!,
+                    RefundAmount = booking.RefundAmount ?? 0,
+                }
+                : null,
             Guest = new BookingDto.AdminGuestDto
             {
                 Id = booking.Guest.Id,
@@ -269,6 +318,53 @@ public sealed class BookingService(
                 })
                 .ToList(),
         };
+    }
+
+    /// <summary>
+    /// Refund of one room according to the policy copied at booking time, as if the booking is cancelled on the given date.
+    /// The page and the cancel form both use it, so their amounts always match.
+    /// </summary>
+    private static decimal RoomRefund(BookingRoom bookingRoom, DateOnly checkIn, int nights, DateOnly cancelledOn)
+        => Math.Round(
+            PriceCalculator.Total(bookingRoom.PricePerNight, nights) * RefundCalculator.RefundPercent(bookingRoom, checkIn, cancelledOn) / 100m,
+            2);
+
+    /// <summary>
+    /// Cancels the booking and records the refund the admin decided on.
+    /// ! no refund is executed here, the admin pays it back by hand in Stripe
+    /// </summary>
+    public async Task<Result<BookingResponse.Cancel>> CancelAsync(BookingRequest.Cancel request, CancellationToken ctx = default)
+    {
+        var booking = await dbContext.Bookings
+            .Include(x => x.Payments)
+            .SingleOrDefaultAsync(x => x.Id == request.BookingId && !x.IsDeleted, ctx);
+
+        if (booking is null)
+        {
+            return Result.NotFound($"Booking with ID '{request.BookingId}' was not found.");
+        }
+
+        if (booking.IsCancelled)
+        {
+            return Result.Conflict($"Booking {booking.BookingNumber} is already cancelled.");
+        }
+
+        if (request.RefundAmount > booking.PaidAmount)
+        {
+            return Result.Invalid(new ValidationError(
+                $"The refund can't be more than the amount paid (€{booking.PaidAmount.ToString("0.00", CultureInfo.InvariantCulture)})."));
+        }
+
+        booking.Cancel(DateTime.UtcNow, request.Reason, request.RefundAmount);
+        await dbContext.SaveChangesAsync(ctx);
+
+        return Result.Success(new BookingResponse.Cancel
+        {
+            BookingId = booking.Id,
+            BookingNumber = booking.BookingNumber,
+            CancelledAt = booking.CancelledAt!.Value,
+            RefundAmount = request.RefundAmount,
+        });
     }
 
     public async Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
@@ -348,7 +444,7 @@ public sealed class BookingService(
 
     /// <summary>
     /// Returns a paginated list of all bookings for the admin overview.
-    /// Status is "Paid" when at least one payment has been settled, otherwise "Pending".
+    /// Status is "Cancelled" for a cancelled booking, else "Paid" when at least one payment has been settled, otherwise "Pending".
     /// </summary>
     public async Task<Result<BookingResponse.Index>> GetIndexAsync(
         QueryRequest.SkipTake request,
@@ -386,7 +482,7 @@ public sealed class BookingService(
                 GuestEmail = b.Guest.Email,
                 RoomPrices = b.Rooms.Select(r => r.PricePerNight).ToList(),
                 RoomNumbers = b.Rooms.Select(r => r.Room.RoomNumber).ToList(),
-                Status = b.Payments.Any(p => p.PaidAt != null) ? "Paid" : "Pending",
+                Status = b.CancelledAt != null ? BookingStatus.Cancelled : b.Payments.Any(p => p.PaidAt != null) ? BookingStatus.Paid : BookingStatus.Pending,
             })
             .ToListAsync(ctx);
 
@@ -433,16 +529,13 @@ public sealed class BookingService(
             .Select(r => new { r.Id, r.RoomNumber, r.Name })
             .ToListAsync(ctx);
 
-        // Load all paid booking-room entries that fall inside the window in one query,
+        // Load all non-deleted booking-room entries that overlap the window in one query,
         // navigating from the owning side (BookingRoom → Booking, Booking → Guest/Payments).
-        // Pending (unpaid) bookings are excluded from the matrix.
+        // Both paid (Occupied) and unpaid (Temporary) bookings are included so the matrix
+        // can colour-code them differently. Cancelled bookings are excluded.
         var overlapping = await dbContext.BookingRooms
             .AsNoTracking()
-            .Where(br => !br.IsDeleted
-                      && !br.Booking.IsDeleted
-                      && br.Booking.Payments.Any(p => p.PaidAt != null)
-                      && br.Booking.CheckIn < windowEnd
-                      && br.Booking.CheckOut > request.WindowStart)
+            .Overlapping(request.WindowStart, windowEnd)
             .Select(br => new
             {
                 RoomId = br.Room.Id,
@@ -451,7 +544,7 @@ public sealed class BookingService(
                 GuestName = br.Booking.Guest.Name,
                 br.Booking.CheckIn,
                 br.Booking.CheckOut,
-                Status = "Paid",
+                IsPaid = br.Booking.Payments.Any(p => p.PaidAt != null),
             })
             .ToListAsync(ctx);
 
@@ -475,7 +568,7 @@ public sealed class BookingService(
                     GuestName = b.GuestName,
                     CheckIn = b.CheckIn,
                     CheckOut = b.CheckOut,
-                    Status = b.Status,
+                    Status = b.IsPaid ? CellStatus.Occupied : CellStatus.Temporary,
                 }).ToList(),
             };
         }).ToList();
@@ -488,4 +581,3 @@ public sealed class BookingService(
         });
     }
 }
-

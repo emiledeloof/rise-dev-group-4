@@ -53,7 +53,7 @@ public class SelectionSummaryShould : BunitContext
         lines.Count.ShouldBe(2);
         lines[0].QuerySelector(".selection-summary-room-name")!.TextContent.ShouldBe("Double Room");
         lines[0].QuerySelector(".selection-summary-rate-name")!.TextContent.ShouldBe("Non-refundable");
-        lines[0].QuerySelector(".selection-summary-price")!.TextContent.ShouldBe("€327");
+        lines[0].QuerySelector(".selection-summary-price")!.TextContent.ShouldBe("€327.00");
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public class SelectionSummaryShould : BunitContext
             new SelectedRoom("Single Room", "Fully refundable", 297m));
 
         // assert
-        cut.Find(".selection-summary-total").TextContent.ShouldContain("€624");
+        cut.Find(".selection-summary-total").TextContent.ShouldContain("€624.00");
     }
 
     /// <summary>

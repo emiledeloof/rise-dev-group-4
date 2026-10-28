@@ -2,6 +2,7 @@
 @layout AdminLayout
 @attribute [Authorize(Roles = AppRoles.Administrator)]
 @using Rise.Client.Common
+@using Rise.Shared.Bookings
 @using Rise.Shared.Identity
 @* admin booking detail, opened from the booking list and the invoice list, styles in AdminDetail.razor.css *@
 @* missing values show "Not provided", never made up data *@
@@ -35,7 +36,14 @@
                 <p class="booking-detail-muted booking-detail-created">Booked on @Format.Date(_booking.CreatedAt)</p>
             </div>
             <span class="booking-detail-status">
-                @if (_booking.Status == "Paid")
+                @if (_booking.Status == BookingStatus.Cancelled)
+                {
+                    <span class="tag is-danger is-medium booking-detail-cancelled-tag">
+                        <i class="fas fa-ban" aria-hidden="true"></i>
+                        <span>Cancelled</span>
+                    </span>
+                }
+                else if (_booking.Status == BookingStatus.Paid)
                 {
                     <span class="tag is-primary is-light is-medium">Paid</span>
                 }
@@ -46,8 +54,56 @@
             </span>
         </header>
 
+        @if (_successMessage is not null)
+        {
+            <div class="booking-detail-notice booking-detail-cancel-success" role="status">
+                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                <p>@_successMessage</p>
+            </div>
+        }
+
         <div class="booking-detail-layout">
             <div class="booking-detail-main">
+                @* ---------- cancellation, the booking and its original terms stay visible below ---------- *@
+                @if (_booking.Cancellation is { } cancellation)
+                {
+                    <section class="box booking-detail-card booking-detail-cancellation">
+                        <span class="eyebrow">Cancellation</span>
+
+                        <dl class="booking-detail-facts">
+                            <div>
+                                <dt><i class="fas fa-calendar-xmark" aria-hidden="true"></i>Cancelled on</dt>
+                                <dd class="booking-detail-cancelled-at">@Format.Date(cancellation.CancelledAt)</dd>
+                            </div>
+                            <div>
+                                <dt><i class="fas fa-comment" aria-hidden="true"></i>Reason</dt>
+                                <dd class="booking-detail-cancel-reason">@cancellation.Reason</dd>
+                            </div>
+                            <div>
+                                <dt><i class="fas fa-rotate-left" aria-hidden="true"></i>Refund</dt>
+                                <dd class="booking-detail-refund">@(cancellation.RefundAmount > 0 ? Format.Amount(cancellation.RefundAmount) : "No refund")</dd>
+                            </div>
+                        </dl>
+
+                        @if (cancellation.RefundAmount > 0)
+                        {
+                            <p class="booking-detail-refund-note">
+                                <i class="fas fa-circle-info" aria-hidden="true"></i>
+                                The website does not refund automatically, pay the refund back to the guest yourself, e.g. in the Stripe dashboard.
+                            </p>
+                        }
+
+                        @* the guest can still finish an open Stripe checkout after the cancellation *@
+                        @if (_booking.Payments.Any(x => x.PaidAt > cancellation.CancelledAt))
+                        {
+                            <p class="booking-detail-refund-note booking-detail-paid-after-cancel" role="alert">
+                                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                                A payment came in after the cancellation, refund it to the guest yourself, e.g. in the Stripe dashboard.
+                            </p>
+                        }
+                    </section>
+                }
+
                 @* ---------- stay, dates nights and rooms ---------- *@
                 <section class="box booking-detail-card booking-detail-stay">
                     <span class="eyebrow">The stay</span>
@@ -68,6 +124,11 @@
                             <span class="booking-detail-muted">@_booking.CheckOut.DayOfWeek</span>
                         </div>
                     </div>
+
+                    <p class="booking-detail-guests">
+                        <i class="fas fa-user-group" aria-hidden="true"></i>
+                        <span class="booking-detail-guests-count">@_booking.Adults @(_booking.Adults == 1 ? "guest" : "guests")</span>
+                    </p>
 
                     <h2 class="booking-detail-subtitle">Assigned room@(_booking.Rooms.Count == 1 ? "" : "s")</h2>
                     @if (_booking.Rooms.Count > 0)
@@ -90,6 +151,63 @@
                         <p class="booking-detail-muted booking-detail-no-rooms">No rooms are assigned to this booking.</p>
                     }
                 </section>
+
+                @* ---------- booked rate and cancellation policy, the copy made at booking time ---------- *@
+                @if (_booking.Rooms.Count > 0)
+                {
+                    <section class="box booking-detail-card booking-detail-conditions">
+                        <span class="eyebrow">Booking conditions</span>
+                        <p class="booking-detail-muted booking-detail-conditions-note">
+                            Terms as agreed on @Format.Date(_booking.CreatedAt), later changes to the rates don't apply to this booking.
+                        </p>
+
+                        <ul>
+                            @foreach (var room in _booking.Rooms)
+                            {
+                                <li @key="room.RoomId" class="booking-detail-condition">
+                                    <div class="booking-detail-condition-header">
+                                        <div>
+                                            <p class="booking-detail-room-name">Room @room.RoomNumber · <span class="booking-detail-rate-name">@room.RateName</span></p>
+                                            <p class="booking-detail-muted booking-detail-policy-text">@CancellationPolicyText.Of(room)</p>
+                                        </div>
+                                        @if (room.IsRefundable)
+                                        {
+                                            <span class="tag is-primary is-light booking-detail-policy-tag">Refundable</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tag is-danger is-light booking-detail-policy-tag">Non-refundable</span>
+                                        }
+                                    </div>
+
+                                    @if (room.IsRefundable)
+                                    {
+                                        var step = RefundStep(room);
+                                        <ol class="booking-detail-timeline">
+                                            <li class="@StepClass(step, 0)">
+                                                <span class="booking-detail-timeline-percent">100%</span>
+                                                <span class="booking-detail-muted">until @Format.Date(room.FullRefundUntil!.Value)</span>
+                                            </li>
+                                            <li class="@StepClass(step, 1)">
+                                                <span class="booking-detail-timeline-percent">@room.PartialRefundPercent%</span>
+                                                <span class="booking-detail-muted">until @Format.Date(room.PartialRefundUntil!.Value)</span>
+                                            </li>
+                                            <li class="@StepClass(step, 2)">
+                                                <span class="booking-detail-timeline-percent">0%</span>
+                                                <span class="booking-detail-muted">afterwards</span>
+                                            </li>
+                                        </ol>
+                                    }
+
+                                    <p class="booking-detail-entitlement">
+                                        <span>@(_booking.Cancellation is null ? "Refund if cancelled today" : $"Entitlement on {Format.Date(_booking.RefundReferenceDate)}")</span>
+                                        <span class="booking-detail-entitlement-amount">@room.RefundPercent% · @Format.Amount(room.RefundAmount)</span>
+                                    </p>
+                                </li>
+                            }
+                        </ul>
+                    </section>
+                }
 
                 @* ---------- payments ---------- *@
                 <section class="box booking-detail-card booking-detail-payments">
@@ -188,7 +306,76 @@
                         <span class="booking-detail-total-amount">@Format.Amount(_booking.TotalAmount)</span>
                     </div>
                 </section>
+
+                @if (_booking.Cancellation is null)
+                {
+                    <Button Variant="ButtonVariant.Danger" IsFullWidth="true" OnClick="OpenCancelDialog" Class="booking-detail-cancel-open">
+                        Cancel booking
+                    </Button>
+                }
             </aside>
         </div>
+
+        @* ---------- cancel dialog, a bottom sheet on phones ---------- *@
+        @if (_cancelForm is not null)
+        {
+            <div class="modal is-active booking-cancel-dialog" role="dialog" aria-modal="true" aria-labelledby="booking-cancel-title">
+                <div class="modal-background" @onclick="CloseCancelDialog"></div>
+                <div class="modal-content booking-cancel-sheet">
+                    <EditForm Model="_cancelForm" OnValidSubmit="CancelAsync">
+                        <FluentValidationValidator />
+
+                        <span class="eyebrow">Booking @_booking.BookingNumber</span>
+                        <h2 id="booking-cancel-title" class="booking-cancel-title">Cancel this booking?</h2>
+                        <p class="booking-detail-muted">
+                            The rooms become available again. The booking, its prices and payments stay visible here.
+                        </p>
+
+                        <div class="field mt-4">
+                            <label class="label is-required" for="booking-cancel-reason">Reason</label>
+                            <div class="control">
+                                <InputTextArea @bind-Value="_cancelForm.Reason" id="booking-cancel-reason" class="textarea" rows="3" maxlength="500"
+                                               placeholder="e.g. Guest asked to cancel by phone" />
+                            </div>
+                            <ValidationMessage For="() => _cancelForm.Reason" class="help is-danger" />
+                        </div>
+
+                        <div class="field">
+                            <label class="label" for="booking-cancel-refund">Refund (€)</label>
+                            <div class="control">
+                                <InputNumber @bind-Value="_cancelForm.RefundAmount" id="booking-cancel-refund" class="input" min="0" max="@_booking.PaidAmount" step="0.01"
+                                             inputmode="decimal" disabled="@(_booking.PaidAmount == 0)" />
+                            </div>
+                            <ValidationMessage For="() => _cancelForm.RefundAmount" class="help is-danger" />
+                            <p class="help booking-cancel-refund-hint">
+                                @if (_booking.PaidAmount == 0)
+                                {
+                                    <span>Nothing has been paid, so there is nothing to refund.</span>
+                                }
+                                else
+                                {
+                                    <span>Due per the cancellation policy: @Format.Amount(_booking.SuggestedRefundAmount) of @Format.Amount(_booking.PaidAmount) paid.</span>
+                                }
+                            </p>
+                        </div>
+
+                        <p class="booking-detail-refund-note">
+                            <i class="fas fa-circle-info" aria-hidden="true"></i>
+                            The refund is only recorded, the website does not pay it back. Handle it yourself, e.g. in the Stripe dashboard.
+                        </p>
+
+                        @if (_cancelError is not null)
+                        {
+                            <p class="help is-danger booking-cancel-error" role="alert">@_cancelError</p>
+                        }
+
+                        <div class="booking-cancel-actions">
+                            <Button Variant="ButtonVariant.Secondary" OnClick="CloseCancelDialog" IsDisabled="_isCancelling">Keep booking</Button>
+                            <Button Type="submit" Variant="ButtonVariant.Danger" IsLoading="_isCancelling" Class="booking-cancel-confirm">Cancel booking</Button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        }
     }
 </div>

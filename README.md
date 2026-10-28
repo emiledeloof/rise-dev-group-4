@@ -110,6 +110,8 @@ dotnet --version
 
 ## Docker Deployment
 
+> **Releasing to production?** Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): Part A is the local test deployment, Part B the real deployment (merge `main` → `release`, version tag).
+
 The `Dockerfile` builds a production image of `Rise.Server`, which also serves the Blazor client. It is a Release build that runs in the `Production` environment, listens on plain HTTP port 8080 and runs as a non-root user. There are three compose files:
 
 | File | Purpose |

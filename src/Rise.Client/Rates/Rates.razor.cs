@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Rise.Shared.Common;
 using Rise.Shared.RatePricing;
+using Rise.Shared.Settings;
 using Rise.Shared.Rooms;
 using Rise.Shared.Rates;
 
@@ -21,8 +22,10 @@ public partial class Rates : ComponentBase
     //drop down filters
     private string? _selectedRoomName;
     private string? _selectedPolicy;
+    private string? _selectedDate;
     private IEnumerable<string> _roomNames = [];
     private IEnumerable<string> _policies = [];
+    private IEnumerable<string> _dateRanges = [];
 
     //create new rate
     private bool _isCreateOpen;
@@ -42,9 +45,19 @@ public partial class Rates : ComponentBase
 
     // shown in the form when the api refused or failed the save
     private string? _saveErrorMessage;
-
+    private string? _activationErrorMessage;
+    private readonly HashSet<int> _pendingRateActivations = [];
+    private bool _isSettingsOpen;
+    private bool _isSavingSettings;
+    private bool _settingsLoaded;
+    private string? _settingsLoadErrorMessage;
+    private string? _settingsErrorMessage;
+    private GeneralSettingsDto? _generalSettings;
+    private GeneralSettingsRequest.Update _generalSettingsModel = new();
 
     private int TotalPages => _totalCount == 0 ? 1 : (int)Math.Ceiling(_totalCount / (double)PageSize);
+
+    private bool IsVatApplied => _generalSettings is { IsVatEnabled: true, VatPercentage: > 0m };
 
     [Inject] public required IRateService RateService { get; set; }
 
@@ -58,7 +71,101 @@ public partial class Rates : ComponentBase
     [Inject] public required ILogger<Rates> Logger { get; set; }
 
     protected override async Task OnInitializedAsync()
-        => await LoadPageAsync();
+        => await Task.WhenAll(LoadPageAsync(), LoadGeneralSettingsAsync());
+
+    private async Task LoadGeneralSettingsAsync()
+    {
+        _settingsLoadErrorMessage = null;
+        try
+        {
+            var result = await RatePricingService.GetGeneralSettingsAsync();
+            if (!result.IsSuccess)
+            {
+                _settingsLoadErrorMessage = GetErrorMessage(result, "General settings could not be loaded.");
+                return;
+            }
+
+            _generalSettings = result.Value;
+            _generalSettingsModel = new GeneralSettingsRequest.Update
+            {
+                IsVatEnabled = result.Value.IsVatEnabled,
+                VatPercentage = result.Value.VatPercentage,
+            };
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Could not load general settings.");
+            _settingsLoadErrorMessage = "Could not contact the server to load general settings. Please try again.";
+        }
+        catch (JsonException ex)
+        {
+            Logger.LogError(ex, "The general-settings response could not be read.");
+            _settingsLoadErrorMessage = "The server returned unreadable general settings. Please try again.";
+        }
+        finally
+        {
+            _settingsLoaded = true;
+        }
+    }
+
+    private void ToggleSettingsForm()
+    {
+        if (_isSettingsOpen)
+        {
+            CloseSettingsForm();
+            return;
+        }
+
+        _isCreateOpen = false;
+        _editModel = null;
+        _successMessage = null;
+        _settingsErrorMessage = null;
+        _generalSettingsModel = new GeneralSettingsRequest.Update
+        {
+            IsVatEnabled = _generalSettings!.IsVatEnabled,
+            VatPercentage = _generalSettings.VatPercentage,
+        };
+        _isSettingsOpen = true;
+    }
+
+    private void CloseSettingsForm()
+    {
+        _isSettingsOpen = false;
+        _settingsErrorMessage = null;
+    }
+
+    private async Task SaveGeneralSettingsAsync()
+    {
+        _isSavingSettings = true;
+        _settingsErrorMessage = null;
+        try
+        {
+            var result = await RatePricingService.UpdateGeneralSettingsAsync(_generalSettingsModel);
+            if (!result.IsSuccess)
+            {
+                _settingsErrorMessage = GetErrorMessage(result, "General settings could not be saved.");
+                return;
+            }
+
+            _generalSettings = result.Value;
+            _isSettingsOpen = false;
+            _successMessage = "General settings saved.";
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Could not save general settings.");
+            _settingsErrorMessage = "Could not contact the server to save general settings. Please try again.";
+        }
+        catch (JsonException ex)
+        {
+            Logger.LogError(ex, "The general-settings response could not be read after saving.");
+            _settingsErrorMessage = "The server returned an unreadable response. Please try again.";
+        }
+        finally
+        {
+            _isSavingSettings = false;
+        }
+    }
 
     private static RateRequest.Create NewRateModel() => new()
     {
@@ -89,6 +196,7 @@ public partial class Rates : ComponentBase
         _rates = null; // show loading state
         _errorMessage = null;
 
+        var selectedRange = ParseDateRange(_selectedDate);
         var request = new RateRequest.Index
         {
             Skip = (_currentPage - 1) * PageSize,
@@ -96,6 +204,9 @@ public partial class Rates : ComponentBase
             OrderDescending = true,
             RoomName = _selectedRoomName,
             Policy = _selectedPolicy,
+            StartDate = selectedRange.StartDate,
+            EndDate = selectedRange.EndDate,
+            FilterByDateRange = !string.IsNullOrEmpty(_selectedDate)
         };
 
         var result = await RateService.GetIndexAsync(request);
@@ -111,6 +222,7 @@ public partial class Rates : ComponentBase
         _totalCount = result.Value.TotalCount;
         _roomNames = result.Value.RoomNames;
         _policies = result.Value.Policies;
+        _dateRanges = result.Value.DateRanges;
     }
 
     private async Task PreviousPageAsync()
@@ -150,6 +262,7 @@ public partial class Rates : ComponentBase
     {
         // * one form at a time, opening create closes edit
         _editModel = null;
+        _isSettingsOpen = false;
         _successMessage = null;
         _createModel = NewRateModel();
         _createErrorMessage = null;
@@ -185,6 +298,7 @@ public partial class Rates : ComponentBase
     private void CloseCreateForm()
     {
         _isCreateOpen = false;
+        _isSettingsOpen = false;
         _createErrorMessage = null;
     }
 
@@ -233,6 +347,7 @@ public partial class Rates : ComponentBase
         _saveErrorMessage = null;
         _successMessage = null;
         _isCreateOpen = false;
+        _isSettingsOpen = false;
 
         // kept to compare with the form on save
         _originalRate = rate;
@@ -242,12 +357,30 @@ public partial class Rates : ComponentBase
         {
             RateId = rate.Id,
             PricePerNight = rate.PricePerNight,
+            IsActive = rate.IsActive,
             MinNights = rate.MinNights,
             IsRefundable = rate.IsRefundable,
             FullRefundDays = rate.FullRefundDays,
             PartialRefundDays = rate.PartialRefundDays,
-            PartialRefundPercent = rate.PartialRefundPercent
+            PartialRefundPercent = rate.PartialRefundPercent,
+            StartDate = rate.StartDate,
+            EndDate = rate.EndDate
         };
+    }
+
+    private void ClearEditDates()
+    {
+        if (_editModel is null)
+            return;
+
+        _editModel.StartDate = null;
+        _editModel.EndDate = null;
+    }
+
+    private void ClearCreateDates()
+    {
+        _createModel.StartDate = null;
+        _createModel.EndDate = null;
     }
 
     /// <summary>
@@ -263,6 +396,7 @@ public partial class Rates : ComponentBase
     /// </summary>
     private async Task SaveEditAsync()
     {
+        _editModel!.IsActive = _originalRate!.IsActive;
         var result = await RatePricingService.EditAsync(_editModel!);
 
         // form stays open so the admin can retry without typing again
@@ -278,7 +412,9 @@ public partial class Rates : ComponentBase
         var original = _originalRate!;
 
         var priceChanged = edit.PricePerNight != original.PricePerNight;
+        var activeChanged = edit.IsActive != original.IsActive;
         var minNightsChanged = edit.MinNights != original.MinNights;
+        var datesChanged = edit.StartDate != original.StartDate || edit.EndDate != original.EndDate;
         // refundable or not, the checkbox
         var refundableChanged = edit.IsRefundable != original.IsRefundable;
 
@@ -292,7 +428,9 @@ public partial class Rates : ComponentBase
         // * one msg for every combination, eg saved price and partial refund
         var changes = new List<string>();
         if (priceChanged) changes.Add("price");
+        if (activeChanged) changes.Add(edit.IsActive ? "activated rate" : "deactivated rate");
         if (minNightsChanged) changes.Add("minimum nights");
+        if (datesChanged) changes.Add("availability dates");
         if (refundableChanged) changes.Add(edit.IsRefundable ? "cancellation policy (refundable)" : "cancellation policy (non-refundable)");
         if (fullRefundChanged) changes.Add("full refund period");
         if (partialRefundChanged) changes.Add("partial refund");
@@ -304,6 +442,54 @@ public partial class Rates : ComponentBase
         _successMessage = changes.Count == 0
             ? "Nothing was changed."
             : $"Saved: {JoinWithAnd(changes)}.";
+    }
+
+    private async Task SetRateActiveAsync(RateDto.Index rate, ChangeEventArgs args)
+    {
+        if (args.Value is not bool isActive || isActive == rate.IsActive
+            || !_pendingRateActivations.Add(rate.Id))
+        {
+            return;
+        }
+
+        _activationErrorMessage = null;
+
+        try
+        {
+            var result = await RatePricingService.EditAsync(new RatePricingRequest.Edit
+            {
+                RateId = rate.Id,
+                PricePerNight = rate.PricePerNight,
+                IsActive = isActive,
+                MinNights = rate.MinNights,
+                IsRefundable = rate.IsRefundable,
+                FullRefundDays = rate.FullRefundDays,
+                PartialRefundDays = rate.PartialRefundDays,
+                PartialRefundPercent = rate.PartialRefundPercent,
+            });
+
+            if (!result.IsSuccess)
+            {
+                _activationErrorMessage = "The rate status could not be updated. Please try again.";
+                return;
+            }
+
+            rate.IsActive = isActive;
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Could not update active status for rate {RateId}.", rate.Id);
+            _activationErrorMessage = "Could not contact the server to update the rate status. Please try again.";
+        }
+        catch (JsonException ex)
+        {
+            Logger.LogError(ex, "The active-status response could not be read for rate {RateId}.", rate.Id);
+            _activationErrorMessage = "The server returned an unreadable response. Please try again.";
+        }
+        finally
+        {
+            _pendingRateActivations.Remove(rate.Id);
+        }
     }
 
     /// <summary>
@@ -336,7 +522,43 @@ public partial class Rates : ComponentBase
     private static string FormatPrice(decimal price)
         => $"€{price.ToString("0.00", CultureInfo.InvariantCulture)}";
 
+    private string FormatPriceIncludingVat(decimal price)
+        => FormatPrice(price * (1m + _generalSettings!.VatPercentage / 100m));
+
+    private static string FormatPercentage(decimal percentage)
+        => $"{percentage.ToString("0.##", CultureInfo.InvariantCulture)}%";
+
 
     private static string FormatDate(DateOnly date)
-        => date.ToString("dd MMM", CultureInfo.InvariantCulture);
+        => date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
+
+    private static string FormatDateRange(DateOnly? startDate, DateOnly? endDate)
+        => (startDate, endDate) switch
+        {
+            (null, null) => "Any dates",
+            (null, not null) => $"{FormatDate(endDate.Value)}",
+            (not null, null) => $"{FormatDate(startDate.Value)}",
+            _ => $"{FormatDate(startDate!.Value)} - {FormatDate(endDate!.Value)}",
+        };
+
+    private static string FormatDateRangeOption(string value)
+    {
+        var (startDate, endDate) = ParseDateRange(value);
+        return FormatDateRange(startDate, endDate);
+    }
+
+    private static (DateOnly? StartDate, DateOnly? EndDate) ParseDateRange(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return (null, null);
+
+        var dates = value.Split(" - ", StringSplitOptions.None);
+        return (
+            string.IsNullOrEmpty(dates[0])
+                ? null
+                : DateOnly.ParseExact(dates[0], "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            string.IsNullOrEmpty(dates[1])
+                ? null
+                : DateOnly.ParseExact(dates[1], "yyyy-MM-dd", CultureInfo.InvariantCulture));
+    }
 }

@@ -23,6 +23,20 @@ public class RatePricingEditValidatorShould
         _validator.Validate(ValidRequest()).IsValid.ShouldBeTrue();
     }
 
+    [Fact]
+    public void RejectAnEndDateBeforeTheStartDate()
+    {
+        var request = ValidRequest();
+        request.StartDate = new DateOnly(2026, 10, 31);
+        request.EndDate = new DateOnly(2026, 10, 1);
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.Select(error => error.ErrorMessage)
+            .ShouldContain("Start date must be before end date.");
+    }
+
     /// <summary>
     /// the lowest price that still passes, 1 cent
     /// </summary>

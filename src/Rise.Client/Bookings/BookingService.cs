@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using Rise.Shared.Bookings;
 using Rise.Shared.Common;
@@ -64,6 +65,26 @@ public class BookingService(HttpClient httpClient) : IBookingService
         return (await httpClient.GetFromJsonAsync<Result<BookingResponse.Index>>(
             $"/api/bookings{request}",
             cancellationToken))!;
+    }
+
+    public async Task<Result<BookingResponse.Cancel>> CancelAsync(
+        BookingRequest.Cancel request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await httpClient.PostAsJsonAsync(
+            $"/api/bookings/{request.BookingId}/cancel", request, cancellationToken);
+
+        // only these codes hold a Result body, a 401 or a 503 has none
+        var result = response.StatusCode is HttpStatusCode.OK or HttpStatusCode.BadRequest
+            or HttpStatusCode.NotFound or HttpStatusCode.Conflict
+            ? await response.Content.ReadFromJsonAsync<Result<BookingResponse.Cancel>>(cancellationToken: cancellationToken)
+            : null;
+
+        // a FastEndpoints validation error is a 400 without a Result, it would be read as a success
+        if (result is null || result.IsSuccess != response.IsSuccessStatusCode)
+            return Result.Error($"The server answered {(int)response.StatusCode}.");
+
+        return result;
     }
 
     public async Task<Result<BookingResponse.Matrix>> GetMatrixAsync(

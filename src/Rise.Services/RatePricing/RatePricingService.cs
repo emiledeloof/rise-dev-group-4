@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Rooms;
+using Rise.Domain.Settings;
 using Rise.Persistence;
 using Rise.Shared.RatePricing;
+using Rise.Shared.Settings;
 
 namespace Rise.Services.RatePricing;
 
@@ -11,6 +13,27 @@ namespace Rise.Services.RatePricing;
 /// </summary>
 public class RatePricingService(ApplicationDbContext dbContext) : IRatePricingService
 {
+    public async Task<Result<GeneralSettingsDto>> GetGeneralSettingsAsync(CancellationToken ctx = default)
+    {
+        var settings = await dbContext.GeneralSettings
+            .AsNoTracking()
+            .SingleAsync(item => item.Id == GeneralSettings.SingletonId, ctx);
+
+        return Result.Success(ToDto(settings));
+    }
+
+    public async Task<Result<GeneralSettingsDto>> UpdateGeneralSettingsAsync(
+        GeneralSettingsRequest.Update request,
+        CancellationToken ctx = default)
+    {
+        var settings = await dbContext.GeneralSettings
+            .SingleAsync(item => item.Id == GeneralSettings.SingletonId, ctx);
+        settings.Update(request.IsVatEnabled, request.VatPercentage);
+        await dbContext.SaveChangesAsync(ctx);
+
+        return Result.Success(ToDto(settings));
+    }
+
     /// <summary>
     /// saves the pricing of one rate, NotFound if the rate does not exist
     /// </summary>
@@ -28,7 +51,10 @@ public class RatePricingService(ApplicationDbContext dbContext) : IRatePricingSe
 
         // * the setters in Rate refuse invalid values, last safety net after the validator
         rate.PricePerNight = request.PricePerNight;
+        rate.IsActive = request.IsActive;
         rate.MinNights = request.MinNights;
+        rate.StartDate = request.StartDate;
+        rate.EndDate = request.EndDate;
 
         // * bool from the page back to the domain enum
         var newPolicy = request.IsRefundable ? CancellationPolicy.Refundable : CancellationPolicy.NonRefundable;
@@ -49,7 +75,14 @@ public class RatePricingService(ApplicationDbContext dbContext) : IRatePricingSe
         await dbContext.SaveChangesAsync(ctx);
 
         // what is saved now, useful to debug
-        Log.Information("Rate {RateId} updated, price {Price}, min nights {MinNights}, refundable {IsRefundable}", request.RateId, request.PricePerNight, request.MinNights, request.IsRefundable);
+        Log.Information(
+            "Rate {RateId} updated, price {Price}, min nights {MinNights}, dates {StartDate} - {EndDate}, refundable {IsRefundable}",
+            request.RateId,
+            request.PricePerNight,
+            request.MinNights,
+            request.StartDate,
+            request.EndDate,
+            request.IsRefundable);
 
         return Result.Success();
     }
@@ -84,4 +117,10 @@ public class RatePricingService(ApplicationDbContext dbContext) : IRatePricingSe
             rate.Description ??= NonRefundableConditions;
         }
     }
+
+    private static GeneralSettingsDto ToDto(GeneralSettings settings) => new()
+    {
+        IsVatEnabled = settings.IsVatEnabled,
+        VatPercentage = settings.VatPercentage,
+    };
 }

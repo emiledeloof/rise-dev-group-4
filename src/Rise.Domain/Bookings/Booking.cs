@@ -16,11 +16,34 @@ public class Booking : Entity
     public DateOnly CheckIn { get; private set; }
     public DateOnly CheckOut { get; private set; }
 
+    /// <summary>
+    /// Nb of guests of the stay, chosen in the search, at least 1.
+    /// </summary>
+    public int Adults { get; private set; }
+
     private readonly List<BookingRoom> _rooms = [];
     public IReadOnlyList<BookingRoom> Rooms => _rooms.AsReadOnly();
 
     private readonly List<Payment> _payments = [];
     public IReadOnlyList<Payment> Payments => _payments.AsReadOnly();
+
+    /// <summary>
+    /// Set by <see cref="Cancel"/>, a cancelled booking keeps its rooms, prices and payments for the admin.
+    /// </summary>
+    public DateTime? CancelledAt { get; private set; }
+    public string? CancellationReason { get; private set; }
+
+    /// <summary>
+    /// Refund the admin decided on when cancelling, the website never refunds it, the admin does it by hand.
+    /// </summary>
+    public decimal? RefundAmount { get; private set; }
+
+    public bool IsCancelled => CancelledAt is not null;
+
+    /// <summary>
+    /// Sum of the settled payments, the most that can be refunded.
+    /// </summary>
+    public decimal PaidAmount => _payments.Where(x => x.IsPaid && !x.IsDeleted).Sum(x => x.Amount);
 
     /// <summary>
     /// Entity Framework Core Constructor
@@ -29,10 +52,11 @@ public class Booking : Entity
     {
     }
 
-    public Booking(string bookingNumber, Guest guest, DateOnly checkIn, DateOnly checkOut)
+    public Booking(string bookingNumber, Guest guest, DateOnly checkIn, DateOnly checkOut, int adults)
     {
         BookingNumber = Guard.Against.NullOrWhiteSpace(bookingNumber).Trim();
         Guest = Guard.Against.Null(guest);
+        Adults = Guard.Against.NegativeOrZero(adults);
         ChangeDates(checkIn, checkOut);
     }
 
@@ -48,7 +72,7 @@ public class Booking : Entity
     /// <summary>
     /// Adds a room to the booking, the price per night is copied from the rate at booking time.
     /// </summary>
-    public BookingRoom AddRoom(Room room, Rate rate)
+    public BookingRoom AddRoom(Room room, Rate rate, decimal? pricePerNight = null)
     {
         Guard.Against.Null(room);
         Guard.Against.Null(rate);
@@ -59,9 +83,28 @@ public class Booking : Entity
         if (_rooms.Any(x => x.Room == room))
             throw new ArgumentException("The room is already part of this booking.", nameof(room));
 
-        var bookingRoom = new BookingRoom(this, room, rate);
+        var bookingRoom = new BookingRoom(this, room, rate, pricePerNight ?? rate.PricePerNight);
         _rooms.Add(bookingRoom);
         return bookingRoom;
+    }
+
+    /// <summary>
+    /// Cancels the booking and records the refund decision, the payments must be loaded to check the refund.
+    /// </summary>
+    public void Cancel(DateTime cancelledAt, string reason, decimal refundAmount)
+    {
+        if (IsCancelled)
+            throw new InvalidOperationException("The booking is already cancelled.");
+
+        Guard.Against.NullOrWhiteSpace(reason);
+        Guard.Against.Negative(refundAmount);
+
+        if (refundAmount > PaidAmount)
+            throw new ArgumentException("The refund can't be more than the amount paid.", nameof(refundAmount));
+
+        CancelledAt = cancelledAt;
+        CancellationReason = reason.Trim();
+        RefundAmount = refundAmount;
     }
 
     public Payment AddPayment(decimal amount, string? stripeCheckoutSession = null)

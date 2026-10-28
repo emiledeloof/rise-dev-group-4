@@ -127,10 +127,13 @@
     cursor: pointer;
 }
 
-.drp-day:hover:not(:disabled) {
-    outline: 1px solid var(--color-primary);
-    outline-offset: -1px;
-    border-radius: 50%;
+/* only on devices with a real hover, on touch screens the outline would stay stuck after a tap */
+@media (hover: hover) {
+    .drp-day:hover:not(:disabled) {
+        outline: 1px solid var(--color-primary);
+        outline-offset: -1px;
+        border-radius: 50%;
+    }
 }
 
 /* today is underlined */
@@ -171,16 +174,28 @@
 
 /* one month only and a panel as wide as the field */
 @media (max-width: 768px) {
+    .drp {
+        max-width: none;
+    }
+
     .drp-month + .drp-month {
         display: none;
     }
 
     .drp-panel {
+        box-sizing: border-box;
         width: 100%;
         padding: var(--space-md);
     }
 
+    /* square day cells that shrink with the screen but never get bigger than 2.75rem */
     .drp-grid {
-        grid-template-columns: repeat(7, 1fr);
+        grid-template-columns: repeat(7, minmax(0, 2.75rem));
+        justify-content: center;
+    }
+
+    .drp-day {
+        height: auto;
+        aspect-ratio: 1;
     }
 }

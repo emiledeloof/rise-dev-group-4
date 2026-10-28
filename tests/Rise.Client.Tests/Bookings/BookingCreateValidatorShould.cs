@@ -38,6 +38,23 @@ public class BookingCreateValidatorShould
     }
 
     [Fact]
+    public void TakeTheNbOfGuestsOfTheDraft()
+    {
+        ValidRequest().Adults.ShouldBe(TestDrafts.Adults);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void RejectABookingWithoutGuests(int adults)
+    {
+        var request = ValidRequest();
+        request.Adults = adults;
+
+        _validator.Validate(request).IsValid.ShouldBeFalse();
+    }
+
+    [Fact]
     public void RejectABookingWithoutRooms()
     {
         var request = ValidRequest();
