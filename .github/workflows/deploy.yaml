@@ -16,7 +16,6 @@ env:
   REPO_PATH: hogent-rise/rise-dev-group-4
   CONTAINER_NAME: rise-server-prod
   TEST_CONTAINER_NAME: rise-server-test
-  GHCR_REPO: ghcr.io/${{ github.repository }}
 
 jobs: 
   ci:
