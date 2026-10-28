@@ -1,0 +1,237 @@
+name: Deploy dotnet app
+
+on: 
+  push:
+    branches:
+      - main
+      - release
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: emiledeloofhg/devops
+  REPO_PATH: hogent-rise/rise-dev-group-4
+  CONTAINER_NAME: rise-server-prod
+  TEST_CONTAINER_NAME: rise-server-test
+  GHCR_REPO: ghcr.io/${{ github.repository }}
+
+jobs: 
+  ci:
+    runs-on: [self-hosted, build-server]
+    steps:
+      - name: Sync latest repository code
+        uses: actions/checkout@v7
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+        
+      - name: Restore dependencies & Audit CVEs
+        run: |
+          dotnet restore
+          dotnet list package --vulnerable --include-transitive
+
+      - name: Verify Formatting (dotnet format)
+        run: |
+          dotnet format --verify-no-changes --verbosity normal
+
+      - name: Build with Strict Code Analysis
+        run: |
+          dotnet build --no-restore --configuration Release --warnaserror
+
+      - name: Run Tests
+        run: |
+          dotnet test --no-build --configuration Release --verbosity normal
+
+  build-test-env:
+    name: Build image for test environment
+    runs-on: [self-hosted, build-server]
+    permissions:
+      contents: read
+      packages: write
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    outputs:
+      images_tag: ${{ steps.vars.outputs.sha_short }}
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v7
+
+      - name: Compute short SHA tag
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ env.REPO_PATH }}:${{ steps.vars.outputs.sha_short }}
+            ghcr.io/${{ env.REPO_PATH }}:latest
+
+  build:
+    name: Build image
+    runs-on: [self-hosted, build-server]
+    needs: ci
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    outputs:
+      image_tag: ${{ steps.vars.outputs.version }}
+    
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify Tag Belongs to Release Branch
+        run: |
+          echo "Verifying tag ${{ github.ref_name }} points to a commit on origin/release..."
+          git fetch origin release:refs/remotes/origin/release
+
+          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/release; then
+            echo "::error::Tag ${{ github.ref_name }} (${{ github.sha }}) is NOT an ancestor of 'origin/release'!"
+            exit 1
+          fi
+
+          echo "Lineage verified: commit exists on origin/release."
+
+      - name: Extract Semantic Version
+        id: vars
+        run: |
+          RAW_TAG="${{ github.ref_name }}"
+          CLEAN_VERSION="${RAW_TAG#v}"
+          echo "version=${CLEAN_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.version }}
+            ${{ env.IMAGE_NAME }}:latest
+
+  deploy:
+    name: Deploy to Production
+    needs: build
+    runs-on: [self-hosted, prod-server]
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PROD_TOKEN }}
+
+      - name: Deploy container
+        env:
+          TAG: ${{ needs.build.outputs.image_tag }}
+        run: |
+          echo "Pulling image: $IMAGE_NAME:$TAG"
+          docker pull "$IMAGE_NAME:$TAG"
+
+          if docker ps -a --format '{{.Names}}' | grep -Eq "^${CONTAINER_NAME}\$"; then
+            echo "Stopping and removing existing container..."
+            docker stop "$CONTAINER_NAME"
+            docker rm "$CONTAINER_NAME"
+          fi
+
+          echo "Starting container: $CONTAINER_NAME"
+          docker volume create rise-logs
+          docker run -d --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            --env-file /opt/rise/.env \
+            -p 80:8080 \
+            -v rise-logs:/app/Logs \
+            "$IMAGE_NAME:$TAG"
+
+          sleep 3
+          if docker ps --filter "name=^/${CONTAINER_NAME}$" --filter "status=running" | grep -q "$CONTAINER_NAME"; then
+            echo "Deployment succeeded."
+            docker image prune -f
+          else
+            echo "Deployment failed! Outputting logs:"
+            docker logs "$CONTAINER_NAME"
+            exit 1
+          fi
+
+  deploy-test-env:
+    name: Deploy to Test environment
+    needs: build-test-env
+    runs-on: [self-hosted, prod-server]
+    permissions:
+      packages: read
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy container
+        env:
+          TAG: ${{ needs.build-test-env.outputs.images_tag }}
+        run: |
+          echo "Pulling image: ghcr.io/$REPO_PATH:$TAG"
+          docker pull "ghcr.io/$REPO_PATH:$TAG"
+
+          if docker ps -a --format '{{.Names}}' | grep -Eq "^${TEST_CONTAINER_NAME}\$"; then
+            echo "Stopping and removing existing container..."
+            docker stop "$TEST_CONTAINER_NAME"
+            docker rm "$TEST_CONTAINER_NAME"
+          fi
+
+          echo "Starting container: $TEST_CONTAINER_NAME"
+          docker volume create rise-logs-test
+          docker run -d --name "$TEST_CONTAINER_NAME" \
+            --restart unless-stopped \
+            --env-file /opt/rise/.env \
+            -p 8000:8080 \
+            -v rise-logs-test:/app/Logs \
+            "ghcr.io/$REPO_PATH:$TAG"
+
+          sleep 3
+          if docker ps --filter "name=^/${TEST_CONTAINER_NAME}$" --filter "status=running" | grep -q "$TEST_CONTAINER_NAME"; then
+            echo "Deployment succeeded."
+            docker image prune -f
+          else
+            echo "Deployment failed! Outputting logs:"
+            docker logs "$TEST_CONTAINER_NAME"
+            exit 1
+          fi
