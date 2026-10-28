@@ -285,6 +285,9 @@ namespace Rise.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("Adults")
+                        .HasColumnType("integer");
+
                     b.Property<string>("BookingNumber")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -378,6 +381,11 @@ namespace Rise.Persistence.Migrations
 
                     b.Property<int>("RateId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("RateName")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<int>("RoomId")
                         .HasColumnType("integer");

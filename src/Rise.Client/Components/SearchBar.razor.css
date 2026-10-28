@@ -15,6 +15,10 @@
         0 0 0 1px rgba(43, 43, 43, 0.05),
         0 10px 30px rgba(43, 43, 43, 0.08);
     margin-bottom: var(--space-lg);
+    /* own layer above the page content, the backdrop-filter makes a stacking context, */
+    /* so without this the guest and date panels end up under later sticky elements like the selection summary */
+    position: relative;
+    z-index: 10;
     /* dark text even on the home hero, which sets white text */
     color: var(--color-text);
 }
@@ -166,8 +170,10 @@
         align-items: stretch;
     }
 
+    /* flex: none, in a column the flex basis would become a height and leave a gap under the dates */
+    .search-bar ::deep .drp,
     .search-bar ::deep .gp {
-        flex: auto;
+        flex: none;
         width: 100%;
     }
 
@@ -175,7 +181,14 @@
         padding-block: 0.75rem;
     }
 
+    /* square day cells that shrink with the screen but never get bigger than 2.75rem */
     .search-bar ::deep .drp .drp-grid {
-        grid-template-columns: repeat(7, 1fr);
+        grid-template-columns: repeat(7, minmax(0, 2.75rem));
+        justify-content: center;
+    }
+
+    .search-bar ::deep .drp .drp-day {
+        height: auto;
+        aspect-ratio: 1;
     }
 }

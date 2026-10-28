@@ -125,6 +125,11 @@
                         </div>
                     </div>
 
+                    <p class="booking-detail-guests">
+                        <i class="fas fa-user-group" aria-hidden="true"></i>
+                        <span class="booking-detail-guests-count">@_booking.Adults @(_booking.Adults == 1 ? "guest" : "guests")</span>
+                    </p>
+
                     <h2 class="booking-detail-subtitle">Assigned room@(_booking.Rooms.Count == 1 ? "" : "s")</h2>
                     @if (_booking.Rooms.Count > 0)
                     {
@@ -146,6 +151,63 @@
                         <p class="booking-detail-muted booking-detail-no-rooms">No rooms are assigned to this booking.</p>
                     }
                 </section>
+
+                @* ---------- booked rate and cancellation policy, the copy made at booking time ---------- *@
+                @if (_booking.Rooms.Count > 0)
+                {
+                    <section class="box booking-detail-card booking-detail-conditions">
+                        <span class="eyebrow">Booking conditions</span>
+                        <p class="booking-detail-muted booking-detail-conditions-note">
+                            Terms as agreed on @Format.Date(_booking.CreatedAt), later changes to the rates don't apply to this booking.
+                        </p>
+
+                        <ul>
+                            @foreach (var room in _booking.Rooms)
+                            {
+                                <li @key="room.RoomId" class="booking-detail-condition">
+                                    <div class="booking-detail-condition-header">
+                                        <div>
+                                            <p class="booking-detail-room-name">Room @room.RoomNumber · <span class="booking-detail-rate-name">@room.RateName</span></p>
+                                            <p class="booking-detail-muted booking-detail-policy-text">@CancellationPolicyText.Of(room)</p>
+                                        </div>
+                                        @if (room.IsRefundable)
+                                        {
+                                            <span class="tag is-primary is-light booking-detail-policy-tag">Refundable</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tag is-danger is-light booking-detail-policy-tag">Non-refundable</span>
+                                        }
+                                    </div>
+
+                                    @if (room.IsRefundable)
+                                    {
+                                        var step = RefundStep(room);
+                                        <ol class="booking-detail-timeline">
+                                            <li class="@StepClass(step, 0)">
+                                                <span class="booking-detail-timeline-percent">100%</span>
+                                                <span class="booking-detail-muted">until @Format.Date(room.FullRefundUntil!.Value)</span>
+                                            </li>
+                                            <li class="@StepClass(step, 1)">
+                                                <span class="booking-detail-timeline-percent">@room.PartialRefundPercent%</span>
+                                                <span class="booking-detail-muted">until @Format.Date(room.PartialRefundUntil!.Value)</span>
+                                            </li>
+                                            <li class="@StepClass(step, 2)">
+                                                <span class="booking-detail-timeline-percent">0%</span>
+                                                <span class="booking-detail-muted">afterwards</span>
+                                            </li>
+                                        </ol>
+                                    }
+
+                                    <p class="booking-detail-entitlement">
+                                        <span>@(_booking.Cancellation is null ? "Refund if cancelled today" : $"Entitlement on {Format.Date(_booking.RefundReferenceDate)}")</span>
+                                        <span class="booking-detail-entitlement-amount">@room.RefundPercent% · @Format.Amount(room.RefundAmount)</span>
+                                    </p>
+                                </li>
+                            }
+                        </ul>
+                    </section>
+                }
 
                 @* ---------- payments ---------- *@
                 <section class="box booking-detail-card booking-detail-payments">

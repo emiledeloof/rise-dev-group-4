@@ -22,6 +22,11 @@ public class BookingDraft
     public DateOnly? CheckOut { get; private set; }
 
     /// <summary>
+    /// nb of guests chosen in the search, 0 until the rooms are picked
+    /// </summary>
+    public int Adults { get; private set; }
+
+    /// <summary>
     /// rooms the guest picked with their rate, prices are only for display, the server calculates them again
     /// </summary>
     public IReadOnlyList<DraftRoom> Rooms { get; private set; } = [];
@@ -54,10 +59,11 @@ public class BookingDraft
     /// <summary>
     /// stores the stay and the picked rooms, called by the continue btn of the results page
     /// </summary>
-    public void SetRooms(DateOnly checkIn, DateOnly checkOut, IEnumerable<DraftRoom> rooms)
+    public void SetRooms(DateOnly checkIn, DateOnly checkOut, int adults, IEnumerable<DraftRoom> rooms)
     {
         CheckIn = checkIn;
         CheckOut = checkOut;
+        Adults = adults;
         Rooms = rooms.ToList();
     }
 
@@ -76,6 +82,7 @@ public class BookingDraft
     {
         CheckIn = null;
         CheckOut = null;
+        Adults = 0;
         Rooms = [];
         Guest = null;
     }
@@ -92,6 +99,7 @@ public class BookingDraft
         {
             CheckIn = CheckIn!.Value,
             CheckOut = CheckOut!.Value,
+            Adults = Adults,
             Guest = Guest!,
             Rooms = Rooms.Select(r => new BookingRequest.Create.RoomSelection { RoomId = r.RoomId, RateId = r.RateId }).ToList(),
         };

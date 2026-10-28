@@ -133,7 +133,7 @@ public partial class Results
             return new DraftRoom(room.Id, room.Name, rate.Id, rate.Name, rate.Description, rate.PricePerNight, rate.TotalPrice, CancellationPolicyText.Of(rate));
         });
 
-        Draft.SetRooms(CheckIn!.Value, CheckOut!.Value, rooms);
+        Draft.SetRooms(CheckIn!.Value, CheckOut!.Value, Stay.Adults, rooms);
         Navigation.NavigateTo("/guests/create");
     }
 

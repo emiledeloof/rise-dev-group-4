@@ -17,6 +17,11 @@ public class BookingRoom : Entity
     public decimal PricePerNight { get; private set; }
 
     /// <summary>
+    /// copy of <see cref="Rate.Name"/> at booking time, a renamed rate doesn't change the booked rate
+    /// </summary>
+    public string RateName { get; private set; } = default!;
+
+    /// <summary>
     /// copied from the <see cref="Rate"/> at booking time, the admin list of cancellations needs the policy valid when the guest booked
     /// </summary>
     public CancellationPolicy CancellationPolicy { get; private set; }
@@ -49,6 +54,7 @@ public class BookingRoom : Entity
         Room = Guard.Against.Null(room);
         Rate = Guard.Against.Null(rate);
         PricePerNight = rate.PricePerNight;
+        RateName = rate.Name;
         // * snapshot of the cancellation policy, later changes on the rate dont touch this booking
         CancellationPolicy = rate.CancellationPolicy;
         FullRefundDays = rate.FullRefundDays;

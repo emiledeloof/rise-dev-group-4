@@ -269,6 +269,94 @@ public class AdminDetailShould : BunitContext
     }
 
     [Fact]
+    public void ShowTheNbOfGuests()
+    {
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-guests-count").TextContent.ShouldBe("3 guests");
+    }
+
+    [Fact]
+    public void ShowASingleGuest()
+    {
+        var booking = TestAdminDetails.Full();
+        booking.Adults = 1;
+        _bookingService.AdminDetailAnswer = Result.Success(booking);
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-guests-count").TextContent.ShouldBe("1 guest");
+    }
+
+    [Fact]
+    public void ShowTheBookedRateAndPolicyOfEveryRoom()
+    {
+        var cut = RenderPage();
+
+        var conditions = cut.FindAll(".booking-detail-condition");
+        conditions.Count.ShouldBe(2);
+        conditions[0].QuerySelector(".booking-detail-rate-name")!.TextContent.ShouldBe("Standard");
+        conditions[0].QuerySelector(".booking-detail-policy-tag")!.TextContent.ShouldBe("Refundable");
+        conditions[0].QuerySelector(".booking-detail-policy-text")!.TextContent
+            .ShouldBe("Free cancellation up to 30 days before arrival, 50% refund up to 7 days before");
+        cut.Find(".booking-detail-conditions-note").TextContent.ShouldContain("04 Oct 2026");
+    }
+
+    /// <summary>
+    /// check-in on 17 oct, 100 pct until 17 sep, 50 pct until 10 oct, the reference date 10 oct is in the 50 pct step
+    /// </summary>
+    [Fact]
+    public void ShowTheRefundStepsWithTheCurrentOneHighlighted()
+    {
+        var cut = RenderPage();
+
+        var steps = cut.FindAll(".booking-detail-condition")[0].QuerySelectorAll(".booking-detail-timeline li");
+        steps.Length.ShouldBe(3);
+        steps[0].TextContent.ShouldContain("100%");
+        steps[0].TextContent.ShouldContain("17 Sep 2026");
+        steps[0].ClassList.ShouldContain("is-past");
+        steps[1].TextContent.ShouldContain("50%");
+        steps[1].TextContent.ShouldContain("10 Oct 2026");
+        steps[1].ClassList.ShouldContain("is-current");
+        steps[2].TextContent.ShouldContain("0%");
+        steps[2].ClassList.ShouldNotContain("is-current");
+    }
+
+    [Fact]
+    public void ShowTheRefundIfCancelledToday()
+    {
+        var cut = RenderPage();
+
+        var entitlement = cut.FindAll(".booking-detail-entitlement")[1];
+        entitlement.TextContent.ShouldContain("Refund if cancelled today");
+        entitlement.QuerySelector(".booking-detail-entitlement-amount")!.TextContent.ShouldBe("50% · €210.00");
+    }
+
+    [Fact]
+    public void ShowNoRefundForANonRefundableRate()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.NonRefundable());
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-policy-tag").TextContent.ShouldBe("Non-refundable");
+        cut.Find(".booking-detail-policy-text").TextContent.ShouldBe("Non-refundable, no refund if the guest cancels");
+        cut.FindAll(".booking-detail-timeline").ShouldBeEmpty();
+        cut.Find(".booking-detail-entitlement-amount").TextContent.ShouldBe("0% · €0.00");
+    }
+
+    [Fact]
+    public void ShowTheEntitlementOnTheCancellationDateOfACancelledBooking()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(Cancelled(360m));
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-entitlement").TextContent.ShouldContain("Entitlement on 10 Oct 2026");
+        cut.FindAll(".booking-detail-condition").Count.ShouldBe(2);
+    }
+
+    [Fact]
     public void WarnAboutAPaymentAfterTheCancellation()
     {
         var booking = Cancelled(0m);

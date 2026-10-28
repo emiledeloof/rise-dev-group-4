@@ -41,7 +41,7 @@
                     <p>
                         @Draft.CheckIn!.Value.ToString("ddd d MMM yyyy") – @Draft.CheckOut!.Value.ToString("ddd d MMM yyyy")
                     </p>
-                    <p class="overview-muted">@Draft.Nights @(Draft.Nights == 1 ? "night" : "nights")</p>
+                    <p class="overview-muted overview-stay-summary">@Draft.Nights @(Draft.Nights == 1 ? "night" : "nights") · @Draft.Adults @(Draft.Adults == 1 ? "guest" : "guests")</p>
                 </section>
 
                 <section class="overview-section overview-rooms" aria-labelledby="overview-rooms-title">

@@ -19,9 +19,12 @@ public static class TestAdminDetails
         CheckIn = new DateOnly(2026, 10, 17),
         CheckOut = new DateOnly(2026, 10, 20),
         Nights = 3,
+        Adults = 3,
         TotalAmount = 720m,
         PaidAmount = 720m,
         SuggestedRefundAmount = 360m,
+        // 7 days before arrival, the last day of the 50% step
+        RefundReferenceDate = new DateOnly(2026, 10, 10),
         Guest = new BookingDto.AdminGuestDto
         {
             Id = 3,
@@ -34,8 +37,8 @@ public static class TestAdminDetails
         },
         Rooms =
         [
-            new() { RoomId = 1, RoomNumber = "101", RoomName = "Standard Room", RateName = "Standard", PricePerNight = 100m, Total = 300m },
-            new() { RoomId = 3, RoomNumber = "103", RoomName = "Deluxe Room", RateName = "Flexible", PricePerNight = 140m, Total = 420m },
+            Refundable(new() { RoomId = 1, RoomNumber = "101", RoomName = "Standard Room", RateName = "Standard", PricePerNight = 100m, Total = 300m, IsRefundable = true, FullRefundDays = 30, PartialRefundDays = 7, PartialRefundPercent = 50, RefundPercent = 50, RefundAmount = 150m }),
+            Refundable(new() { RoomId = 3, RoomNumber = "103", RoomName = "Deluxe Room", RateName = "Flexible", PricePerNight = 140m, Total = 420m, IsRefundable = true, FullRefundDays = 30, PartialRefundDays = 7, PartialRefundPercent = 50, RefundPercent = 50, RefundAmount = 210m }),
         ],
         Payments =
         [
@@ -51,4 +54,27 @@ public static class TestAdminDetails
             },
         ],
     };
+    /// <summary>
+    /// the same booking with 1 room on a non-refundable rate, nothing is refunded
+    /// </summary>
+    public static BookingDto.AdminDetail NonRefundable()
+    {
+        var booking = Full();
+        booking.SuggestedRefundAmount = 0m;
+        booking.Rooms =
+        [
+            new() { RoomId = 1, RoomNumber = "101", RoomName = "Standard Room", RateName = "Non-refundable", PricePerNight = 100m, Total = 300m, IsRefundable = false, FullRefundDays = 30, PartialRefundDays = 7, PartialRefundPercent = 50, RefundPercent = 0, RefundAmount = 0m },
+        ];
+        booking.TotalAmount = 300m;
+        return booking;
+    }
+
+    // fills in the refund dates the server derives from the check-in of Full()
+    private static BookingDto.AdminRoomDto Refundable(BookingDto.AdminRoomDto room)
+    {
+        var checkIn = new DateOnly(2026, 10, 17);
+        room.FullRefundUntil = checkIn.AddDays(-room.FullRefundDays);
+        room.PartialRefundUntil = checkIn.AddDays(-room.PartialRefundDays);
+        return room;
+    }
 }

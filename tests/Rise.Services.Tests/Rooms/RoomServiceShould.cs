@@ -52,7 +52,7 @@ public class RoomServiceShould
 
         var guest = new Guest("Jan Janssens", "jan.janssens@example.com", "+32 470 12 34 56",
             new GuestAddress("Koningstraat 12", null, "Belgium"));
-        var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
+        var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
         booking.AddRoom(doubleRoom, doubleRate);
 
         // lets a test change the data before saving, eg mark the booking as deleted

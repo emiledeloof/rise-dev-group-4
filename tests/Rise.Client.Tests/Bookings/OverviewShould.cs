@@ -58,6 +58,7 @@ public class OverviewShould : BunitContext
 
         // assert
         cut.Find(".overview-stay").TextContent.ShouldContain("3 nights");
+        cut.Find(".overview-stay").TextContent.ShouldContain("2 guests");
         cut.Find(".overview-room-name").TextContent.ShouldBe("Double Room");
         cut.Find(".overview-rate-name").TextContent.ShouldContain("Non-refundable");
         cut.Find(".overview-rate-description").TextContent.ShouldBe("No refund after booking");
@@ -76,7 +77,7 @@ public class OverviewShould : BunitContext
 
         // assert
         cut.Find(".overview-rooms .overview-edit").GetAttribute("href")
-            .ShouldBe($"/search/results?checkIn={TestDrafts.CheckIn:yyyy-MM-dd}&checkOut={TestDrafts.CheckOut:yyyy-MM-dd}");
+            .ShouldBe($"/search/results?checkIn={TestDrafts.CheckIn:yyyy-MM-dd}&checkOut={TestDrafts.CheckOut:yyyy-MM-dd}&adults={TestDrafts.Adults}");
     }
 
     [Fact]
@@ -92,6 +93,7 @@ public class OverviewShould : BunitContext
         // assert, the request holds the picked room and rate, the checkout is for the saved booking, the draft is emptied
         var request = _bookingService.CreateRequests.Single();
         request.CheckIn.ShouldBe(TestDrafts.CheckIn);
+        request.Adults.ShouldBe(TestDrafts.Adults);
         request.Rooms.Single().RoomId.ShouldBe(1);
         request.Rooms.Single().RateId.ShouldBe(1);
         request.Guest.Email.ShouldBe("marie@example.com");

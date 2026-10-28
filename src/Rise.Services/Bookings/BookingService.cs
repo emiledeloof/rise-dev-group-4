@@ -134,6 +134,14 @@ public sealed class BookingService(
             selections.Add((room, rate));
         }
 
+        // server side check of the nb of guests, the search already hides rooms that are too small but it can be bypassed
+        var capacity = selections.Sum(x => x.Room.MaxGuests);
+        if (request.Adults > capacity)
+        {
+            return Result.Invalid(new ValidationError(
+                $"The selected rooms fit at most {capacity} guests."));
+        }
+
         // TODO: two simultaneous requests can both pass this check, add a Postgres exclusion constraint
         // or a serializable transaction (InMemory tests don't support transactions)
         var takenRoomIds = await dbContext.BookingRooms
@@ -153,7 +161,7 @@ public sealed class BookingService(
         var guest = await UpsertGuestAsync(request.Guest, ctx);
 
         var bookingNumber = await GenerateBookingNumberAsync(ctx);
-        var booking = new Booking(bookingNumber, guest, request.CheckIn, request.CheckOut);
+        var booking = new Booking(bookingNumber, guest, request.CheckIn, request.CheckOut, request.Adults);
 
         foreach (var (room, rate) in selections)
         {
@@ -198,8 +206,9 @@ public sealed class BookingService(
     }
 
     /// <summary>
-    /// Loads one booking with its guest, rooms, rates and payments for the admin detail page.
-    /// A deleted booking is treated as not found.
+    /// Loads one booking with its guest, rooms and payments for the admin detail page.
+    /// The rate and cancellation policy come from the copy on the booked room, not from the current rate.
+    /// A deleted booking is treated as not found, a cancelled one is still returned.
     /// </summary>
     public async Task<Result<BookingDto.AdminDetail>> GetDetailAsync(int bookingId, CancellationToken ctx = default)
     {
@@ -209,8 +218,6 @@ public sealed class BookingService(
             .Include(x => x.Guest)
             .Include(x => x.Rooms)
                 .ThenInclude(x => x.Room)
-            .Include(x => x.Rooms)
-                .ThenInclude(x => x.Rate)
             .Include(x => x.Payments)
             .SingleOrDefaultAsync(x => x.Id == bookingId && !x.IsDeleted, ctx);
 
@@ -225,16 +232,31 @@ public sealed class BookingService(
     private static BookingDto.AdminDetail ToAdminDetailDto(Booking booking)
     {
         var nights = booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
-        var rooms = booking.Rooms
-            .Where(x => !x.IsDeleted)
-            .Select(x => new BookingDto.AdminRoomDto
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        // a cancelled booking shows the refund of the day it was cancelled, an open one the refund of today
+        var referenceDate = booking.CancelledAt is { } cancelled ? DateOnly.FromDateTime(cancelled) : today;
+        var bookedRooms = booking.Rooms.Where(x => !x.IsDeleted).ToList();
+        var rooms = bookedRooms
+            .Select(x =>
             {
-                RoomId = x.Room.Id,
-                RoomNumber = x.Room.RoomNumber,
-                RoomName = x.Room.Name,
-                RateName = x.Rate.Name,
-                PricePerNight = x.PricePerNight,
-                Total = PriceCalculator.Total(x.PricePerNight, nights),
+                var isRefundable = x.CancellationPolicy is CancellationPolicy.Refundable;
+                return new BookingDto.AdminRoomDto
+                {
+                    RoomId = x.Room.Id,
+                    RoomNumber = x.Room.RoomNumber,
+                    RoomName = x.Room.Name,
+                    RateName = x.RateName,
+                    PricePerNight = x.PricePerNight,
+                    Total = PriceCalculator.Total(x.PricePerNight, nights),
+                    IsRefundable = isRefundable,
+                    FullRefundDays = x.FullRefundDays,
+                    PartialRefundDays = x.PartialRefundDays,
+                    PartialRefundPercent = x.PartialRefundPercent,
+                    FullRefundUntil = isRefundable ? booking.CheckIn.AddDays(-x.FullRefundDays) : null,
+                    PartialRefundUntil = isRefundable ? booking.CheckIn.AddDays(-x.PartialRefundDays) : null,
+                    RefundPercent = RefundCalculator.RefundPercent(x, booking.CheckIn, referenceDate),
+                    RefundAmount = RoomRefund(x, booking.CheckIn, nights, referenceDate),
+                };
             })
             .OrderBy(x => x.RoomNumber)
             .ToList();
@@ -251,9 +273,11 @@ public sealed class BookingService(
             CheckIn = booking.CheckIn,
             CheckOut = booking.CheckOut,
             Nights = nights,
+            Adults = booking.Adults,
             TotalAmount = rooms.Sum(x => x.Total),
             PaidAmount = paidAmount,
-            SuggestedRefundAmount = Math.Min(SuggestedRefund(booking, nights), paidAmount),
+            SuggestedRefundAmount = Math.Min(bookedRooms.Sum(x => RoomRefund(x, booking.CheckIn, nights, today)), paidAmount),
+            RefundReferenceDate = referenceDate,
             Cancellation = booking.CancelledAt is { } cancelledAt
                 ? new BookingDto.AdminCancellationDto
                 {
@@ -290,17 +314,13 @@ public sealed class BookingService(
     }
 
     /// <summary>
-    /// Refund of every room according to the policy copied at booking time, as if the booking is cancelled today.
+    /// Refund of one room according to the policy copied at booking time, as if the booking is cancelled on the given date.
+    /// The page and the cancel form both use it, so their amounts always match.
     /// </summary>
-    private static decimal SuggestedRefund(Booking booking, int nights)
-    {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return booking.Rooms
-            .Where(x => !x.IsDeleted)
-            .Sum(x => Math.Round(
-                PriceCalculator.Total(x.PricePerNight, nights) * RefundCalculator.RefundPercent(x, booking.CheckIn, today) / 100m,
-                2));
-    }
+    private static decimal RoomRefund(BookingRoom bookingRoom, DateOnly checkIn, int nights, DateOnly cancelledOn)
+        => Math.Round(
+            PriceCalculator.Total(bookingRoom.PricePerNight, nights) * RefundCalculator.RefundPercent(bookingRoom, checkIn, cancelledOn) / 100m,
+            2);
 
     /// <summary>
     /// Cancels the booking and records the refund the admin decided on.

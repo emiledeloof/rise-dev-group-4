@@ -21,7 +21,7 @@ public class RefundCalculatorShould
         rate.CancellationPolicy = policy;
 
         var guest = new Guest("Jan Janssens", "jan@example.com", "+32 470 12 34 56", new GuestAddress("Koningstraat 12", null, "Belgium"));
-        var booking = new Booking("20261006-0042", guest, CheckIn, CheckIn.AddDays(2));
+        var booking = new Booking("20261006-0042", guest, CheckIn, CheckIn.AddDays(2), 2);
 
         return booking.AddRoom(room, rate);
     }

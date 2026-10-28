@@ -36,7 +36,7 @@ public partial class Create
     /// Link back to the results page with the dates of the draft, so the picked rooms are shown again.
     /// </summary>
     protected string BackToRoomsUrl =>
-        $"/search/results?checkIn={Draft.CheckIn:yyyy-MM-dd}&checkOut={Draft.CheckOut:yyyy-MM-dd}";
+        $"/search/results?checkIn={Draft.CheckIn:yyyy-MM-dd}&checkOut={Draft.CheckOut:yyyy-MM-dd}&adults={Draft.Adults}";
 
     /// <summary>
     /// Sends the guest back to the search when no rooms are picked (e.g. after a page refresh),

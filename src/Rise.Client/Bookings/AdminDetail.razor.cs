@@ -109,4 +109,20 @@ public partial class AdminDetail
         // reload to show the cancellation and the new status
         await LoadAsync();
     }
+
+    /// <summary>
+    /// step of the refund timeline the reference date falls in, 0 full refund, 1 partial refund, 2 no refund
+    /// same day rules as the RefundCalculator on the server, the last day of a step still counts
+    /// </summary>
+    private int RefundStep(BookingDto.AdminRoomDto room)
+    {
+        var date = _booking!.RefundReferenceDate;
+        if (room.FullRefundUntil is { } fullUntil && date <= fullUntil) return 0;
+        if (room.PartialRefundUntil is { } partialUntil && date <= partialUntil) return 1;
+        return 2;
+    }
+
+    // css class of a timeline step, the current step is highlighted and the past ones are faded
+    private static string StepClass(int currentStep, int step)
+        => step == currentStep ? "is-current" : step < currentStep ? "is-past" : string.Empty;
 }

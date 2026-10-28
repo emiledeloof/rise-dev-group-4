@@ -9,7 +9,8 @@ public class PaymentShould
         => new("20261006-0042",
             new Guest("Jan Janssens", "jan@example.com", "+32 470 12 34 56", new GuestAddress("Koningstraat 12", null, "Belgium")),
             new DateOnly(2026, 10, 10),
-            new DateOnly(2026, 10, 12));
+            new DateOnly(2026, 10, 12),
+            2);
 
     [Fact]
     public void BeCreatedAsUnpaid()

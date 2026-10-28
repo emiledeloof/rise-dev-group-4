@@ -302,7 +302,7 @@ public class ResultsPageShould : BunitContext
     public void RestoreTheSelectionOfTheDraftForTheSameDates()
     {
         // arrange
-        _draft.SetRooms(Today.AddDays(2), Today.AddDays(5),
+        _draft.SetRooms(Today.AddDays(2), Today.AddDays(5), 2,
             [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 417m, "Free cancellation up to 30 days before arrival, 50% refund up to 7 days before")]);
 
         // act
@@ -320,7 +320,7 @@ public class ResultsPageShould : BunitContext
     {
         // arrange, the fake sends the fully refundable rate with a min of 5 nights, the stay is 3
         _roomService.Answer.Value.Rooms.First().Rates.Single(r => r.Id == 2).MinNights = 5;
-        _draft.SetRooms(Today.AddDays(2), Today.AddDays(5),
+        _draft.SetRooms(Today.AddDays(2), Today.AddDays(5), 2,
             [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 417m, "Free cancellation up to 30 days before arrival, 50% refund up to 7 days before")]);
 
         // act
@@ -337,7 +337,7 @@ public class ResultsPageShould : BunitContext
     public void NotRestoreTheSelectionOfTheDraftForOtherDates()
     {
         // arrange
-        _draft.SetRooms(Today.AddDays(10), Today.AddDays(12),
+        _draft.SetRooms(Today.AddDays(10), Today.AddDays(12), 2,
             [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 278m, "Free cancellation up to 30 days before arrival, 50% refund up to 7 days before")]);
 
         // act

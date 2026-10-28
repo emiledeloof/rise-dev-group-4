@@ -17,12 +17,38 @@ public class BookingShould
     {
         var guest = CreateGuest();
 
-        var booking = new Booking("20261006-0042", guest, CheckIn, CheckOut);
+        var booking = new Booking("20261006-0042", guest, CheckIn, CheckOut, 2);
 
         booking.BookingNumber.ShouldBe("20261006-0042");
         booking.Guest.ShouldBe(guest);
         booking.CheckIn.ShouldBe(CheckIn);
         booking.CheckOut.ShouldBe(CheckOut);
+        booking.Adults.ShouldBe(2);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void NotBeCreatedWithoutGuests(int adults)
+    {
+        Action act = () => new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, adults);
+
+        act.ShouldThrow<ArgumentException>();
+    }
+
+    [Fact]
+    public void CopyTheRateNameWhenAddingARoom()
+    {
+        var room = new Room("101", "Single Room", 1);
+        var rate = room.AddRate("Standard", 79m);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
+
+        var bookingRoom = booking.AddRoom(room, rate);
+
+        bookingRoom.RateName.ShouldBe("Standard");
+
+        rate.Name = "Saver";
+        bookingRoom.RateName.ShouldBe("Standard");
     }
 
     [Theory]
@@ -31,7 +57,7 @@ public class BookingShould
     [InlineData("")]
     public void NotBeCreatedWithAnInvalidBookingNumber(string? bookingNumber)
     {
-        Action act = () => new Booking(bookingNumber!, CreateGuest(), CheckIn, CheckOut);
+        Action act = () => new Booking(bookingNumber!, CreateGuest(), CheckIn, CheckOut, 2);
 
         act.ShouldThrow<ArgumentException>();
     }
@@ -41,7 +67,7 @@ public class BookingShould
     [InlineData(-1)]
     public void NotBeCreatedWhenCheckOutIsNotAfterCheckIn(int nights)
     {
-        Action act = () => new Booking("20261006-0042", CreateGuest(), CheckIn, CheckIn.AddDays(nights));
+        Action act = () => new Booking("20261006-0042", CreateGuest(), CheckIn, CheckIn.AddDays(nights), 2);
 
         act.ShouldThrow<ArgumentException>();
     }
@@ -51,7 +77,7 @@ public class BookingShould
     {
         var room = new Room("101", "Single Room", 1);
         var rate = room.AddRate("Standard", 79m);
-        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
 
         var bookingRoom = booking.AddRoom(room, rate);
 
@@ -68,7 +94,7 @@ public class BookingShould
         var room = new Room("101", "Single Room", 1);
         var otherRoom = new Room("102", "Double Room", 2);
         var otherRate = otherRoom.AddRate("Standard", 109m);
-        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
 
         Action act = () => booking.AddRoom(room, otherRate);
 
@@ -81,7 +107,7 @@ public class BookingShould
     {
         var room = new Room("101", "Single Room", 1);
         var rate = room.AddRate("Standard", 79m);
-        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
         booking.AddRoom(room, rate);
 
         Action act = () => booking.AddRoom(room, rate);
@@ -101,7 +127,7 @@ public class BookingShould
         rate.FullRefundDays = 45;
         rate.PartialRefundDays = 10;
         rate.PartialRefundPercent = 30;
-        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
 
         var bookingRoom = booking.AddRoom(room, rate);
 
@@ -122,7 +148,7 @@ public class BookingShould
 
     private static Booking CreatePaidBooking(decimal paid = 200m)
     {
-        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
         booking.AddPayment(paid).MarkAsPaid(new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc));
         return booking;
     }
@@ -198,7 +224,7 @@ public class BookingShould
     [Fact]
     public void NotRefundAnUnpaidPayment()
     {
-        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
         booking.AddPayment(200m);
 
         Action act = () => booking.Cancel(DateTime.UtcNow, "Guest is ill", 1m);

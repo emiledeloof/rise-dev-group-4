@@ -16,6 +16,11 @@ public class Booking : Entity
     public DateOnly CheckIn { get; private set; }
     public DateOnly CheckOut { get; private set; }
 
+    /// <summary>
+    /// Nb of guests of the stay, chosen in the search, at least 1.
+    /// </summary>
+    public int Adults { get; private set; }
+
     private readonly List<BookingRoom> _rooms = [];
     public IReadOnlyList<BookingRoom> Rooms => _rooms.AsReadOnly();
 
@@ -47,10 +52,11 @@ public class Booking : Entity
     {
     }
 
-    public Booking(string bookingNumber, Guest guest, DateOnly checkIn, DateOnly checkOut)
+    public Booking(string bookingNumber, Guest guest, DateOnly checkIn, DateOnly checkOut, int adults)
     {
         BookingNumber = Guard.Against.NullOrWhiteSpace(bookingNumber).Trim();
         Guest = Guard.Against.Null(guest);
+        Adults = Guard.Against.NegativeOrZero(adults);
         ChangeDates(checkIn, checkOut);
     }
 

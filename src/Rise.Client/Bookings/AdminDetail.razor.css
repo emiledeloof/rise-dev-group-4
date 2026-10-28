@@ -190,6 +190,121 @@
     font-weight: 500;
 }
 
+/* nb of guests under the dates, olive icon like the nights */
+.booking-detail-guests {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.booking-detail-guests i {
+    color: var(--color-primary);
+}
+
+/* ---------- booking conditions ---------- */
+
+.booking-detail-conditions-note {
+    margin-top: var(--space-xs);
+}
+
+.booking-detail-conditions ul {
+    display: grid;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+}
+
+.booking-detail-condition {
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+}
+
+.booking-detail-condition-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-sm);
+}
+
+.booking-detail-rate-name {
+    font-family: var(--font-title);
+    font-style: italic;
+}
+
+.booking-detail-policy-tag {
+    flex-shrink: 0;
+}
+
+/* refund steps, stacked on phones and side by side from 480px, the current step in olive */
+.booking-detail-timeline {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xs);
+    margin: var(--space-md) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.booking-detail-timeline li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius);
+    background-color: var(--color-bg);
+    border-top: 2px solid var(--color-border);
+}
+
+.booking-detail-timeline li.is-current {
+    border-top-color: var(--color-primary);
+    background-color: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+}
+
+.booking-detail-timeline li.is-past {
+    opacity: 0.55;
+}
+
+.booking-detail-timeline-percent {
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+    line-height: 1.1;
+}
+
+.booking-detail-timeline li.is-current .booking-detail-timeline-percent {
+    color: var(--color-primary-dark);
+}
+
+/* refund on the reference date, a thin gold line above like the total of the price card */
+.booking-detail-entitlement {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-xs) var(--space-md);
+    margin-top: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid color-mix(in srgb, var(--color-gold) 35%, var(--color-border));
+    font-size: 0.875rem;
+}
+
+.booking-detail-entitlement-amount {
+    font-weight: 600;
+}
+
+@media (min-width: 480px) {
+    .booking-detail-timeline {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .booking-detail-timeline li {
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+}
+
 /* ---------- payments ---------- */
 
 .booking-detail-payment {

@@ -90,6 +90,10 @@ public static class BookingDto
         public required DateOnly CheckOut { get; set; }
         public required int Nights { get; set; }
         /// <summary>
+        /// Nb of guests of the stay.
+        /// </summary>
+        public required int Adults { get; set; }
+        /// <summary>
         /// Total of all rooms for the whole stay.
         /// </summary>
         public required decimal TotalAmount { get; set; }
@@ -102,6 +106,10 @@ public static class BookingDto
         /// prefills the cancel form, never more than <see cref="PaidAmount"/>.
         /// </summary>
         public required decimal SuggestedRefundAmount { get; set; }
+        /// <summary>
+        /// Date the room refunds are calculated for: the cancellation date of a cancelled booking, otherwise today.
+        /// </summary>
+        public required DateOnly RefundReferenceDate { get; set; }
         /// <summary>
         /// Null while the booking is not cancelled.
         /// </summary>
@@ -131,19 +139,46 @@ public static class BookingDto
     }
 
     /// <summary>
-    /// A room assigned to the booking with the rate and price of the stay.
+    /// A room assigned to the booking with the rate, price and cancellation policy agreed at booking time.
     /// </summary>
     public class AdminRoomDto
     {
         public required int RoomId { get; set; }
         public required string RoomNumber { get; set; }
         public required string RoomName { get; set; }
+        /// <summary>
+        /// Name of the rate at booking time, a later rename doesn't change it.
+        /// </summary>
         public required string RateName { get; set; }
         public required decimal PricePerNight { get; set; }
         /// <summary>
         /// Price of this room for all nights.
         /// </summary>
         public required decimal Total { get; set; }
+
+        /// <summary>
+        /// Cancellation policy copied at booking time, later changes to the rate don't apply.
+        /// </summary>
+        public required bool IsRefundable { get; set; }
+        public required int FullRefundDays { get; set; }
+        public required int PartialRefundDays { get; set; }
+        public required int PartialRefundPercent { get; set; }
+        /// <summary>
+        /// Last day with a full refund, null for a non-refundable rate.
+        /// </summary>
+        public DateOnly? FullRefundUntil { get; set; }
+        /// <summary>
+        /// Last day with a partial refund, null for a non-refundable rate.
+        /// </summary>
+        public DateOnly? PartialRefundUntil { get; set; }
+        /// <summary>
+        /// Pct refunded on <see cref="AdminDetail.RefundReferenceDate"/>, eg 100, 50 or 0.
+        /// </summary>
+        public required int RefundPercent { get; set; }
+        /// <summary>
+        /// Refund of this room on <see cref="AdminDetail.RefundReferenceDate"/>.
+        /// </summary>
+        public required decimal RefundAmount { get; set; }
     }
 
     /// <summary>
