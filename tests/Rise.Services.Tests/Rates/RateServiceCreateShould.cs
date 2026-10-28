@@ -26,6 +26,8 @@ public class RateServiceCreateShould
             PricePerNight = 79m,
             Description = "Flexible cancellation",
             RoomName = "Single Room",
+            StartDate = new DateOnly(2026, 10, 1),
+            EndDate = new DateOnly(2026, 10, 31),
         });
 
         result.IsSuccess.ShouldBeTrue();
@@ -33,9 +35,13 @@ public class RateServiceCreateShould
         result.Value.RoomName.ShouldBe("Single Room");
         result.Value.PricePerNight.ShouldBe(79m);
         result.Value.Description.ShouldBe("Flexible cancellation");
+        result.Value.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+        result.Value.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
 
         var savedRate = await dbContext.Rates.SingleAsync();
         savedRate.Room.Id.ShouldBe(room.Id);
+        savedRate.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+        savedRate.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
     }
 
     [Fact]

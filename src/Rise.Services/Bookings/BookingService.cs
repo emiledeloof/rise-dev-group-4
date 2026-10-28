@@ -123,19 +123,22 @@ public sealed class BookingService(
                     $"Room '{room.Name}' needs at least {rate.MinNights} nights."));
             }
 
+            var lastNight = request.CheckOut.AddDays(-1);
+            if ((rate.StartDate is not null && rate.StartDate > request.CheckIn)
+                || (rate.EndDate is not null && rate.EndDate < lastNight))
+            {
+                return Result.Invalid(new ValidationError(
+                    $"The selected rate is not available for room '{room.Name}' on these dates."));
+            }
+
             selections.Add((room, rate));
         }
 
-        // same overlap rule as RoomService.GetAvailableAsync
         // TODO: two simultaneous requests can both pass this check, add a Postgres exclusion constraint
         // or a serializable transaction (InMemory tests don't support transactions)
         var takenRoomIds = await dbContext.BookingRooms
-            .Where(br => roomIds.Contains(br.Room.Id)
-                && !br.IsDeleted
-                && !br.Booking.IsDeleted
-                && br.Booking.CancelledAt == null
-                && br.Booking.CheckIn < request.CheckOut
-                && br.Booking.CheckOut > request.CheckIn)
+            .Overlapping(request.CheckIn, request.CheckOut)
+            .Where(br => roomIds.Contains(br.Room.Id))
             .Select(br => br.Room.Id)
             .Distinct()
             .ToListAsync(ctx);
@@ -505,11 +508,7 @@ public sealed class BookingService(
         // can colour-code them differently. Cancelled bookings are excluded.
         var overlapping = await dbContext.BookingRooms
             .AsNoTracking()
-            .Where(br => !br.IsDeleted
-                      && !br.Booking.IsDeleted
-                      && br.Booking.CancelledAt == null
-                      && br.Booking.CheckIn < windowEnd
-                      && br.Booking.CheckOut > request.WindowStart)
+            .Overlapping(request.WindowStart, windowEnd)
             .Select(br => new
             {
                 RoomId = br.Room.Id,
@@ -555,4 +554,3 @@ public sealed class BookingService(
         });
     }
 }
-

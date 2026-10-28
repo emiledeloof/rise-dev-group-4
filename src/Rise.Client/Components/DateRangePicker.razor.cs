@@ -40,6 +40,21 @@ public partial class DateRangePicker
     [Parameter] public EventCallback<DateOnly?> CheckOutChanged { get; set; }
 
     /// <summary>
+    /// Label shown above the selected range.
+    /// </summary>
+    [Parameter] public string FieldLabel { get; set; } = "Dates";
+
+    /// <summary>
+    /// When false, the picker formats a date period without calculating stay nights.
+    /// </summary>
+    [Parameter] public bool ShowDuration { get; set; } = true;
+
+    /// <summary>
+    /// Allows selecting dates before today, useful for editing historical availability periods.
+    /// </summary>
+    [Parameter] public bool AllowPastDates { get; set; }
+
+    /// <summary>
     /// first date that can be picked, today by default
     /// </summary>
     [Parameter] public DateOnly? MinDate { get; set; }
@@ -53,14 +68,14 @@ public partial class DateRangePicker
     private DateOnly _firstVisibleMonth;
     private DateOnly? _hoverDate;
 
-    private DateOnly FirstAllowedDate => MinDate ?? DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly FirstAllowedDate => MinDate ?? (AllowPastDates ? DateOnly.MinValue : DateOnly.FromDateTime(DateTime.Today));
 
     /// <summary>
     /// starts on the month of the chosen check in, or on the current month
     /// </summary>
     protected override void OnInitialized()
     {
-        _firstVisibleMonth = FirstDayOfMonth(CheckIn ?? FirstAllowedDate);
+        _firstVisibleMonth = FirstDayOfMonth(CheckIn ?? (AllowPastDates ? DateOnly.FromDateTime(DateTime.Today) : FirstAllowedDate));
     }
 
     // ---------- navigation ----------
@@ -121,26 +136,44 @@ public partial class DateRangePicker
         ? checkOut.DayNumber - checkIn.DayNumber
         : 0;
 
-    // text in the closed field, eg 14 oct to 17 oct 2026 and 3 nights
-    private string FieldText => (CheckIn, CheckOut) switch
-    {
-        (null, _) => "Add dates",
-        ({ } checkIn, null) => $"{checkIn.ToString("d MMM yyyy", Culture)} – …",
-        ({ } checkIn, { } checkOut) =>
-            $"{checkIn.ToString("d MMM", Culture)} – {checkOut.ToString("d MMM yyyy", Culture)} · {NightsText}",
-    };
+    // Text in the closed field, eg 14 Oct 2026 - 17 Oct 2026 or a stay duration.
+    private string FieldText => ShowDuration
+        ? (CheckIn, CheckOut) switch
+        {
+            (null, _) => "Add dates",
+            ({ } checkIn, null) => $"{checkIn.ToString("d MMM yyyy", Culture)} – …",
+            ({ } checkIn, { } checkOut) =>
+                $"{checkIn.ToString("d MMM", Culture)} – {checkOut.ToString("d MMM yyyy", Culture)} · {NightsText}",
+        }
+        : (CheckIn, CheckOut) switch
+        {
+            (null, null) => "Any dates",
+            (null, { } checkOut) => $"… – {checkOut.ToString("d MMM yyyy", Culture)}",
+            ({ } checkIn, null) => $"{checkIn.ToString("d MMM yyyy", Culture)} – …",
+            ({ } checkIn, { } checkOut) =>
+                $"{checkIn.ToString("d MMM yyyy", Culture)} – {checkOut.ToString("d MMM yyyy", Culture)}",
+        };
 
     // TODO: translate with the languages task
-    private string HintText => (CheckIn, CheckOut) switch
-    {
-        (null, _) => "Select your check-in date",
-        (_, null) => "Select your check-out date",
-        _ => NightsText,
-    };
+    private string HintText => ShowDuration
+        ? (CheckIn, CheckOut) switch
+        {
+            (null, _) => "Select your check-in date",
+            (_, null) => "Select your check-out date",
+            _ => NightsText,
+        }
+        : (CheckIn, CheckOut) switch
+        {
+            (null, null) => "Select the first date of the availability period",
+            (_, null) => "Select the last date of the availability period",
+            _ => "Availability period",
+        };
 
     private string NightsText => Nights == 1 ? "1 night" : $"{Nights} nights";
 
-    private bool IsDisabled(DateOnly day) => day < FirstAllowedDate;
+    private bool IsDisabled(DateOnly day) =>
+        (MinDate is { } minDate && day < minDate)
+        || (!AllowPastDates && day < FirstAllowedDate);
 
     private bool IsSelected(DateOnly day) => day == CheckIn || day == CheckOut;
 

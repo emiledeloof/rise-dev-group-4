@@ -69,6 +69,10 @@ public class Rate : Entity
     /// </summary>
     public string? Description { get; set; }
 
+    // Either bound can be null for an open-ended availability period.
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+
     /// <summary>
     /// Entity Framework Core Constructor
     /// </summary>
@@ -76,11 +80,13 @@ public class Rate : Entity
     {
     }
 
-    internal Rate(Room room, string name, decimal pricePerNight, string? description = null)
+    internal Rate(Room room, string name, decimal pricePerNight, string? description = null, DateOnly? startDate = null, DateOnly? endDate = null)
     {
         Room = Guard.Against.Null(room);
         Name = name;
         PricePerNight = pricePerNight;
         Description = description;
+        StartDate = startDate;
+        EndDate = endDate;
     }
 }

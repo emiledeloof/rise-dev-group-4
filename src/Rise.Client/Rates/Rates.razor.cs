@@ -21,8 +21,10 @@ public partial class Rates : ComponentBase
     //drop down filters
     private string? _selectedRoomName;
     private string? _selectedPolicy;
+    private string? _selectedDate;
     private IEnumerable<string> _roomNames = [];
     private IEnumerable<string> _policies = [];
+    private IEnumerable<string> _dateRanges = [];
 
     //create new rate
     private bool _isCreateOpen;
@@ -89,6 +91,7 @@ public partial class Rates : ComponentBase
         _rates = null; // show loading state
         _errorMessage = null;
 
+        var selectedRange = ParseDateRange(_selectedDate);
         var request = new RateRequest.Index
         {
             Skip = (_currentPage - 1) * PageSize,
@@ -96,6 +99,9 @@ public partial class Rates : ComponentBase
             OrderDescending = true,
             RoomName = _selectedRoomName,
             Policy = _selectedPolicy,
+            StartDate = selectedRange.StartDate,
+            EndDate = selectedRange.EndDate,
+            FilterByDateRange = !string.IsNullOrEmpty(_selectedDate)
         };
 
         var result = await RateService.GetIndexAsync(request);
@@ -111,6 +117,7 @@ public partial class Rates : ComponentBase
         _totalCount = result.Value.TotalCount;
         _roomNames = result.Value.RoomNames;
         _policies = result.Value.Policies;
+        _dateRanges = result.Value.DateRanges;
     }
 
     private async Task PreviousPageAsync()
@@ -246,8 +253,25 @@ public partial class Rates : ComponentBase
             IsRefundable = rate.IsRefundable,
             FullRefundDays = rate.FullRefundDays,
             PartialRefundDays = rate.PartialRefundDays,
-            PartialRefundPercent = rate.PartialRefundPercent
+            PartialRefundPercent = rate.PartialRefundPercent,
+            StartDate = rate.StartDate,
+            EndDate = rate.EndDate
         };
+    }
+
+    private void ClearEditDates()
+    {
+        if (_editModel is null)
+            return;
+
+        _editModel.StartDate = null;
+        _editModel.EndDate = null;
+    }
+
+    private void ClearCreateDates()
+    {
+        _createModel.StartDate = null;
+        _createModel.EndDate = null;
     }
 
     /// <summary>
@@ -279,6 +303,7 @@ public partial class Rates : ComponentBase
 
         var priceChanged = edit.PricePerNight != original.PricePerNight;
         var minNightsChanged = edit.MinNights != original.MinNights;
+        var datesChanged = edit.StartDate != original.StartDate || edit.EndDate != original.EndDate;
         // refundable or not, the checkbox
         var refundableChanged = edit.IsRefundable != original.IsRefundable;
 
@@ -293,6 +318,7 @@ public partial class Rates : ComponentBase
         var changes = new List<string>();
         if (priceChanged) changes.Add("price");
         if (minNightsChanged) changes.Add("minimum nights");
+        if (datesChanged) changes.Add("availability dates");
         if (refundableChanged) changes.Add(edit.IsRefundable ? "cancellation policy (refundable)" : "cancellation policy (non-refundable)");
         if (fullRefundChanged) changes.Add("full refund period");
         if (partialRefundChanged) changes.Add("partial refund");
@@ -338,5 +364,35 @@ public partial class Rates : ComponentBase
 
 
     private static string FormatDate(DateOnly date)
-        => date.ToString("dd MMM", CultureInfo.InvariantCulture);
+        => date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
+
+    private static string FormatDateRange(DateOnly? startDate, DateOnly? endDate)
+        => (startDate, endDate) switch
+        {
+            (null, null) => "Any dates",
+            (null, not null) => $"{FormatDate(endDate.Value)}",
+            (not null, null) => $"{FormatDate(startDate.Value)}",
+            _ => $"{FormatDate(startDate!.Value)} - {FormatDate(endDate!.Value)}",
+        };
+
+    private static string FormatDateRangeOption(string value)
+    {
+        var (startDate, endDate) = ParseDateRange(value);
+        return FormatDateRange(startDate, endDate);
+    }
+
+    private static (DateOnly? StartDate, DateOnly? EndDate) ParseDateRange(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return (null, null);
+
+        var dates = value.Split(" - ", StringSplitOptions.None);
+        return (
+            string.IsNullOrEmpty(dates[0])
+                ? null
+                : DateOnly.ParseExact(dates[0], "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            string.IsNullOrEmpty(dates[1])
+                ? null
+                : DateOnly.ParseExact(dates[1], "yyyy-MM-dd", CultureInfo.InvariantCulture));
+    }
 }

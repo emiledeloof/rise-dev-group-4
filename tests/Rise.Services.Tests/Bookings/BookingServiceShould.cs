@@ -349,6 +349,28 @@ public class BookingServiceShould
         result.Status.ShouldBe(ResultStatus.Created);
     }
 
+    [Fact]
+    public async Task RejectABookingOutsideTheSelectedRatesDateRange()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(RejectABookingOutsideTheSelectedRatesDateRange));
+        var single = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        var rate = await dbContext.Rates.SingleAsync(rate => rate.Id == single.RateId);
+        rate.StartDate = new DateOnly(2026, 10, 21);
+        rate.EndDate = new DateOnly(2026, 10, 31);
+
+        var result = await CreateService(dbContext).CreateAsync(Request(20, 22, "marie@example.com", single));
+
+        result.Status.ShouldBe(ResultStatus.Invalid);
+        result.ValidationErrors.ShouldContain(error => error.ErrorMessage.Contains("not available"));
+        (await dbContext.Bookings.CountAsync()).ShouldBe(1);
+
+        rate.StartDate = new DateOnly(2026, 10, 20);
+        rate.EndDate = new DateOnly(2026, 10, 21);
+        var validBoundaryBooking = await CreateService(dbContext).CreateAsync(
+            Request(20, 22, "marie@example.com", single));
+        validBoundaryBooking.Status.ShouldBe(ResultStatus.Created);
+    }
+
     /// <summary>
     /// the admin detail holds the guest, the stay, the rooms with their rate and the payments
     /// </summary>

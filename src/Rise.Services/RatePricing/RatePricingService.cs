@@ -29,6 +29,8 @@ public class RatePricingService(ApplicationDbContext dbContext) : IRatePricingSe
         // * the setters in Rate refuse invalid values, last safety net after the validator
         rate.PricePerNight = request.PricePerNight;
         rate.MinNights = request.MinNights;
+        rate.StartDate = request.StartDate;
+        rate.EndDate = request.EndDate;
 
         // * bool from the page back to the domain enum
         var newPolicy = request.IsRefundable ? CancellationPolicy.Refundable : CancellationPolicy.NonRefundable;
@@ -49,7 +51,14 @@ public class RatePricingService(ApplicationDbContext dbContext) : IRatePricingSe
         await dbContext.SaveChangesAsync(ctx);
 
         // what is saved now, useful to debug
-        Log.Information("Rate {RateId} updated, price {Price}, min nights {MinNights}, refundable {IsRefundable}", request.RateId, request.PricePerNight, request.MinNights, request.IsRefundable);
+        Log.Information(
+            "Rate {RateId} updated, price {Price}, min nights {MinNights}, dates {StartDate} - {EndDate}, refundable {IsRefundable}",
+            request.RateId,
+            request.PricePerNight,
+            request.MinNights,
+            request.StartDate,
+            request.EndDate,
+            request.IsRefundable);
 
         return Result.Success();
     }

@@ -3,8 +3,7 @@ using Rise.Shared.Search;
 namespace Rise.Shared.Rooms;
 
 /// <summary>
-/// contract for the room features, the server implements it and later the client too
-/// same idea as IInvoiceService
+/// contract for the room features, implemented by the server (db) and the client (http)
 /// </summary>
 public interface IRoomService
 {

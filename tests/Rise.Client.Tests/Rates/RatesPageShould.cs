@@ -35,10 +35,12 @@ public class RatesPageShould : BunitContext
         rows[0].TextContent.ShouldContain("€90.00");
 
         var selects = cut.FindAll(".rate-filter select");
-        selects.Count.ShouldBe(2);
+        selects.Count.ShouldBe(3);
         selects[0].QuerySelectorAll("option").Select(option => option.TextContent)
             .ShouldBe(["All rooms", "Double Room", "Single Room"]);
         selects[1].QuerySelectorAll("option").Select(option => option.TextContent)
+            .ShouldBe(["All date ranges", "01 Oct 2026 - 31 Oct 2026"]);
+        selects[2].QuerySelectorAll("option").Select(option => option.TextContent)
             .ShouldBe(["All policies", "Non-refundable", "Refundable"]);
 
         _rateService.IndexRequests.ShouldHaveSingleItem()
@@ -64,6 +66,12 @@ public class RatesPageShould : BunitContext
         filteredRequest.RoomName.ShouldBe("Double Room");
         filteredRequest.Policy.ShouldBeNull();
         filteredRequest.Skip.ShouldBe(0);
+
+        await cut.FindAll(".rate-filter select")[1].ChangeAsync("2026-10-01 - 2026-10-31");
+        var dateFilteredRequest = _rateService.IndexRequests[^1];
+        dateFilteredRequest.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+        dateFilteredRequest.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
+        dateFilteredRequest.FilterByDateRange.ShouldBeTrue();
     }
 
     [Fact]
@@ -74,6 +82,7 @@ public class RatesPageShould : BunitContext
             Rates = [],
             RoomNames = [],
             Policies = [],
+            DateRanges = [],
             TotalCount = 0,
         });
 
@@ -100,7 +109,7 @@ public class RatesPageShould : BunitContext
         cut.Find("button").Click();
         cut.FindAll(".rate-create-fields input")[0].Change("Standard");
         cut.Find("input[type='number']").Change("79");
-        cut.FindAll(".rate-create-fields input")[^1].Change("Flexible cancellation");
+        cut.FindAll(".rate-create-fields")[0].QuerySelectorAll("input")[2].Change("Flexible cancellation");
 
         cut.Find(".rate-create-panel form").Submit();
 
@@ -178,6 +187,7 @@ public class RatesPageShould : BunitContext
         cut.Find("#min-nights").GetAttribute("value").ShouldBe("1");
         cut.Find("#is-refundable").HasAttribute("checked").ShouldBeTrue();
         cut.Find("#full-refund-days").GetAttribute("value").ShouldBe("30");
+        cut.Find(".rate-edit-panel .drp-value").TextContent.ShouldBe("1 Oct 2026 – 31 Oct 2026");
     }
 
     /// <summary>
@@ -216,6 +226,37 @@ public class RatesPageShould : BunitContext
         cut.Find(".rate-success").TextContent.ShouldBe("Saved: price and minimum nights.");
         // 1 load on open, 1 after the save
         _rateService.IndexRequests.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void EditAvailabilityDatesUsingTheCalendar()
+    {
+        var cut = Render<Rates>();
+        cut.FindAll(".rate-edit-btn")[1].Click();
+        cut.Find(".rate-edit-panel .drp-field").Click();
+        cut.Find("[aria-label='3 October 2026']").Click();
+        cut.Find("[aria-label='8 October 2026']").Click();
+
+        cut.Find(".rate-edit-panel form").Submit();
+
+        var edit = _ratePricingService.EditRequests.ShouldHaveSingleItem();
+        edit.StartDate.ShouldBe(new DateOnly(2026, 10, 3));
+        edit.EndDate.ShouldBe(new DateOnly(2026, 10, 8));
+        cut.Find(".rate-success").TextContent.ShouldContain("availability dates");
+    }
+
+    [Fact]
+    public void ClearAvailabilityDatesWhenEditingARate()
+    {
+        var cut = Render<Rates>();
+        cut.FindAll(".rate-edit-btn")[1].Click();
+        cut.FindAll(".rate-edit-panel .rate-date-picker button")[1].Click();
+
+        cut.Find(".rate-edit-panel form").Submit();
+
+        var edit = _ratePricingService.EditRequests.ShouldHaveSingleItem();
+        edit.StartDate.ShouldBeNull();
+        edit.EndDate.ShouldBeNull();
     }
 
     /// <summary>
@@ -323,7 +364,7 @@ public class RatesPageShould : BunitContext
         cut.Find(".rate-page-heading button").Click();
         cut.FindAll(".rate-create-fields input")[0].Change("Standard");
         cut.Find("input[type='number']").Change("79");
-        cut.FindAll(".rate-create-fields input")[^1].Change("Flexible cancellation");
+        cut.FindAll(".rate-create-fields")[0].QuerySelectorAll("input")[2].Change("Flexible cancellation");
         cut.Find(".rate-create-fields select").Change("Deluxe Room");
     }
 }

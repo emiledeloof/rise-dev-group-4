@@ -39,6 +39,10 @@ public static class RateDto
 
         // min nb of nights a guest must book, a rate that needs more than the stay is shown but cant be picked
         public int MinNights { get; set; } = 1;
+
+        // Null start/end dates mean the rate has no lower/upper availability bound.
+        public DateOnly? StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
     }
 
     /// <summary>
@@ -66,5 +70,8 @@ public static class RateDto
 
         // pct refunded in the partial period, eg 50
         public required int PartialRefundPercent { get; set; }
+        // Null start/end dates mean the rate has no lower/upper availability bound.
+        public DateOnly? StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
     }
 }

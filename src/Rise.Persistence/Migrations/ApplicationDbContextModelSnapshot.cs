@@ -581,6 +581,9 @@ namespace Rise.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date");
+
                     b.Property<int>("FullRefundDays")
                         .HasColumnType("integer");
 
@@ -609,6 +612,9 @@ namespace Rise.Persistence.Migrations
 
                     b.Property<int>("RoomId")
                         .HasColumnType("integer");
+
+                    b.Property<DateOnly?>("StartDate")
+                        .HasColumnType("date");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()

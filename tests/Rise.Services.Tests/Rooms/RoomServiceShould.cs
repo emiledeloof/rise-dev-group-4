@@ -122,6 +122,26 @@ public class RoomServiceShould
         names.ShouldBe(new[] { DoubleRoom, SingleRoom });
     }
 
+    [Fact]
+    public async Task ReturnOnlyRatesThatCoverTheWholeStayAndKeepOverlappingRates()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(
+            nameof(ReturnOnlyRatesThatCoverTheWholeStayAndKeepOverlappingRates),
+            (room, _) =>
+            {
+                room.AddRate("October offer", 99m, validFrom: new DateOnly(2026, 10, 1), validTo: new DateOnly(2026, 10, 21));
+                room.AddRate("November offer", 89m, validFrom: new DateOnly(2026, 11, 1), validTo: new DateOnly(2026, 11, 30));
+            });
+
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+
+        result.IsSuccess.ShouldBeTrue();
+        var rates = result.Value.Rooms.Single(room => room.Name == DoubleRoom).Rates;
+        rates.Select(rate => rate.Name).ShouldContain("October offer");
+        rates.Select(rate => rate.Name).ShouldNotContain("November offer");
+        rates.Count().ShouldBe(3);
+    }
+
     /// <summary>
     /// a soft deleted booking does not block the room anymore
     /// </summary>

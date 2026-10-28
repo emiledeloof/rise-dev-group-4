@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Rooms;
 using Rise.Persistence;
 using Rise.Shared.Common;
@@ -24,7 +25,9 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
         var rate = room.AddRate(
             request.Name,
             request.PricePerNight,
-            request.Description);
+            request.Description,
+            request.StartDate,
+            request.EndDate);
 
         // * policy chosen in the form, a new rate is refundable in the domain so it is always set here
         rate.MinNights = request.MinNights;
@@ -48,6 +51,8 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
             RoomName = rate.Room.Name,
             PricePerNight = rate.PricePerNight,
             Description = rate.Description,
+            StartDate = rate.StartDate,
+            EndDate = rate.EndDate
         });
     }
 
@@ -76,6 +81,21 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
         else if (request.Policy == RatePolicies.NonRefundable)
             query = query.Where(rate => rate.CancellationPolicy == CancellationPolicy.NonRefundable);
 
+        if (request.FilterByDateRange)
+        {
+            query = query.Where(rate =>
+                rate.StartDate == request.StartDate &&
+                rate.EndDate == request.EndDate);
+        }
+        else
+        {
+            if (request.StartDate is not null)
+                query = query.Where(rate => rate.StartDate == request.StartDate);
+
+            if (request.EndDate is not null)
+                query = query.Where(rate => rate.EndDate == request.EndDate);
+        }
+
         var totalCount = await query.CountAsync(ctx);
 
         query = request.OrderBy switch
@@ -89,6 +109,12 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
             "PricePerNight" => request.OrderDescending
                 ? query.OrderByDescending(rate => rate.PricePerNight)
                 : query.OrderBy(rate => rate.PricePerNight),
+            "StartDate" => request.OrderDescending
+                ? query.OrderByDescending(rate => rate.StartDate)
+                : query.OrderBy(rate => rate.StartDate),
+            "EndDate" => request.OrderDescending
+                ? query.OrderByDescending(rate => rate.EndDate)
+                : query.OrderBy(rate => rate.EndDate),
             _ => query.OrderByDescending(rate => rate.Id),
         };
 
@@ -111,6 +137,18 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
             .OrderBy(policy => policy)
             .ToList();
 
+        var dateRanges = await activeRates
+            .Select(rate => new { rate.StartDate, rate.EndDate })
+            .Distinct()
+            .ToListAsync(ctx);
+        var dateRangeOptions = dateRanges
+            .Where(period => period.StartDate is not null || period.EndDate is not null)
+            .Select(period =>
+                $"{period.StartDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? ""} - " +
+                $"{period.EndDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? ""}")
+            .OrderBy(period => period)
+            .ToList();
+
         var rates = await query
             .AsNoTracking()
             .Skip(request.Skip)
@@ -128,6 +166,8 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
                 FullRefundDays = rate.FullRefundDays,
                 PartialRefundDays = rate.PartialRefundDays,
                 PartialRefundPercent = rate.PartialRefundPercent,
+                StartDate = rate.StartDate,
+                EndDate = rate.EndDate,
             })
             .ToListAsync(ctx);
 
@@ -136,6 +176,7 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
             Rates = rates,
             RoomNames = roomNames,
             Policies = policies,
+            DateRanges = dateRangeOptions,
             TotalCount = totalCount,
         });
     }

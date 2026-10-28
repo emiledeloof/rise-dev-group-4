@@ -51,7 +51,7 @@ public partial class Results
     private string? _errorMessage;
 
     // rooms the guest picked, key = id of the room, value = id of the chosen rate
-    // a dictionary so a room can only be there once, with one rate
+    // one selected rate per room; the room can still offer multiple rates to choose from
     private readonly Dictionary<int, int> _selection = [];
 
     /// <summary>

@@ -46,11 +46,14 @@ public class FakeRateService : IRateService
                         FullRefundDays = 30,
                         PartialRefundDays = 7,
                         PartialRefundPercent = 50,
+                        StartDate = createdRate.StartDate,
+                        EndDate = createdRate.EndDate,
                     },
                     .. index.Rates,
                 ],
                 RoomNames = index.RoomNames.Append(createdRate.RoomName).Distinct().OrderBy(name => name),
                 Policies = index.Policies,
+                DateRanges = index.DateRanges,
                 TotalCount = index.TotalCount + 1,
             });
         }
@@ -82,6 +85,8 @@ public class FakeRateService : IRateService
                 FullRefundDays = 30,
                 PartialRefundDays = 7,
                 PartialRefundPercent = 50,
+                StartDate = new DateOnly(2026, 10, 1),
+                EndDate = new DateOnly(2026, 10, 31),
             },
             new RateDto.Index
             {
@@ -95,10 +100,13 @@ public class FakeRateService : IRateService
                 FullRefundDays = 30,
                 PartialRefundDays = 7,
                 PartialRefundPercent = 50,
+                StartDate = new DateOnly(2026, 10, 1),
+                EndDate = new DateOnly(2026, 10, 31),
             },
         ],
         RoomNames = ["Double Room", "Single Room"],
         Policies = [RatePolicies.NonRefundable, RatePolicies.Refundable],
+        DateRanges = ["2026-10-01 - 2026-10-31"],
         TotalCount = totalCount,
     };
 }

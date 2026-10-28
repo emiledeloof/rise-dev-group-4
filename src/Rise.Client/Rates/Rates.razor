@@ -18,17 +18,31 @@
     {
         <div class="rate-filters">
             <label class="rate-filter">
-            <span>Room type</span>
-            <div class="rate-select-wrap">
-                <select @bind="_selectedRoomName" @bind:after="ApplyFiltersAsync">
-                    <option value="">All rooms</option>
-                    @foreach (var roomName in _roomNames)
-                    {
-                        <option value="@roomName">@roomName</option>
-                    }
-                </select>
-                <span class="rate-select-arrow" aria-hidden="true"></span>
-            </div>
+                <span>Room type</span>
+                <div class="rate-select-wrap">
+                    <select @bind="_selectedRoomName" @bind:after="ApplyFiltersAsync">
+                        <option value="">All rooms</option>
+                        @foreach (var roomName in _roomNames)
+                        {
+                            <option value="@roomName">@roomName</option>
+                        }
+                    </select>
+                    <span class="rate-select-arrow" aria-hidden="true"></span>
+                </div>
+            </label>
+
+            <label class="rate-filter">
+                <span>Date range</span>
+                <div class="rate-select-wrap">
+                    <select @bind="_selectedDate" @bind:after="ApplyFiltersAsync">
+                        <option value="">All date ranges</option>
+                        @foreach (var dateRange in _dateRanges)
+                        {
+                            <option value="@dateRange">@FormatDateRangeOption(dateRange)</option>
+                        }
+                    </select>
+                    <span class="rate-select-arrow" aria-hidden="true"></span>
+                </div>
             </label>
 
             <label class="rate-filter">
@@ -79,7 +93,7 @@
                             <tr @key="rate.Id">
                                 <td>@rate.Name</td>
                                 <td>@rate.RoomName</td>
-                                <td class="rate-placeholder">&mdash;</td>
+                                <td>@FormatDateRange(rate.StartDate, rate.EndDate)</td>
                                 <td>@rate.MinNights</td>
                                 @* real cancellation policy, green pill when refundable, red when not *@
                                 <td>
@@ -164,7 +178,22 @@
                             <InputNumber @bind-Value="_editModel.MinNights" id="min-nights" />
                             <ValidationMessage For="() => _editModel.MinNights" class="help is-danger" />
                         </label>
+
+                        <label class="rate-create-field">
+                            <span>Availability</span>
+                            <div class="rate-date-picker">
+                                <DateRangePicker @bind-CheckIn="_editModel.StartDate"
+                                                 @bind-CheckOut="_editModel.EndDate"
+                                                 FieldLabel=""
+                                                 ShowDuration="false"
+                                                 AllowPastDates="true"
+                                                 MonthsShown="1" />
+                                <Button Variant="ButtonVariant.Secondary" OnClick="ClearEditDates">Clear dates</Button>
+                                <ValidationMessage For="@(() => _editModel.EndDate)" class="help is-danger" />
+                            </div>
+                        </label>
                     </div>
+                    <p class="rate-muted">Clear both dates to make the rate available year-round.</p>
 
                     @* checked = refundable, unchecked = non refundable *@
                     <label class="checkbox rate-refundable">
@@ -250,7 +279,22 @@
                             <InputText @bind-Value="_createModel.Description" />
                             <ValidationMessage For="@(() => _createModel.Description)" class="help is-danger" />
                         </label>
+
+                        <label class="rate-create-field">
+                            <span>Availability</span>
+                            <div class="rate-date-picker">
+                                <DateRangePicker @bind-CheckIn="_createModel.StartDate"
+                                                 @bind-CheckOut="_createModel.EndDate"
+                                                 FieldLabel=""
+                                                 ShowDuration="false"
+                                                 AllowPastDates="true"
+                                                 MonthsShown="1" />
+                                <Button Variant="ButtonVariant.Secondary" OnClick="ClearCreateDates">Clear dates</Button>
+                                <ValidationMessage For="@(() => _createModel.EndDate)" class="help is-danger"/>
+                            </div>
+                        </label>
                     </div>
+                    <p class="rate-muted">Clear both dates to make the rate available year-round.</p>
 
                     @* min nights and cancellation policy, own wrapper so the fields above keep their order *@
                     <div class="rate-create-policy">
