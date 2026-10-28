@@ -109,4 +109,3 @@ public class FakeBookingService : IBookingService
             Rows = [],
         }));
 }
-

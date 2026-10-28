@@ -2,6 +2,21 @@ using Destructurama.Attributed;
 
 namespace Rise.Shared.Bookings;
 
+/// <summary>
+/// Visual status of a single cell in the admin booking matrix.
+/// </summary>
+public enum CellStatus
+{
+    /// <summary>No booking covers this day — the room is available.</summary>
+    Available,
+
+    /// <summary>A paid/confirmed booking occupies this day.</summary>
+    Occupied,
+
+    /// <summary>A booking exists but payment has not yet been settled.</summary>
+    Temporary,
+}
+
 public static class BookingDto
 {
     public class Index
@@ -151,8 +166,10 @@ public static class BookingDto
         public required DateOnly CheckIn { get; set; }
         public required DateOnly CheckOut { get; set; }
         /// <summary>
-        /// "Paid" when at least one payment is settled, otherwise "Pending".
+        /// Visual cell status derived from the payment state of this booking.
+        /// <see cref="CellStatus.Occupied"/> when at least one payment is settled,
+        /// <see cref="CellStatus.Temporary"/> when the booking exists but is unpaid.
         /// </summary>
-        public required string Status { get; set; }
+        public required CellStatus Status { get; set; }
     }
 }

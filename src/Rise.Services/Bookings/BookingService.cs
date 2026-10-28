@@ -433,14 +433,14 @@ public sealed class BookingService(
             .Select(r => new { r.Id, r.RoomNumber, r.Name })
             .ToListAsync(ctx);
 
-        // Load all paid booking-room entries that fall inside the window in one query,
+        // Load all non-deleted booking-room entries that overlap the window in one query,
         // navigating from the owning side (BookingRoom → Booking, Booking → Guest/Payments).
-        // Pending (unpaid) bookings are excluded from the matrix.
+        // Both paid (Occupied) and unpaid (Temporary) bookings are included so the matrix
+        // can colour-code them differently.
         var overlapping = await dbContext.BookingRooms
             .AsNoTracking()
             .Where(br => !br.IsDeleted
                       && !br.Booking.IsDeleted
-                      && br.Booking.Payments.Any(p => p.PaidAt != null)
                       && br.Booking.CheckIn < windowEnd
                       && br.Booking.CheckOut > request.WindowStart)
             .Select(br => new
@@ -451,7 +451,7 @@ public sealed class BookingService(
                 GuestName = br.Booking.Guest.Name,
                 br.Booking.CheckIn,
                 br.Booking.CheckOut,
-                Status = "Paid",
+                IsPaid = br.Booking.Payments.Any(p => p.PaidAt != null),
             })
             .ToListAsync(ctx);
 
@@ -475,7 +475,7 @@ public sealed class BookingService(
                     GuestName = b.GuestName,
                     CheckIn = b.CheckIn,
                     CheckOut = b.CheckOut,
-                    Status = b.Status,
+                    Status = b.IsPaid ? CellStatus.Occupied : CellStatus.Temporary,
                 }).ToList(),
             };
         }).ToList();

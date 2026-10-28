@@ -443,11 +443,11 @@ public class BookingServiceShould
     // ── GetMatrixAsync ─────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetMatrixReturnsOnlyPaidBookingsAndExcludesPending()
+    public async Task GetMatrixReturnsCorrectCellStatusForPaidAndPendingBookings()
     {
-        // arrange — seeded booking (Double Room, Oct 10-12) has no payments, so it is pending.
-        // Add a second booking (Single Room, Oct 10-12) that is paid.
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetMatrixReturnsOnlyPaidBookingsAndExcludesPending));
+        // arrange — seeded booking (Double Room, Oct 10-12) has no payments → Temporary.
+        // Add a second booking (Single Room, Oct 10-12) that is paid → Occupied.
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetMatrixReturnsCorrectCellStatusForPaidAndPendingBookings));
         var single = await dbContext.Rooms.Include(x => x.Rates).SingleAsync(x => x.Name == "Single Room");
         var guest = await dbContext.Guests.FirstAsync();
         var paidBooking = new Booking("20261001-SVM-000002", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
@@ -471,22 +471,24 @@ public class BookingServiceShould
         var matrix = result.Value;
         matrix.Rows.Count.ShouldBe(2);
 
-        // Double Room had only a pending booking, so it must have 0 bookings
+        // Double Room had only a pending (unpaid) booking → status must be Temporary
         var doubleRow = matrix.Rows.Single(r => r.RoomName == "Double Room");
-        doubleRow.Bookings.ShouldBeEmpty();
+        doubleRow.Bookings.Count.ShouldBe(1);
+        doubleRow.Bookings[0].Status.ShouldBe(CellStatus.Temporary);
 
-        // Single Room had a paid booking, so it must show up
+        // Single Room had a paid booking → status must be Occupied
         var singleRow = matrix.Rows.Single(r => r.RoomName == "Single Room");
         singleRow.Bookings.Count.ShouldBe(1);
         singleRow.Bookings[0].BookingNumber.ShouldBe("20261001-SVM-000002");
-        singleRow.Bookings[0].Status.ShouldBe("Paid");
+        singleRow.Bookings[0].Status.ShouldBe(CellStatus.Occupied);
     }
 
     [Fact]
-    public async Task GetMatrixReturnsAllRoomsEvenWhenNoBookings()
+    public async Task GetMatrixReturnsAllRoomsAndIncludesTemporaryBookings()
     {
-        // arrange — db has rooms, but no paid bookings
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetMatrixReturnsAllRoomsEvenWhenNoBookings));
+        // arrange — db has rooms; the seeded booking (Double Room, Oct 10-12) is unpaid → Temporary.
+        // The Single Room has no bookings in this window.
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(GetMatrixReturnsAllRoomsAndIncludesTemporaryBookings));
         var request = new BookingRequest.Matrix
         {
             WindowStart = new DateOnly(2026, 10, 9),
@@ -499,6 +501,14 @@ public class BookingServiceShould
         // assert
         result.Status.ShouldBe(ResultStatus.Ok);
         result.Value.Rows.Count.ShouldBe(2);
-        result.Value.Rows.ShouldAllBe(r => r.Bookings.Count == 0);
+
+        // Single Room — no bookings in this window at all
+        var singleRow = result.Value.Rows.Single(r => r.RoomName == "Single Room");
+        singleRow.Bookings.Count.ShouldBe(0);
+
+        // Double Room — one Temporary booking (the seeded unpaid booking)
+        var doubleRow = result.Value.Rows.Single(r => r.RoomName == "Double Room");
+        doubleRow.Bookings.Count.ShouldBe(1);
+        doubleRow.Bookings[0].Status.ShouldBe(CellStatus.Temporary);
     }
 }
