@@ -316,6 +316,115 @@
     font-weight: 600;
 }
 
+/* ---------- cancellation ---------- */
+
+/* solid burgundy badge, the light bulma tag was almost white on the cream page */
+.booking-detail-cancelled-tag {
+    gap: var(--space-xs);
+    background-color: var(--color-accent);
+    color: var(--color-surface);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* burgundy tinted card with a thick line on the left, the booking is cancelled but still readable below */
+.booking-detail-cancellation {
+    border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+    border-left: 4px solid var(--color-accent);
+    background-color: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
+}
+
+.booking-detail-cancellation .booking-detail-facts > div {
+    border-bottom-color: color-mix(in srgb, var(--color-accent) 15%, var(--color-border));
+}
+
+.booking-detail-cancellation .booking-detail-facts dt i {
+    color: var(--color-accent);
+}
+
+.booking-detail-cancellation .booking-detail-facts {
+    margin-top: var(--space-sm);
+}
+
+/* refunds are done by hand, same beige info box as the refund notices of the site */
+.booking-detail-refund-note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius);
+    background-color: var(--color-warning-bg);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+.booking-detail-refund-note i {
+    margin-top: 0.2rem;
+}
+
+/* confirmation after cancelling */
+.booking-detail-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+    border-radius: var(--radius);
+    background-color: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+    font-size: 0.875rem;
+}
+
+.booking-detail-notice i {
+    margin-top: 0.2rem;
+    color: var(--color-primary);
+}
+
+/* ---------- cancel dialog ---------- */
+
+/* bottom sheet on phones, the thumb reaches the btns */
+.booking-cancel-dialog {
+    justify-content: flex-end;
+}
+
+.booking-cancel-dialog .modal-background {
+    background-color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.booking-cancel-sheet {
+    width: 100%;
+    max-height: 92vh;
+    margin: 0;
+    padding: var(--space-lg) var(--space-md) calc(var(--space-md) + env(safe-area-inset-bottom));
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    background-color: var(--color-surface);
+    overflow-y: auto;
+}
+
+.booking-cancel-title {
+    margin: var(--space-xs) 0 var(--space-sm);
+    font-family: var(--font-title);
+    font-size: 1.75rem;
+    font-weight: 500;
+    line-height: 1.15;
+}
+
+.booking-cancel-refund-hint {
+    color: var(--color-text-muted);
+}
+
+.booking-cancel-error {
+    margin-top: var(--space-md);
+}
+
+/* main action on top when stacked on phones */
+.booking-cancel-actions {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+}
+
 /* ---------- bigger screens ---------- */
 
 @media (min-width: 480px) {
@@ -344,6 +453,22 @@
 @media (min-width: 768px) {
     .booking-detail-card {
         padding: var(--space-lg);
+    }
+
+    /* centred dialog from tablets */
+    .booking-cancel-dialog {
+        justify-content: center;
+    }
+
+    .booking-cancel-sheet {
+        width: 32rem;
+        padding: var(--space-lg);
+        border-radius: var(--radius-card);
+    }
+
+    .booking-cancel-actions {
+        flex-direction: row;
+        justify-content: flex-end;
     }
 }
 

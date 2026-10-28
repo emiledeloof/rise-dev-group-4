@@ -12,6 +12,9 @@ public static partial class RoomResponse
     {
         // list of free rooms, empty list by default so it's never null
         public IEnumerable<RoomDto.Available> Rooms { get; set; } = [];
+
+        // total guest capacity of all active rooms in the estate
+        public int TotalCapacity { get; set; }
     }
 
     /// <summary>
@@ -24,5 +27,8 @@ public static partial class RoomResponse
 
         // nb of rooms that are not deleted, so the page knows if there are more than it shows
         public int TotalCount { get; set; }
+
+        // total guest capacity of all active rooms in the estate
+        public int TotalCapacity { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Rise.Shared.Common;
+﻿using System.Globalization;
+using Rise.Shared.Common;
 using Rise.Shared.Rooms;
 
 namespace Rise.Shared.Rates;
@@ -9,11 +10,24 @@ public static partial class RateRequest
     {
         public string? RoomName { get; set; }
         public string? Policy { get; set; }
+        public DateOnly? StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
+        public bool FilterByDateRange { get; set; }
 
-        public override string ToString() =>
-            $"{base.ToString()}" +
-            $"&RoomName={Uri.EscapeDataString(RoomName ?? "")}" +
-            $"&Policy={Uri.EscapeDataString(Policy ?? "")}";
+        public override string ToString()
+        {
+            var query = $"{base.ToString()}" +
+                        $"&RoomName={Uri.EscapeDataString(RoomName ?? "")}" +
+                        $"&Policy={Uri.EscapeDataString(Policy ?? "")}";
+
+            if (StartDate is not null)
+                query += $"&StartDate={StartDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
+
+            if (EndDate is not null)
+                query += $"&EndDate={EndDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
+
+            return query + $"&FilterByDateRange={FilterByDateRange}";
+        }
     }
 }
 
@@ -33,6 +47,7 @@ public static partial class RateResponse
         public required IEnumerable<RateDto.Index> Rates { get; init; }
         public required IEnumerable<string> RoomNames { get; init; }
         public required IEnumerable<string> Policies { get; init; }
+        public required IEnumerable<string> DateRanges { get; init; }
         public required int TotalCount { get; init; }
     }
 }

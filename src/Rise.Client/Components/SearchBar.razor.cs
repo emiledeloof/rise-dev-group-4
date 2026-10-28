@@ -5,9 +5,9 @@ using Rise.Shared.Search;
 namespace Rise.Client.Components;
 
 /// <summary>
-/// compact search bar like the one of the mockup, dates + check availability btn
+/// compact search bar like the one of the mockup, dates + guests + check availability btn
 /// used on the home, search and results pages so the bar looks the same everywhere
-/// TODO: add guests and rooms fields when a story asks for them
+/// TODO: add rooms field when ENOR story asks for it
 /// </summary>
 public partial class SearchBar
 {
@@ -21,7 +21,12 @@ public partial class SearchBar
     /// </summary>
     [Parameter] public DateOnly? CheckOut { get; set; }
 
-    // dates of the form, the picker writes in here
+    /// <summary>
+    /// number of adult guests already chosen, eg from the url
+    /// </summary>
+    [Parameter] public int? Adults { get; set; }
+
+    // dates and guest count of the form
     private readonly SearchRequest.StayPeriod _stay = new();
 
     // state of the form, which fields have errors, created once in OnInitialized
@@ -32,13 +37,14 @@ public partial class SearchBar
     [Inject] public required NavigationManager Navigation { get; set; }
 
     /// <summary>
-    /// runs once when the bar appears, fills the form with the dates already chosen
+    /// runs once when the bar appears, fills the form with the values already chosen
     /// </summary>
     protected override void OnInitialized()
     {
-        // copy the 2 parameters into _stay
+        // copy the parameters into _stay
         _stay.CheckIn = CheckIn;
         _stay.CheckOut = CheckOut;
+        _stay.Adults = Adults ?? SearchRequest.StayPeriod.DefaultAdults;
 
         // the form state works on _stay, same as Model="_stay" before
         _editContext = new EditContext(_stay);
@@ -56,9 +62,9 @@ public partial class SearchBar
         }
     }
 
-    // called by the form when the dates are valid, same url as before
+    // called by the form when the inputs are valid, navigates to results with dates and adults in url
     private void Search()
     {
-        Navigation.NavigateTo($"/search/results?checkIn={_stay.CheckIn:yyyy-MM-dd}&checkOut={_stay.CheckOut:yyyy-MM-dd}");
+        Navigation.NavigateTo($"/search/results?checkIn={_stay.CheckIn:yyyy-MM-dd}&checkOut={_stay.CheckOut:yyyy-MM-dd}&adults={_stay.Adults}");
     }
 }

@@ -1,0 +1,175 @@
+.booking-popup {
+    position: fixed;
+    z-index: 1000;
+    min-width: 17rem;
+    max-width: 22rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    padding: var(--space-md) 1.25rem;
+    pointer-events: none;
+    animation: popup-in 0.12s ease;
+}
+
+@keyframes popup-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.popup-booking-number {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.popup-status .tag {
+    font-size: 0.75rem;
+}
+
+.popup-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.popup-guest-name {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-text);
+    margin-bottom: var(--space-xs);
+}
+
+.popup-contact {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.popup-contact-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.popup-stay {
+    padding-top: var(--space-xs);
+    border-top: 1px solid var(--color-border);
+    font-size: 0.85rem;
+}
+
+.popup-dates {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.popup-dates-separator {
+    color: var(--color-text-muted);
+}
+
+.popup-nights {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    font-weight: normal;
+}
+
+.popup-rooms {
+    margin-top: var(--space-xs);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+}
+
+.popup-label {
+    color: var(--color-text-muted);
+}
+
+.popup-rooms-list {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* ──────────────────────────────────────────────
+   Skeleton loading state
+─────────────────────────────────────────────── */
+.popup-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+}
+
+.skeleton-line {
+    height: 0.8rem;
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--color-border) 60%, var(--color-surface));
+    animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.skeleton-header {
+    height: 1.2rem;
+    width: 60%;
+}
+
+.skeleton-text {
+    width: 90%;
+}
+
+.skeleton-text-short {
+    width: 50%;
+}
+
+@keyframes skeleton-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* ──────────────────────────────────────────────
+   Empty / Error state (AC2)
+─────────────────────────────────────────────── */
+.popup-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) 0;
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+.popup-empty-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.popup-empty-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text);
+}

@@ -100,6 +100,21 @@ public class DetailPageShould : BunitContext
     }
 
     /// <summary>
+    /// opened from the results with adults, the back btn preserves the guests count
+    /// </summary>
+    [Fact]
+    public void GoBackToTheResultsOfTheSameDatesAndGuests()
+    {
+        // arrange and act
+        var cut = RenderPage("?checkIn=2026-10-14&checkOut=2026-10-17&adults=3");
+
+        // assert
+        var back = cut.Find(".back-btn");
+        back.GetAttribute("href").ShouldBe("search/results?checkIn=2026-10-14&checkOut=2026-10-17&adults=3");
+        back.TextContent.Trim().ShouldBe("Back to available rooms");
+    }
+
+    /// <summary>
     /// opened without dates, the back btn goes to the search form
     /// </summary>
     [Fact]

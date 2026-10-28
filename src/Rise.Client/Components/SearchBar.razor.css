@@ -19,7 +19,7 @@
     color: var(--color-text);
 }
 
-/* dates and btn on one row */
+/* dates, guests and btn on one row */
 .search-bar-row {
     display: flex;
     align-items: center;
@@ -28,12 +28,9 @@
 
 /* ---------- dates field ---------- */
 
-/* the picker takes all the free space, the btn keeps its own size */
-/* ::deep because the .drp classes are inside the DateRangePicker child component */
-/* .drp in the selectors so they win over the picker's own css */
+/* the date picker takes flexible space */
 .search-bar ::deep .drp {
-    flex: 1;
-    /* the picker css caps it at 22rem, not wanted in the bar */
+    flex: 1 1 14rem;
     max-width: none;
 }
 
@@ -59,9 +56,41 @@
     font-size: 0.875rem;
 }
 
+/* ---------- guests field ---------- */
+
+.search-bar ::deep .gp {
+    flex: 0 0 9.5rem;
+    max-width: none;
+}
+
+.search-bar ::deep .gp .gp-field {
+    padding: 0.4rem 0.9rem;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-color: transparent;
+}
+
+.search-bar ::deep .gp .gp-field:hover,
+.search-bar ::deep .gp .gp-field[aria-expanded="true"] {
+    border-color: var(--color-primary);
+}
+
+.search-bar ::deep .gp .gp-label {
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+}
+
+.search-bar ::deep .gp .gp-value {
+    font-size: 0.875rem;
+}
+
+.search-bar ::deep .gp .gp-panel {
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
 /* ---------- btn ---------- */
 
-/* as high as the dates field, small uppercase spaced out text like on luxury hotel sites */
+/* as high as the fields, small uppercase spaced out text like on luxury hotel sites */
 .search-bar ::deep .search-btn {
     align-self: stretch;
     height: auto;
@@ -130,11 +159,16 @@
 
 /* ---------- small screens ---------- */
 
-/* phones, the btn goes under the dates and takes the full width, the days fill the width */
+/* phones, fields and btn stack and take full width */
 @media (max-width: 768px) {
     .search-bar-row {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .search-bar ::deep .gp {
+        flex: auto;
+        width: 100%;
     }
 
     .search-bar ::deep .search-btn {

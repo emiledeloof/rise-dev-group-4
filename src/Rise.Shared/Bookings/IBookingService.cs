@@ -27,4 +27,9 @@ public interface IBookingService
     /// Returns all rooms with their bookings that overlap the given date window, for the admin calendar.
     /// </summary>
     Task<Result<BookingResponse.Matrix>> GetMatrixAsync(BookingRequest.Matrix request, CancellationToken ctx = default);
+
+    /// <summary>
+    /// Cancels a booking and records the refund decision, the booking stays visible to the admin.
+    /// </summary>
+    Task<Result<BookingResponse.Cancel>> CancelAsync(BookingRequest.Cancel request, CancellationToken ctx = default);
 }

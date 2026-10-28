@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Rise.Persistence;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
+using Rise.Services.Bookings;
 using Rise.Services.Pricing;
 using Rise.Domain.Rooms;
 
@@ -9,51 +10,55 @@ namespace Rise.Services.Rooms;
 
 /// <summary>
 /// room features, reads the rooms and bookings from the db
-/// same idea as InvoiceService
 /// </summary>
 public class RoomService(ApplicationDbContext dbContext) : IRoomService
 {
+    // starting point of every query, the rooms that are not deleted, read only
+    private IQueryable<Room> ActiveRooms => dbContext.Rooms.AsNoTracking().Where(r => !r.IsDeleted);
+
     /// <summary>
-    /// rooms free for the whole stay, each with the rates the guest can book for that nb of nights
+    /// rooms free for the whole stay, each with all its rates
+    /// a rate that needs more nights than the stay is still sent with its MinNights so the guest sees why it cant be picked
     /// </summary>
     public async Task<Result<RoomResponse.Available>> GetAvailableAsync(SearchRequest.StayPeriod request, CancellationToken ctx = default)
     {
         // dates already checked by the StayPeriod validator, so never null here
         var checkIn = request.CheckIn!.Value;
         var checkOut = request.CheckOut!.Value;
+        var lastNight = checkOut.AddDays(-1);
         var nights = request.Nights;
 
-        // rooms not deleted
-        var query = dbContext.Rooms.Where(r => !r.IsDeleted);
+        var totalCapacity = await ActiveRooms.SumAsync(r => r.MaxGuests, ctx);
 
-        // keep only the rooms with at least 1 rate bookable for this nb of nights
-        query = query.Where(r => r.Rates.Any(x => !x.IsDeleted && x.MinNights <= nights));
-        // no booking of the room overlaps the stay, ie starts before our check out and ends after our check in
-        // TODO: also ignore cancelled bookings once the domain has a status
-        query = query.Where(r => !dbContext.BookingRooms.Any(br =>
-            br.Room.Id == r.Id
-            && !br.IsDeleted
-            && !br.Booking.IsDeleted
-            && br.Booking.CheckIn < checkOut
-            && br.Booking.CheckOut > checkIn));
+        // rooms with a booking during the stay, EF turns this into a subquery
+        var bookedRoomIds = dbContext.BookingRooms
+            .Overlapping(checkIn, checkOut)
+            .Select(br => br.Room.Id);
 
-        // from price = cheapest rate, photo = 1st one
-        var rooms = await query.AsNoTracking()
+        var rows = await ActiveRooms
+            .Where(r => !bookedRoomIds.Contains(r.Id))
             .OrderBy(r => r.Name)
-            .Select(r => new RoomDto.Available
+            .Select(r => new
             {
-                Id = r.Id,
-                Name = r.Name,
-                Description = r.Description,
-                MaxGuests = r.MaxGuests,
-                PricePerNight = r.Rates.OrderBy(x => x.PricePerNight).Select(x => x.PricePerNight).FirstOrDefault(),
-                PhotoUrl = r.Photos.Select(p => p.Url).FirstOrDefault(),
-                Nights = nights,
-                TotalPrice = PriceCalculator.Total(r.Rates.OrderBy(x => x.PricePerNight).Select(x => x.PricePerNight).FirstOrDefault(), nights),
-                // only the rates whose min nb of nights fits the stay, cheapest first
+                r.Id,
+                r.Name,
+                r.Description,
+                r.MaxGuests,
+                // same order as the detail page
+                PhotoUrl = r.Photos
+                    .Where(p => !p.IsDeleted)
+                    .OrderBy(p => p.Id)
+                    .Select(p => p.Url)
+                    .FirstOrDefault(),
+                // only the rates valid on the stay dates
+                // the rates that fit the stay first, then the ones that need more nights, cheapest first in each group
+                // so the 1st rate is the cheapest one the guest can book
                 Rates = r.Rates
-                    .Where(x => !x.IsDeleted && x.MinNights <= nights)
-                    .OrderBy(x => x.PricePerNight)
+                    .Where(x => !x.IsDeleted
+                        && (x.StartDate == null || x.StartDate <= checkIn)
+                        && (x.EndDate == null || x.EndDate >= lastNight))
+                    .OrderBy(x => x.MinNights > nights)
+                    .ThenBy(x => x.PricePerNight)
                     .Select(x => new RateDto.Available
                     {
                         Id = x.Id,
@@ -61,18 +66,39 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                         Description = x.Description,
                         PricePerNight = x.PricePerNight,
                         TotalPrice = PriceCalculator.Total(x.PricePerNight, nights),
-                        // * cancellation policy shown to the guest, shared cant see the enum so a bool
+                        // shared cant see the enum so a bool
                         IsRefundable = x.CancellationPolicy == CancellationPolicy.Refundable,
                         FullRefundDays = x.FullRefundDays,
                         PartialRefundDays = x.PartialRefundDays,
-                        PartialRefundPercent = x.PartialRefundPercent
+                        PartialRefundPercent = x.PartialRefundPercent,
+                        MinNights = x.MinNights,
+                        StartDate = x.StartDate,
+                        EndDate = x.EndDate
                     }).ToList()
             })
             .ToListAsync(ctx);
 
+        // a room without a rate valid on the stay dates cant be booked, so it is left out
+        // from price = 1st rate, ie the cheapest bookable for the stay, or the cheapest one when none fits
+        var rooms = rows
+            .Where(r => r.Rates.Count > 0)
+            .Select(r => new RoomDto.Available
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description,
+                MaxGuests = r.MaxGuests,
+                PricePerNight = r.Rates[0].PricePerNight,
+                PhotoUrl = r.PhotoUrl,
+                Nights = nights,
+                TotalPrice = r.Rates[0].TotalPrice,
+                Rates = r.Rates
+            }).ToList();
+
         return Result.Success(new RoomResponse.Available
         {
-            Rooms = rooms
+            Rooms = rooms,
+            TotalCapacity = totalCapacity
         });
     }
 
@@ -81,9 +107,8 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
     /// </summary>
     public async Task<Result<RoomDto.Detail>> GetDetailAsync(int roomId, CancellationToken ctx = default)
     {
-        var room = await dbContext.Rooms
-            .AsNoTracking()
-            .Where(r => r.Id == roomId && !r.IsDeleted)
+        var room = await ActiveRooms
+            .Where(r => r.Id == roomId)
             .Select(r => new RoomDto.Detail
             {
                 Id = r.Id,
@@ -119,13 +144,12 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
     /// </summary>
     public async Task<Result<RoomResponse.List>> GetListAsync(RoomRequest.List request, CancellationToken ctx = default)
     {
-        var query = dbContext.Rooms.AsNoTracking().Where(r => !r.IsDeleted);
-
         // all the rooms, not only the ones sent back, so the page can link to the others
-        var totalCount = await query.CountAsync(ctx);
+        var totalCount = await ActiveRooms.CountAsync(ctx);
+        var totalCapacity = await ActiveRooms.SumAsync(r => r.MaxGuests, ctx);
 
         // the rooms are seeded in display order, so the id keeps that order
-        var rooms = await query
+        var rooms = await ActiveRooms
             .OrderBy(r => r.Id)
             .Take(request.Take)
             .Select(r => new RoomDto.Summary
@@ -152,7 +176,8 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         return Result.Success(new RoomResponse.List
         {
             Rooms = rooms,
-            TotalCount = totalCount
+            TotalCount = totalCount,
+            TotalCapacity = totalCapacity
         });
     }
 }

@@ -13,6 +13,10 @@ public partial class BookingMatrix
     private BookingResponse.Matrix? _matrix;
     private string? _errorMessage;
 
+    private int? _popupBookingId;
+    private double _popupX;
+    private double _popupY;
+
     [Inject] public required IBookingService BookingService { get; set; }
 
     private IEnumerable<DateOnly> Days =>
@@ -59,9 +63,21 @@ public partial class BookingMatrix
     private static bool IsToday(DateOnly day)
         => day == DateOnly.FromDateTime(DateTime.Today);
 
+    private void ShowPopup(int bookingId, double x, double y)
+    {
+        _popupBookingId = bookingId;
+        _popupX = x + 14;
+        _popupY = y - 10;
+    }
+
+    private void HidePopup()
+    {
+        _popupBookingId = null;
+    }
+
     public record MatrixCellItem(
         int ColSpan,
-        bool IsBooking,
+        CellStatus Status,
         BookingDto.MatrixBooking? Booking
     );
 
@@ -73,39 +89,40 @@ public partial class BookingMatrix
         while (dayIndex < WindowDays)
         {
             var day = _windowStart.AddDays(dayIndex);
-            var booking = row.Bookings.FirstOrDefault(b => b.Status == "Paid" && b.CheckIn <= day && b.CheckOut > day);
+
+            // Prefer Occupied over Temporary when both somehow cover the same day
+            var booking =
+                row.Bookings.FirstOrDefault(b => b.Status == CellStatus.Occupied && b.CheckIn <= day && b.CheckOut > day)
+                ?? row.Bookings.FirstOrDefault(b => b.Status == CellStatus.Temporary && b.CheckIn <= day && b.CheckOut > day);
 
             if (booking is null)
             {
-                // Count consecutive free days
+                // Accumulate consecutive available days (stopping at the next booking)
                 var freeStart = dayIndex;
                 while (dayIndex < WindowDays)
                 {
                     var nextDay = _windowStart.AddDays(dayIndex);
-                    if (row.Bookings.Any(b => b.Status == "Paid" && b.CheckIn <= nextDay && b.CheckOut > nextDay))
-                    {
+                    var hitsBooking = row.Bookings.Any(b =>
+                        (b.Status == CellStatus.Occupied || b.Status == CellStatus.Temporary)
+                        && b.CheckIn <= nextDay && b.CheckOut > nextDay);
+                    if (hitsBooking)
                         break;
-                    }
                     dayIndex++;
                 }
-                var span = dayIndex - freeStart;
-                items.Add(new MatrixCellItem(span, false, null));
+                items.Add(new MatrixCellItem(dayIndex - freeStart, CellStatus.Available, null));
             }
             else
             {
-                // Count how many days this booking spans within the current window starting at dayIndex
+                // Span until the booking's checkout (clamped to the window)
                 var bookingStart = dayIndex;
                 while (dayIndex < WindowDays)
                 {
                     var nextDay = _windowStart.AddDays(dayIndex);
                     if (nextDay >= booking.CheckOut)
-                    {
                         break;
-                    }
                     dayIndex++;
                 }
-                var span = dayIndex - bookingStart;
-                items.Add(new MatrixCellItem(span, true, booking));
+                items.Add(new MatrixCellItem(dayIndex - bookingStart, booking.Status, booking));
             }
         }
 

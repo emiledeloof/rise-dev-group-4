@@ -304,4 +304,93 @@ public class RoomCardShould : BunitContext
         // assert
         cut.FindAll(".select-btn").ShouldBeEmpty();
     }
+
+    // the 2 sample rates for 3 nights, the 1st one needing firstMinNights and the 2nd one secondMinNights
+    private static RateDto.Available[] RatesWithMinNights(int firstMinNights, int secondMinNights)
+    {
+        var rates = SampleRates();
+        rates[0].MinNights = firstMinNights;
+        rates[1].MinNights = secondMinNights;
+        return rates;
+    }
+
+    /// <summary>
+    /// a rate with a minimum the stay meets shows it under the policy
+    /// </summary>
+    [Fact]
+    public void ShowTheMinStayOfARate()
+    {
+        // arrange and act, 3 nights, the 2nd rate needs 2
+        var cut = RenderSelectableCard([], () => { }, rates: RatesWithMinNights(1, 2));
+
+        // assert, only the 2nd line has a min stay line
+        var lines = cut.FindAll(".room-card-rate");
+        lines[0].QuerySelector(".room-card-rate-min-stay").ShouldBeNull();
+        lines[1].QuerySelector(".room-card-rate-min-stay")!.TextContent.ShouldBe("Minimum stay 2 nights");
+    }
+
+    /// <summary>
+    /// rates without minimum get no min stay line at all
+    /// </summary>
+    [Fact]
+    public void HideTheMinStayLineForOneNight()
+    {
+        // arrange and act
+        var cut = RenderCard();
+
+        // assert
+        cut.FindAll(".room-card-rate-min-stay").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// a rate that needs more nights than the stay is greyed out, disabled and never sent to the page
+    /// </summary>
+    [Fact]
+    public void DisableARateThatNeedsALongerStay()
+    {
+        // arrange, 3 nights, the 2nd rate needs 5
+        var picked = new List<int>();
+        var cut = RenderSelectableCard(picked, () => { }, rates: RatesWithMinNights(1, 5));
+
+        // act
+        cut.FindAll(".room-card-rate-radio")[1].Change(true);
+
+        // assert
+        var line = cut.FindAll(".room-card-rate")[1];
+        line.ClassList.ShouldContain("is-unavailable");
+        line.QuerySelector(".room-card-rate-radio")!.HasAttribute("disabled").ShouldBeTrue();
+        line.QuerySelector(".room-card-rate-min-stay")!.TextContent.ShouldBe("Requires a stay of at least 5 nights");
+        picked.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// select skips a rate that needs a longer stay, even when the server sends it 1st
+    /// </summary>
+    [Fact]
+    public void PickTheCheapestBookableRateWithSelect()
+    {
+        // arrange, the 1st rate needs 5 nights so only the 2nd one can be booked
+        var picked = new List<int>();
+        var cut = RenderSelectableCard(picked, () => { }, rates: RatesWithMinNights(5, 1));
+
+        // act
+        cut.Find(".select-btn").Click();
+
+        // assert
+        picked.ShouldBe(new[] { 2 });
+    }
+
+    /// <summary>
+    /// a room whose rates all need a longer stay can't be selected
+    /// </summary>
+    [Fact]
+    public void HideSelectWhenNoRateIsBookable()
+    {
+        // arrange and act
+        var cut = RenderSelectableCard([], () => { }, rates: RatesWithMinNights(5, 5));
+
+        // assert, the rates are still shown so the guest sees why
+        cut.FindAll(".room-card-rate").Count.ShouldBe(2);
+        cut.FindAll(".select-btn").ShouldBeEmpty();
+    }
 }

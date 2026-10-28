@@ -64,6 +64,20 @@ public class RateCreateValidatorShould
             .ShouldContain("Cancellation policy / description cannot exceed 500 characters.");
     }
 
+    [Fact]
+    public void RejectAnEndDateBeforeTheStartDate()
+    {
+        var request = ValidRequest();
+        request.StartDate = new DateOnly(2026, 10, 31);
+        request.EndDate = new DateOnly(2026, 10, 1);
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.Select(error => error.ErrorMessage)
+            .ShouldContain("Start date must be before end date.");
+    }
+
     // a valid request, each test breaks one rule
     private static RateRequest.Create ValidRequest() => new()
     {
@@ -71,6 +85,8 @@ public class RateCreateValidatorShould
         RoomName = "Deluxe Room",
         PricePerNight = 79,
         Description = "Flexible cancellation",
+        StartDate = new DateOnly(2026, 10, 1),
+        EndDate = new DateOnly(2026, 10, 31),
     };
 
     /// <summary>

@@ -87,6 +87,35 @@ public class ResultsPageShould : BunitContext
     }
 
     /// <summary>
+    /// the page sends the adults count from the url to the api
+    /// </summary>
+    [Fact]
+    public void AskTheApiForAdultsOfTheUrl()
+    {
+        // arrange and act
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=4");
+        Render<Results>();
+
+        // assert
+        var request = _roomService.Requests.Last();
+        request.Adults.ShouldBe(4);
+    }
+
+    /// <summary>
+    /// subtitle shows the stay period nights and guest count
+    /// </summary>
+    [Fact]
+    public void ShowGuestCountInSubtitle()
+    {
+        // arrange and act
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=3");
+        var cut = Render<Results>();
+
+        // assert
+        cut.Find("p.subtitle").TextContent.ShouldContain("3 guests");
+    }
+
+    /// <summary>
     /// no free room shows the message and the btn to change the dates
     /// </summary>
     [Fact]
@@ -281,6 +310,24 @@ public class ResultsPageShould : BunitContext
 
         // assert
         cut.Find(".selection-summary-rate-name").TextContent.ShouldBe("Fully refundable");
+    }
+
+    /// <summary>
+    /// a rate of the draft that now needs a longer stay is not restored
+    /// </summary>
+    [Fact]
+    public void NotRestoreARateOfTheDraftThatNeedsALongerStay()
+    {
+        // arrange, the fake sends the fully refundable rate with a min of 5 nights, the stay is 3
+        _roomService.Answer.Value.Rooms.First().Rates.Single(r => r.Id == 2).MinNights = 5;
+        _draft.SetRooms(Today.AddDays(2), Today.AddDays(5),
+            [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 417m, "Free cancellation up to 30 days before arrival, 50% refund up to 7 days before")]);
+
+        // act
+        var cut = RenderWithDates(2, 5);
+
+        // assert
+        cut.Find(".selection-summary-empty");
     }
 
     /// <summary>

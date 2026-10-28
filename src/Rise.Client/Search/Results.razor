@@ -1,4 +1,4 @@
-﻿@page "/search/results"
+@page "/search/results"
 @* results of the stay search, shows the free rooms for the chosen dates *@
 @* TODO: translate the texts with the languages task *@
 
@@ -9,11 +9,11 @@
     <span class="eyebrow">Book a room</span>
     <h1>Available rooms</h1>
     <p class="subtitle">
-        @CheckIn?.ToString("d MMM") – @CheckOut?.ToString("d MMM yyyy") · @Stay.Nights @(Stay.Nights == 1 ? "night" : "nights")
+        @CheckIn?.ToString("d MMM") – @CheckOut?.ToString("d MMM yyyy") · @Stay.Nights @(Stay.Nights == 1 ? "night" : "nights") · @Stay.Adults @(Stay.Adults == 1 ? "guest" : "guests")
     </p>
 
-    @* compact bar to change the dates without leaving the page *@
-    <SearchBar CheckIn="@CheckIn" CheckOut="@CheckOut" />
+    @* compact bar to change the dates and guests without leaving the page *@
+    <SearchBar CheckIn="@CheckIn" CheckOut="@CheckOut" Adults="@Stay.Adults" />
 
     @if (_rooms is null)
     {

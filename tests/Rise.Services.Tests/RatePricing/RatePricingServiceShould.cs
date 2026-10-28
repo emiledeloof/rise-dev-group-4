@@ -121,6 +121,29 @@ public class RatePricingServiceShould
         saved.MinNights.ShouldBe(3);
     }
 
+    [Fact]
+    public async Task SaveAvailabilityDateRange()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(SaveAvailabilityDateRange));
+        var rateId = await RateIdOfAsync(dbContext, "Standard Room");
+        var startDate = new DateOnly(2026, 10, 1);
+        var endDate = new DateOnly(2026, 10, 31);
+
+        var result = await new RatePricingService(dbContext).EditAsync(new RatePricingRequest.Edit
+        {
+            RateId = rateId,
+            PricePerNight = 133m,
+            MinNights = 1,
+            StartDate = startDate,
+            EndDate = endDate,
+        });
+
+        result.IsSuccess.ShouldBeTrue();
+        var saved = await dbContext.Rates.AsNoTracking().SingleAsync(rate => rate.Id == rateId);
+        saved.StartDate.ShouldBe(startDate);
+        saved.EndDate.ShouldBe(endDate);
+    }
+
     /// <summary>
     /// a refundable policy is saved with its new values
     /// </summary>

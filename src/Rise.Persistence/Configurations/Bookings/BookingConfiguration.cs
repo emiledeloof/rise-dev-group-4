@@ -16,6 +16,7 @@ internal class BookingConfiguration : EntityConfiguration<Booking>
         builder.HasIndex(x => x.BookingNumber).IsUnique();
         builder.Property(x => x.CheckIn).IsRequired();
         builder.Property(x => x.CheckOut).IsRequired();
+        builder.Property(x => x.CancellationReason).HasMaxLength(500);
 
         // * composite index on the stay dates, used by the availability search in RoomService
         // not unique, several bookings can start or end the same day

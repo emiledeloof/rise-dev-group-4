@@ -20,6 +20,8 @@ public static class TestAdminDetails
         CheckOut = new DateOnly(2026, 10, 20),
         Nights = 3,
         TotalAmount = 720m,
+        PaidAmount = 720m,
+        SuggestedRefundAmount = 360m,
         Guest = new BookingDto.AdminGuestDto
         {
             Id = 3,

@@ -25,6 +25,11 @@ public partial class Detail
     /// </summary>
     [SupplyParameterFromQuery] private DateOnly? CheckOut { get; set; }
 
+    /// <summary>
+    /// guest count of the search the guest came from, eg adults=2
+    /// </summary>
+    [SupplyParameterFromQuery] private int? Adults { get; set; }
+
     // client RoomService registered in Program.cs, calls the room detail endpoint
     [Inject] public required IRoomService RoomService { get; set; }
 
@@ -39,7 +44,9 @@ public partial class Detail
 
     // came from the results with dates, so go back to the same results, otherwise to the search form
     private bool HasSearchDates => CheckIn is not null && CheckOut is not null;
-    private string BackUrl => HasSearchDates ? $"search/results?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}" : "search";
+    private string BackUrl => HasSearchDates
+        ? $"search/results?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}{(Adults.HasValue ? $"&adults={Adults}" : "")}"
+        : "search";
     private string BackText => HasSearchDates ? "Back to available rooms" : "Search rooms";
 
     // dates of the url grouped in a stay period, to reuse its Nights calculation

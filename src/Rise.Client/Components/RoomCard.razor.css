@@ -107,7 +107,8 @@
     grid-template-areas:
         "radio name   total"
         ".     detail detail"
-        ".     policy policy";
+        ".     policy policy"
+        ".     minstay minstay";
     column-gap: var(--space-sm);
     row-gap: 2px;
     align-items: center;
@@ -163,6 +164,34 @@
 .room-card-rate-policy {
     grid-area: policy;
     font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+/* eg minimum stay 2 nights, same size as the policy line, in italic so it reads as a condition */
+.room-card-rate-min-stay {
+    grid-area: minstay;
+    font-size: 0.75rem;
+    font-style: italic;
+    color: var(--color-text-muted);
+}
+
+/* rate that needs a longer stay, faded and not clickable, the min stay line says why */
+.room-card-rate.is-unavailable {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* no darker border on hover, the line can't be picked */
+.room-card-rate.is-unavailable:hover {
+    border-color: var(--color-border);
+}
+
+.room-card-rate.is-unavailable .room-card-rate-radio {
+    cursor: not-allowed;
+}
+
+/* the total is not the main number of the line anymore */
+.room-card-rate.is-unavailable .room-card-total {
     color: var(--color-text-muted);
 }
 

@@ -9,12 +9,15 @@
 
     @* white box, the row on top and the error messages inside it so they stay readable on the green hero *@
     <div class="search-bar">
-        @* one row, dates on the left and the btn on the right, stacks on small screens *@
+        @* one row, dates and guests on the left and the btn on the right, stacks on small screens *@
         <div class="search-bar-row">
             @* check in and check out picker, both dates go into _stay *@
             @* :after runs DatesChanged right after a date is written into _stay *@
             <DateRangePicker @bind-CheckIn="_stay.CheckIn" @bind-CheckIn:after="DatesChanged"
                              @bind-CheckOut="_stay.CheckOut" @bind-CheckOut:after="DatesChanged" />
+
+            @* guest count picker, defaults to 2 adults *@
+            <GuestPicker @bind-Value="_stay.Adults" />
 
             @* submit btn, label from the mockup *@
             <Button Type="submit" Class="search-btn">Check availability</Button>
@@ -23,5 +26,6 @@
         @* error messages under the row *@
         <ValidationMessage For="@(() => _stay.CheckIn)" class="has-text-danger"/>
         <ValidationMessage For="@(() => _stay.CheckOut)" class="has-text-danger"/>
+        <ValidationMessage For="@(() => _stay.Adults)" class="has-text-danger"/>
     </div>
 </EditForm>
