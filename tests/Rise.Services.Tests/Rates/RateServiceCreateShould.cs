@@ -24,6 +24,7 @@ public class RateServiceCreateShould
         {
             Name = "Standard",
             PricePerNight = 79m,
+            IsActive = false,
             Description = "Flexible cancellation",
             RoomName = "Single Room",
             StartDate = new DateOnly(2026, 10, 1),
@@ -34,6 +35,7 @@ public class RateServiceCreateShould
         result.Value.Name.ShouldBe("Standard");
         result.Value.RoomName.ShouldBe("Single Room");
         result.Value.PricePerNight.ShouldBe(79m);
+        result.Value.IsActive.ShouldBeFalse();
         result.Value.Description.ShouldBe("Flexible cancellation");
         result.Value.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
         result.Value.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
@@ -42,6 +44,7 @@ public class RateServiceCreateShould
         savedRate.Room.Id.ShouldBe(room.Id);
         savedRate.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
         savedRate.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
+        savedRate.IsActive.ShouldBeFalse();
     }
 
     [Fact]

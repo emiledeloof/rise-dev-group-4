@@ -1,9 +1,11 @@
 using Ardalis.Result;
 using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Rooms;
+using Rise.Domain.Settings;
 using Rise.Persistence;
 using Rise.Services.RatePricing;
 using Rise.Shared.RatePricing;
+using Rise.Shared.Settings;
 
 namespace Rise.Services.Tests.RatePricing;
 
@@ -25,6 +27,7 @@ public class RatePricingServiceShould
             .Options;
 
         var dbContext = new ApplicationDbContext(options);
+        dbContext.GeneralSettings.Add(new GeneralSettings(false, 0m));
 
         var deluxe = new Room("102", "Deluxe Room", 2);
         deluxe.AddRate("Non-refundable", 175m);
@@ -119,6 +122,47 @@ public class RatePricingServiceShould
         result.IsSuccess.ShouldBeTrue();
         var saved = await dbContext.Rates.AsNoTracking().SingleAsync(r => r.Id == rateId);
         saved.MinNights.ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task SaveActiveStatus()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(SaveActiveStatus));
+        var rateId = await RateIdOfAsync(dbContext, "Standard Room");
+
+        var result = await new RatePricingService(dbContext).EditAsync(new RatePricingRequest.Edit
+        {
+            RateId = rateId,
+            PricePerNight = 133m,
+            MinNights = 1,
+            IsActive = false,
+        });
+
+        result.IsSuccess.ShouldBeTrue();
+        var saved = await dbContext.Rates.AsNoTracking().SingleAsync(r => r.Id == rateId);
+        saved.IsActive.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ReadAndUpdateGlobalVatSettings()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReadAndUpdateGlobalVatSettings));
+        var service = new RatePricingService(dbContext);
+
+        var initial = await service.GetGeneralSettingsAsync();
+        initial.Value.IsVatEnabled.ShouldBeFalse();
+        initial.Value.VatPercentage.ShouldBe(0m);
+
+        var updated = await service.UpdateGeneralSettingsAsync(new GeneralSettingsRequest.Update
+        {
+            IsVatEnabled = true,
+            VatPercentage = 12m,
+        });
+
+        updated.IsSuccess.ShouldBeTrue();
+        updated.Value.IsVatEnabled.ShouldBeTrue();
+        updated.Value.VatPercentage.ShouldBe(12m);
+        (await service.GetGeneralSettingsAsync()).Value.VatPercentage.ShouldBe(12m);
     }
 
     [Fact]

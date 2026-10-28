@@ -29,6 +29,8 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
             request.StartDate,
             request.EndDate);
 
+        rate.IsActive = request.IsActive;
+
         // * policy chosen in the form, a new rate is refundable in the domain so it is always set here
         rate.MinNights = request.MinNights;
         rate.CancellationPolicy = request.IsRefundable ? CancellationPolicy.Refundable : CancellationPolicy.NonRefundable;
@@ -50,6 +52,7 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
             Name = rate.Name,
             RoomName = rate.Room.Name,
             PricePerNight = rate.PricePerNight,
+            IsActive = rate.IsActive,
             Description = rate.Description,
             StartDate = rate.StartDate,
             EndDate = rate.EndDate
@@ -118,17 +121,17 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
             _ => query.OrderByDescending(rate => rate.Id),
         };
 
-        var activeRates = dbContext.Rates
+        var allNonDeletedRates = dbContext.Rates
             .Where(rate => !rate.IsDeleted && !rate.Room.IsDeleted);
 
-        var roomNames = await activeRates
+        var roomNames = await allNonDeletedRates
             .Select(rate => rate.Room.Name)
             .Distinct()
             .OrderBy(name => name)
             .ToListAsync(ctx);
 
         // only the policies that exist, as the texts the page sends back in the filter
-        var usedPolicies = await activeRates
+        var usedPolicies = await allNonDeletedRates
             .Select(rate => rate.CancellationPolicy)
             .Distinct()
             .ToListAsync(ctx);
@@ -137,7 +140,7 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
             .OrderBy(policy => policy)
             .ToList();
 
-        var dateRanges = await activeRates
+        var dateRanges = await allNonDeletedRates
             .Select(rate => new { rate.StartDate, rate.EndDate })
             .Distinct()
             .ToListAsync(ctx);
@@ -159,6 +162,7 @@ public sealed class RateService(ApplicationDbContext dbContext) : IRateService
                 Name = rate.Name,
                 RoomName = rate.Room.Name,
                 PricePerNight = rate.PricePerNight,
+                IsActive = rate.IsActive,
                 Description = rate.Description,
                 // what the edit form needs, same mapping as RoomService
                 MinNights = rate.MinNights,

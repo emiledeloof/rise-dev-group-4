@@ -20,6 +20,20 @@ public class PriceCalculatorShould
         PriceCalculator.Total(pricePerNight, nights).ShouldBe(expected);
     }
 
+    [Theory]
+    [InlineData(109, true, 20, 130.80)]
+    [InlineData(109, true, 0, 109)]
+    [InlineData(109, false, 20, 109)]
+    [InlineData(10.01, true, 5, 10.51)]
+    public void ApplyVatOnlyWhenEnabledAndRoundToCurrencyPrecision(
+        decimal price,
+        bool isVatEnabled,
+        decimal vatPercentage,
+        decimal expected)
+    {
+        PriceCalculator.InclusiveOfVat(price, isVatEnabled, vatPercentage).ShouldBe(expected);
+    }
+
     /// <summary>
     /// a stay without nights is a bug, the calculator refuses it instead of giving a wrong price
     /// </summary>

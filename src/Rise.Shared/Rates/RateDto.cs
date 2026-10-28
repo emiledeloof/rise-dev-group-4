@@ -54,6 +54,7 @@ public static class RateDto
         public required string Name { get; set; }
         public required string RoomName { get; set; }
         public required decimal PricePerNight { get; set; }
+        public required bool IsActive { get; set; }
         public string? Description { get; set; }
 
         // min nb of nights a guest must book

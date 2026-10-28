@@ -48,12 +48,12 @@ public class BookingRoom : Entity
     {
     }
 
-    internal BookingRoom(Booking booking, Room room, Rate rate)
+    internal BookingRoom(Booking booking, Room room, Rate rate, decimal pricePerNight)
     {
         Booking = Guard.Against.Null(booking);
         Room = Guard.Against.Null(room);
         Rate = Guard.Against.Null(rate);
-        PricePerNight = rate.PricePerNight;
+        PricePerNight = Guard.Against.NegativeOrZero(pricePerNight);
         RateName = rate.Name;
         // * snapshot of the cancellation policy, later changes on the rate dont touch this booking
         CancellationPolicy = rate.CancellationPolicy;

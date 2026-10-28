@@ -39,6 +39,7 @@ public class FakeRateService : IRateService
                         Name = createdRate.Name,
                         RoomName = createdRate.RoomName,
                         PricePerNight = createdRate.PricePerNight,
+                        IsActive = createdRate.IsActive,
                         Description = createdRate.Description,
                         // a new rate gets the domain defaults
                         MinNights = 1,
@@ -79,6 +80,7 @@ public class FakeRateService : IRateService
                 Name = "Non-refundable",
                 RoomName = "Double Room",
                 PricePerNight = 90m,
+                IsActive = false,
                 Description = "No refund",
                 MinNights = 2,
                 IsRefundable = false,
@@ -94,6 +96,7 @@ public class FakeRateService : IRateService
                 Name = "Standard",
                 RoomName = "Single Room",
                 PricePerNight = 79m,
+                IsActive = true,
                 Description = null,
                 MinNights = 1,
                 IsRefundable = true,

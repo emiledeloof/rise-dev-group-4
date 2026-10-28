@@ -19,6 +19,7 @@ public class RateShould
         rate.Room.ShouldBe(room);
         rate.Name.ShouldBe("Standard");
         rate.PricePerNight.ShouldBe(79m);
+        rate.IsActive.ShouldBeTrue();
         rate.Description.ShouldBe("Flexible cancellation");
         rate.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
         rate.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
@@ -90,4 +91,5 @@ public class RateShould
 
         Should.Throw<ArgumentOutOfRangeException>(() => rate.PartialRefundPercent = percent);
     }
+
 }

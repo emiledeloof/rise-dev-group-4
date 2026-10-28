@@ -1,4 +1,5 @@
 @page "/booking/overview"
+@using Rise.Client.Common
 @* last step of the booking, everything the guest picked before paying, styles in Overview.razor.css *@
 @* TODO: translate the texts with the languages task *@
 
@@ -55,7 +56,7 @@
                             <li class="overview-room">
                                 <div>
                                     <p class="overview-room-name">@room.RoomName</p>
-                                    <p class="overview-rate-name">@room.RateName · €@room.PricePerNight.ToString("0") / night</p>
+                                    <p class="overview-rate-name">@room.RateName · @Format.Amount(room.PricePerNight) / night</p>
                                     @if (!string.IsNullOrWhiteSpace(room.RateDescription))
                                     {
                                         <p class="overview-rate-description">@room.RateDescription</p>
@@ -63,7 +64,7 @@
                                     @* cancellation policy of the rate at booking time, always there so no if *@
                                     <p class="overview-rate-policy">@room.CancellationText</p>
                                 </div>
-                                <span class="overview-room-price">€@room.TotalPrice.ToString("0")</span>
+                                <span class="overview-room-price">@Format.Amount(room.TotalPrice)</span>
                             </li>
                         }
                     </ul>
@@ -97,9 +98,9 @@
             <aside class="overview-summary" aria-label="Total">
                 <p class="overview-total">
                     <span>Total</span>
-                    <span>€@Draft.Total.ToString("0")</span>
+                    <span>@Format.Amount(Draft.Total)</span>
                 </p>
-                <p class="overview-muted">Prices include VAT</p>
+                <p class="overview-muted">Prices include VAT when enabled</p>
                 <Button IsFullWidth="true" IsLoading="_isPaying" OnClick="PayAsync" Class="pay-btn">Pay now</Button>
             </aside>
         </div>

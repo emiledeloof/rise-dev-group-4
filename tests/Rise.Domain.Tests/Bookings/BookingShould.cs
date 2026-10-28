@@ -89,6 +89,19 @@ public class BookingShould
     }
 
     [Fact]
+    public void KeepThePricePassedWhenAddingARoom()
+    {
+        var room = new Room("101", "Single Room", 1);
+        var rate = room.AddRate("Standard", 79m);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
+
+        var bookingRoom = booking.AddRoom(room, rate, 94.80m);
+
+        bookingRoom.PricePerNight.ShouldBe(94.80m);
+        rate.PricePerNight.ShouldBe(79m);
+    }
+
+    [Fact]
     public void NotAddARoomWithARateOfAnotherRoom()
     {
         var room = new Room("101", "Single Room", 1);

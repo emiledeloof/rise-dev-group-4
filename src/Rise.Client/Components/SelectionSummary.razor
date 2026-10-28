@@ -1,3 +1,4 @@
+﻿@using Rise.Client.Common
 @* "your selection" box of the results page, styles in SelectionSummary.razor.css *@
 <aside class="selection-summary" aria-label="Your selection">
     <h2 class="selection-summary-title">Your selection</h2>
@@ -17,7 +18,7 @@
                 <li class="selection-summary-room">
                     <span class="selection-summary-room-name">@room.RoomName</span>
                     <span class="selection-summary-rate-name">@room.RateName</span>
-                    <span class="selection-summary-price">€@room.TotalPrice.ToString("0")</span>
+                    <span class="selection-summary-price">@Format.Amount(room.TotalPrice)</span>
                 </li>
             }
         </ul>
@@ -25,11 +26,11 @@
         @* total of all the rooms *@
         <p class="selection-summary-total">
             <span>Total</span>
-            <span>€@Total.ToString("0")</span>
+            <span>@Format.Amount(Total)</span>
         </p>
     }
 
-    <p class="selection-summary-vat">Prices include VAT</p>
+    <p class="selection-summary-vat">Prices include VAT when enabled</p>
 
     @* next step of the booking, the page stores the selection and goes to the guest details *@
     <Button IsFullWidth="true" IsDisabled="Rooms.Count == 0" OnClick="() => OnContinue.InvokeAsync()">Continue</Button>

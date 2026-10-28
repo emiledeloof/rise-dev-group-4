@@ -31,6 +31,7 @@ public class RateCreateEndpointShould
                 Name = request.Name,
                 RoomName = request.RoomName,
                 PricePerNight = request.PricePerNight,
+                IsActive = request.IsActive,
                 Description = request.Description,
                 StartDate = request.StartDate,
                 EndDate = request.EndDate,

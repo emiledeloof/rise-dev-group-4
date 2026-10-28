@@ -72,7 +72,7 @@ public class RoomCardShould : BunitContext
         var cut = RenderCard();
 
         // assert
-        cut.Find(".room-card-price-detail").TextContent.ShouldBe("3 nights · prices include VAT");
+        cut.Find(".room-card-price-detail").TextContent.ShouldBe("3 nights · prices include VAT when enabled");
     }
 
     /// <summary>
@@ -93,8 +93,8 @@ public class RoomCardShould : BunitContext
         first.QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Non-refundable");
         lines[1].QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Fully refundable");
         first.QuerySelector(".room-card-rate-conditions").ShouldBeNull();
-        first.QuerySelector(".room-card-total")!.TextContent.ShouldBe("€327");
-        first.QuerySelector(".room-card-rate-detail")!.TextContent.ShouldBe("€109 × 3 nights");
+        first.QuerySelector(".room-card-total")!.TextContent.ShouldBe("€327.00");
+        first.QuerySelector(".room-card-rate-detail")!.TextContent.ShouldBe("€109.00 × 3 nights");
     }
 
     /// <summary>
@@ -123,8 +123,8 @@ public class RoomCardShould : BunitContext
         var cut = RenderCard(nights: 1);
 
         // assert, in the line above the rates and in the detail of each rate
-        cut.Find(".room-card-price-detail").TextContent.ShouldBe("1 night · prices include VAT");
-        cut.Find(".room-card-rate-detail").TextContent.ShouldBe("€109 × 1 night");
+        cut.Find(".room-card-price-detail").TextContent.ShouldBe("1 night · prices include VAT when enabled");
+        cut.Find(".room-card-rate-detail").TextContent.ShouldBe("€109.00 × 1 night");
     }
 
     /// <summary>

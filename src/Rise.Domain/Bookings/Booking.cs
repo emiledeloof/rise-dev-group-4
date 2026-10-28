@@ -72,7 +72,7 @@ public class Booking : Entity
     /// <summary>
     /// Adds a room to the booking, the price per night is copied from the rate at booking time.
     /// </summary>
-    public BookingRoom AddRoom(Room room, Rate rate)
+    public BookingRoom AddRoom(Room room, Rate rate, decimal? pricePerNight = null)
     {
         Guard.Against.Null(room);
         Guard.Against.Null(rate);
@@ -83,7 +83,7 @@ public class Booking : Entity
         if (_rooms.Any(x => x.Room == room))
             throw new ArgumentException("The room is already part of this booking.", nameof(room));
 
-        var bookingRoom = new BookingRoom(this, room, rate);
+        var bookingRoom = new BookingRoom(this, room, rate, pricePerNight ?? rate.PricePerNight);
         _rooms.Add(bookingRoom);
         return bookingRoom;
     }

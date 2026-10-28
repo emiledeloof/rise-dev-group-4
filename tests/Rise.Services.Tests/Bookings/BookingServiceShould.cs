@@ -5,6 +5,7 @@ using NSubstitute;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
+using Rise.Domain.Settings;
 using Rise.Persistence;
 using Rise.Services.Bookings;
 using Rise.Services.Payments;
@@ -33,6 +34,7 @@ public class BookingServiceShould
             .Options;
 
         var dbContext = new ApplicationDbContext(options);
+        dbContext.GeneralSettings.Add(new GeneralSettings(false, 0m));
 
         var doubleRoom = new Room("102", "Double Room", 2);
         var doubleRate = doubleRoom.AddRate("Non-refundable", 109m);
@@ -148,6 +150,25 @@ public class BookingServiceShould
     }
 
     [Fact]
+    public async Task IncludeVatInTheSavedBookingPriceAndTotal()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(IncludeVatInTheSavedBookingPriceAndTotal));
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(true, 20m);
+        await dbContext.SaveChangesAsync();
+        var standard = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+
+        var result = await CreateService(dbContext).CreateAsync(Request(20, 23, "marie@example.com", standard));
+
+        result.Status.ShouldBe(ResultStatus.Created);
+        result.Value.TotalAmount.ShouldBe(284.40m);
+        var bookingRoom = await dbContext.BookingRooms.Include(x => x.Rate)
+            .SingleAsync(room => room.Booking.Id == result.Value.BookingId);
+        bookingRoom.PricePerNight.ShouldBe(94.80m);
+        bookingRoom.Rate.PricePerNight.ShouldBe(79m);
+    }
+
+    [Fact]
     public async Task ReturnConflictWhenRoomAlreadyBooked()
     {
         // arrange, the double room is booked from oct 10 to 12
@@ -204,6 +225,21 @@ public class BookingServiceShould
         var result = await CreateService(dbContext).CreateAsync(Request(20, 22, "marie@example.com", (single.RoomId, doubleRoom.RateId)));
 
         // assert
+        result.Status.ShouldBe(ResultStatus.Invalid);
+        (await dbContext.Bookings.CountAsync()).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task ReturnInvalidWhenSelectedRateIsInactive()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnInvalidWhenSelectedRateIsInactive));
+        var single = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        var rate = await dbContext.Rates.SingleAsync(rate => rate.Id == single.RateId);
+        rate.IsActive = false;
+
+        var result = await CreateService(dbContext)
+            .CreateAsync(Request(20, 22, "marie@example.com", single));
+
         result.Status.ShouldBe(ResultStatus.Invalid);
         (await dbContext.Bookings.CountAsync()).ShouldBe(1);
     }

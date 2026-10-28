@@ -16,6 +16,8 @@ public static partial class RatePricingRequest
         // new price for 1 night in eur
         public decimal PricePerNight { get; set; }
 
+        public bool IsActive { get; set; } = true;
+
         // min nb of nights a guest must book
         public int MinNights { get; set; }
 

@@ -63,10 +63,10 @@ public class OverviewShould : BunitContext
         cut.Find(".overview-rate-name").TextContent.ShouldContain("Non-refundable");
         cut.Find(".overview-rate-description").TextContent.ShouldBe("No refund after booking");
         cut.Find(".overview-rate-policy").TextContent.ShouldBe("Non-refundable, no refund if you cancel");
-        cut.Find(".overview-room-price").TextContent.ShouldBe("€327");
+        cut.Find(".overview-room-price").TextContent.ShouldBe("€327.00");
         cut.Find(".overview-guest").TextContent.ShouldContain("Marie Peeters");
         cut.Find(".overview-guest").TextContent.ShouldContain("marie@example.com");
-        cut.Find(".overview-total").TextContent.ShouldContain("€327");
+        cut.Find(".overview-total").TextContent.ShouldContain("€327.00");
     }
 
     [Fact]

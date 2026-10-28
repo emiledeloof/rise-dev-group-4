@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
+using Rise.Domain.Settings;
 using Rise.Persistence;
 using Rise.Services.Rooms;
 using Rise.Shared.Rooms;
@@ -31,6 +32,7 @@ public class RoomServiceShould
             .Options;
 
         var dbContext = new ApplicationDbContext(options);
+        dbContext.GeneralSettings.Add(new GeneralSettings(false, 0m));
 
         // the expensive rate is added first on purpose, the service must still sort them cheapest first
         var doubleRoom = new Room("102", DoubleRoom, 2, "Spacious room with a double bed.");
@@ -237,6 +239,25 @@ public class RoomServiceShould
         rooms.Single(r => r.Name == SingleRoom).TotalPrice.ShouldBe(237m);
     }
 
+    [Fact]
+    public async Task IncludeVatInPricesReturnedForRoomSearch()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(IncludeVatInPricesReturnedForRoomSearch));
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(true, 20m);
+        await dbContext.SaveChangesAsync();
+
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+
+        result.IsSuccess.ShouldBeTrue();
+        var doubleRoom = result.Value.Rooms.Single(room => room.Name == DoubleRoom);
+        var cheapestRate = doubleRoom.Rates.First();
+        cheapestRate.PricePerNight.ShouldBe(130.80m);
+        cheapestRate.TotalPrice.ShouldBe(261.60m);
+        doubleRoom.PricePerNight.ShouldBe(130.80m);
+        doubleRoom.TotalPrice.ShouldBe(261.60m);
+    }
+
     /// <summary>
     /// all the rates of a room come back, cheapest first, each with its total for the stay
     /// </summary>
@@ -255,6 +276,23 @@ public class RoomServiceShould
         rates[0].Description.ShouldBe("No refund after booking");
         rates[0].TotalPrice.ShouldBe(327m);
         rates[1].TotalPrice.ShouldBe(417m);
+    }
+
+    [Fact]
+    public async Task HideInactiveRatesAndPriceRoomsUsingOnlyActiveRates()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(
+            nameof(HideInactiveRatesAndPriceRoomsUsingOnlyActiveRates),
+            (room, _) =>
+            {
+                room.Rates.Single(rate => rate.Name == "Non-refundable").IsActive = false;
+            });
+
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 23));
+
+        var doubleRoom = result.Value.Rooms.Single(room => room.Name == DoubleRoom);
+        doubleRoom.PricePerNight.ShouldBe(139m);
+        doubleRoom.Rates.ShouldHaveSingleItem();
     }
 
     // id the in memory db gave to a room, the tests don't know it in advance

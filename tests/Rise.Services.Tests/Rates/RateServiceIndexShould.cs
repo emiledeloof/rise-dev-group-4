@@ -24,6 +24,7 @@ public class RateServiceIndexShould
         var nonRefundable = doubleRoom.AddRate("Non-refundable", 90m, "No refund");
         nonRefundable.CancellationPolicy = CancellationPolicy.NonRefundable;
         nonRefundable.MinNights = 2;
+        nonRefundable.IsActive = false;
         doubleRoom.AddRate("Deleted rate", 70m, "Archived policy").IsDeleted = true;
 
         var singleRoom = new Room("102", SingleRoom, 1);
@@ -141,9 +142,9 @@ public class RateServiceIndexShould
     }
 
     [Fact]
-    public async Task ReturnOnlyActiveRatesAndAllFilterOptions()
+    public async Task ReturnOnlyNonDeletedRatesAndAllFilterOptions()
     {
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnOnlyActiveRatesAndAllFilterOptions));
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnOnlyNonDeletedRatesAndAllFilterOptions));
 
         var result = await new RateService(dbContext).GetIndexAsync(new RateRequest.Index
         {
@@ -204,6 +205,7 @@ public class RateServiceIndexShould
         var nonRefundable = result.Value.Rates.Single(rate => rate.Name == "Non-refundable");
         nonRefundable.MinNights.ShouldBe(2);
         nonRefundable.IsRefundable.ShouldBeFalse();
+        nonRefundable.IsActive.ShouldBeFalse();
 
         var flexible = result.Value.Rates.Single(rate => rate.Name == "Flexible");
         flexible.MinNights.ShouldBe(1);
@@ -211,5 +213,6 @@ public class RateServiceIndexShould
         flexible.FullRefundDays.ShouldBe(30);
         flexible.PartialRefundDays.ShouldBe(7);
         flexible.PartialRefundPercent.ShouldBe(50);
+        flexible.IsActive.ShouldBeTrue();
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
+using Rise.Domain.Settings;
 using Rise.Persistence;
 using Rise.Services.Payments;
 using Rise.Services.Pricing;
@@ -109,7 +110,7 @@ public sealed class BookingService(
         foreach (var selection in request.Rooms)
         {
             var room = rooms.Single(x => x.Id == selection.RoomId);
-            var rate = room.Rates.SingleOrDefault(x => x.Id == selection.RateId && !x.IsDeleted);
+            var rate = room.Rates.SingleOrDefault(x => x.Id == selection.RateId && !x.IsDeleted && x.IsActive);
             if (rate is null)
             {
                 return Result.Invalid(new ValidationError(
@@ -159,14 +160,20 @@ public sealed class BookingService(
         }
 
         var guest = await UpsertGuestAsync(request.Guest, ctx);
+        var settings = await dbContext.GeneralSettings
+            .AsNoTracking()
+            .SingleAsync(item => item.Id == GeneralSettings.SingletonId, ctx);
 
         var bookingNumber = await GenerateBookingNumberAsync(ctx);
         var booking = new Booking(bookingNumber, guest, request.CheckIn, request.CheckOut, request.Adults);
 
         foreach (var (room, rate) in selections)
         {
-            // the booking copies the price per night of the rate, so the server price is used, not the client one
-            booking.AddRoom(room, rate);
+            var pricePerNight = PriceCalculator.InclusiveOfVat(
+                rate.PricePerNight,
+                settings.IsVatEnabled,
+                settings.VatPercentage);
+            booking.AddRoom(room, rate, pricePerNight);
         }
 
         // guest and booking are saved together, one SaveChanges is atomic
