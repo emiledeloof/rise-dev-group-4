@@ -313,6 +313,24 @@ public class ResultsPageShould : BunitContext
     }
 
     /// <summary>
+    /// a rate of the draft that now needs a longer stay is not restored
+    /// </summary>
+    [Fact]
+    public void NotRestoreARateOfTheDraftThatNeedsALongerStay()
+    {
+        // arrange, the fake sends the fully refundable rate with a min of 5 nights, the stay is 3
+        _roomService.Answer.Value.Rooms.First().Rates.Single(r => r.Id == 2).MinNights = 5;
+        _draft.SetRooms(Today.AddDays(2), Today.AddDays(5),
+            [new DraftRoom(1, "Double Room", 2, "Fully refundable", null, 139m, 417m, "Free cancellation up to 30 days before arrival, 50% refund up to 7 days before")]);
+
+        // act
+        var cut = RenderWithDates(2, 5);
+
+        // assert
+        cut.Find(".selection-summary-empty");
+    }
+
+    /// <summary>
     /// other dates mean other prices, the draft selection is not restored
     /// </summary>
     [Fact]

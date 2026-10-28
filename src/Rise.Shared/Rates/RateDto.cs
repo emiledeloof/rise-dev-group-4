@@ -36,6 +36,9 @@ public static class RateDto
 
         // pct refunded in the partial period, eg 50
         public required int PartialRefundPercent { get; set; }
+
+        // min nb of nights a guest must book, a rate that needs more than the stay is shown but cant be picked
+        public int MinNights { get; set; } = 1;
     }
 
     /// <summary>

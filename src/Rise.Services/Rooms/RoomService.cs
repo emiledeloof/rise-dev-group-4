@@ -14,7 +14,8 @@ namespace Rise.Services.Rooms;
 public class RoomService(ApplicationDbContext dbContext) : IRoomService
 {
     /// <summary>
-    /// rooms free for the whole stay, each with the rates the guest can book for that nb of nights
+    /// rooms free for the whole stay, each with all its rates
+    /// a rate that needs more nights than the stay is still sent with its MinNights so the guest sees why it cant be picked
     /// </summary>
     public async Task<Result<RoomResponse.Available>> GetAvailableAsync(SearchRequest.StayPeriod request, CancellationToken ctx = default)
     {
@@ -29,8 +30,8 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         // rooms not deleted
         var query = dbContext.Rooms.Where(r => !r.IsDeleted);
 
-        // keep only the rooms with at least 1 rate bookable for this nb of nights
-        query = query.Where(r => r.Rates.Any(x => !x.IsDeleted && x.MinNights <= nights));
+        // keep only the rooms with at least 1 rate, even if it needs a longer stay
+        query = query.Where(r => r.Rates.Any(x => !x.IsDeleted));
         // no booking of the room overlaps the stay, ie starts before our check out and ends after our check in
         // cancelled bookings free their rooms
         query = query.Where(r => !dbContext.BookingRooms.Any(br =>
@@ -41,23 +42,22 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
             && br.Booking.CheckIn < checkOut
             && br.Booking.CheckOut > checkIn));
 
-        // from price = cheapest rate, photo = 1st one
-        var rooms = await query.AsNoTracking()
+        // photo = 1st one
+        var rows = await query.AsNoTracking()
             .OrderBy(r => r.Name)
-            .Select(r => new RoomDto.Available
+            .Select(r => new
             {
-                Id = r.Id,
-                Name = r.Name,
-                Description = r.Description,
-                MaxGuests = r.MaxGuests,
-                PricePerNight = r.Rates.OrderBy(x => x.PricePerNight).Select(x => x.PricePerNight).FirstOrDefault(),
+                r.Id,
+                r.Name,
+                r.Description,
+                r.MaxGuests,
                 PhotoUrl = r.Photos.Select(p => p.Url).FirstOrDefault(),
-                Nights = nights,
-                TotalPrice = PriceCalculator.Total(r.Rates.OrderBy(x => x.PricePerNight).Select(x => x.PricePerNight).FirstOrDefault(), nights),
-                // only the rates whose min nb of nights fits the stay, cheapest first
+                // the rates that fit the stay first, then the ones that need more nights, cheapest first in each group
+                // so the 1st rate is the cheapest one the guest can book
                 Rates = r.Rates
-                    .Where(x => !x.IsDeleted && x.MinNights <= nights)
-                    .OrderBy(x => x.PricePerNight)
+                    .Where(x => !x.IsDeleted)
+                    .OrderBy(x => x.MinNights > nights)
+                    .ThenBy(x => x.PricePerNight)
                     .Select(x => new RateDto.Available
                     {
                         Id = x.Id,
@@ -69,10 +69,26 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                         IsRefundable = x.CancellationPolicy == CancellationPolicy.Refundable,
                         FullRefundDays = x.FullRefundDays,
                         PartialRefundDays = x.PartialRefundDays,
-                        PartialRefundPercent = x.PartialRefundPercent
+                        PartialRefundPercent = x.PartialRefundPercent,
+                        MinNights = x.MinNights
                     }).ToList()
             })
             .ToListAsync(ctx);
+
+        // from price = 1st rate, ie the cheapest bookable for the stay, or the cheapest one when none fits
+        // every room has at least 1 rate (filter above), so Rates[0] always exists
+        var rooms = rows.Select(r => new RoomDto.Available
+        {
+            Id = r.Id,
+            Name = r.Name,
+            Description = r.Description,
+            MaxGuests = r.MaxGuests,
+            PricePerNight = r.Rates[0].PricePerNight,
+            PhotoUrl = r.PhotoUrl,
+            Nights = nights,
+            TotalPrice = r.Rates[0].TotalPrice,
+            Rates = r.Rates
+        }).ToList();
 
         return Result.Success(new RoomResponse.Available
         {

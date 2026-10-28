@@ -520,13 +520,13 @@ public class RoomServiceShould
     }
 
     /// <summary>
-    /// every rate of the double room needs 5 nights, a 2 night stay hides the room
+    /// every rate of the double room needs 5 nights, a 2 night stay still shows the room so the guest sees why it cant be booked
     /// </summary>
     [Fact]
-    public async Task HideARoomWhenTheStayIsShorterThanItsMinNights()
+    public async Task KeepARoomWhenTheStayIsShorterThanItsMinNights()
     {
         // arrange
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(HideARoomWhenTheStayIsShorterThanItsMinNights),
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(KeepARoomWhenTheStayIsShorterThanItsMinNights),
             (room, _) =>
             {
                 foreach (var rate in room.Rates)
@@ -534,28 +534,67 @@ public class RoomServiceShould
             });
 
         // act, oct 20 to 22 is 2 nights
-        var names = await FreeRoomNamesAsync(dbContext, Stay(20, 22));
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
 
-        // assert
-        names.ShouldBe(new[] { SingleRoom });
+        // assert, the room is there and each rate carries its min nb of nights
+        var doubleRoom = result.Value.Rooms.Single(r => r.Name == DoubleRoom);
+        doubleRoom.Rates.ShouldAllBe(r => r.MinNights == 5);
     }
 
     /// <summary>
-    /// only the rate that needs 5 nights is hidden, the other one stays
+    /// the rate that needs 5 nights is still sent, after the rates that fit the stay
     /// </summary>
     [Fact]
-    public async Task HideOnlyTheRatesThatNeedALongerStay()
+    public async Task PutTheRatesThatNeedALongerStayLast()
     {
-        // arrange
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(HideOnlyTheRatesThatNeedALongerStay),
-            (room, _) => room.Rates.Single(r => r.Name == "Fully refundable").MinNights = 5);
+        // arrange, the non-refundable rate is the cheapest, so without the min nights it would come 1st
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(PutTheRatesThatNeedALongerStayLast),
+            (room, _) => room.Rates.Single(r => r.Name == "Non-refundable").MinNights = 5);
 
         // act, 2 nights
         var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
 
         // assert
         var rates = result.Value.Rooms.Single(r => r.Name == DoubleRoom).Rates;
-        rates.Select(r => r.Name).ShouldBe(new[] { "Non-refundable" });
+        rates.Select(r => r.Name).ShouldBe(new[] { "Fully refundable", "Non-refundable" });
+    }
+
+    /// <summary>
+    /// each rate gets its min nb of nights, 1 when nothing was set
+    /// </summary>
+    [Fact]
+    public async Task ReturnTheMinNightsOfEachRate()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheMinNightsOfEachRate),
+            (room, _) => room.Rates.Single(r => r.Name == "Fully refundable").MinNights = 2);
+
+        // act, 3 nights
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 23));
+
+        // assert
+        var rates = result.Value.Rooms.Single(r => r.Name == DoubleRoom).Rates.ToList();
+        rates.Single(r => r.Name == "Fully refundable").MinNights.ShouldBe(2);
+        rates.Single(r => r.Name == "Non-refundable").MinNights.ShouldBe(1);
+    }
+
+    /// <summary>
+    /// the from price of the room is the cheapest rate the guest can book, not a cheaper one that needs a longer stay
+    /// </summary>
+    [Fact]
+    public async Task BaseTheFromPriceOnTheBookableRates()
+    {
+        // arrange, the 109 rate needs 5 nights so only the 139 one fits
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(BaseTheFromPriceOnTheBookableRates),
+            (room, _) => room.Rates.Single(r => r.Name == "Non-refundable").MinNights = 5);
+
+        // act, 2 nights
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+
+        // assert, 139 x 2
+        var doubleRoom = result.Value.Rooms.Single(r => r.Name == DoubleRoom);
+        doubleRoom.PricePerNight.ShouldBe(139m);
+        doubleRoom.TotalPrice.ShouldBe(278m);
     }
 
     /// <summary>

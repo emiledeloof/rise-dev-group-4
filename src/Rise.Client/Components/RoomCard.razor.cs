@@ -70,7 +70,14 @@ public partial class RoomCard
     /// </summary>
     [Parameter] public EventCallback OnRemove { get; set; }
 
-    // select btn, picks the cheapest rate, the 1st one since the server sorts them
-    private Task SelectCheapestAsync() => OnRateSelected.InvokeAsync(Rates.First().Id);
+    // rates the stay is long enough for, the others are shown greyed out
+    private IEnumerable<RateDto.Available> BookableRates => Rates.Where(r => MinStayText.IsBookable(r, Nights));
+
+    // select btn, picks the cheapest bookable rate, the 1st one since the server sorts them
+    private Task SelectCheapestAsync() => OnRateSelected.InvokeAsync(BookableRates.First().Id);
+
+    // radio of a rate, a rate that needs a longer stay is never sent to the page even if its radio gets checked
+    private Task PickRateAsync(RateDto.Available rate)
+        => MinStayText.IsBookable(rate, Nights) ? OnRateSelected.InvokeAsync(rate.Id) : Task.CompletedTask;
 
 }

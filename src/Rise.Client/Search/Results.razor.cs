@@ -106,6 +106,7 @@ public partial class Results
 
     // puts the rooms of the draft back in the selection, only when the dates are the same
     // and only the room and rate pairs the api still sends, a room booked meanwhile is dropped
+    // a rate that needs a longer stay is dropped too, eg its min nb of nights was raised meanwhile
     private void RestoreSelectionFromDraft()
     {
         if (Draft.CheckIn != CheckIn || Draft.CheckOut != CheckOut)
@@ -114,7 +115,7 @@ public partial class Results
         foreach (var picked in Draft.Rooms)
         {
             var room = _rooms!.FirstOrDefault(r => r.Id == picked.RoomId);
-            if (room is not null && room.Rates.Any(x => x.Id == picked.RateId))
+            if (room is not null && room.Rates.Any(x => x.Id == picked.RateId && MinStayText.IsBookable(x, Stay.Nights)))
                 _selection[picked.RoomId] = picked.RateId;
         }
     }
