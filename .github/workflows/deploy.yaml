@@ -21,33 +21,67 @@ jobs:
   ci:
     runs-on: [self-hosted, build-server]
     steps:
-      - name: Sync latest repository code
-        uses: actions/checkout@v7
+    # Ensures the exact SDK in global.json is used and handles NuGet caching natively
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+        cache: true
+        cache-dependency-path: '**/packages.lock.json'
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/packages.lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-        
-      - name: Restore dependencies & Audit CVEs
-        run: |
-          dotnet restore
-          dotnet list package --vulnerable --include-transitive
+    # 1. Secret Scanning
+    - name: Scan for committed secrets
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify Formatting (dotnet format)
-        run: |
-          dotnet format --verify-no-changes --verbosity normal
+    # 2. Dependency Restore & Built-in NuGet Audit (Fails on CVEs)
+    - name: Restore dependencies & Audit CVEs
+      run: |
+        dotnet restore --locked-mode \
+          -p:NuGetAudit=true \
+          -p:NuGetAuditMode=all \
+          -p:NuGetAuditLevel=moderate \
+          -p:WarningsAsErrors="NU1901;NU1902;NU1903;NU1904"
 
-      - name: Build with Strict Code Analysis
-        run: |
-          dotnet build --no-restore --configuration Release --warnaserror
+    # 3. Check for Deprecated Packages (Fail if output contains '>')
+    - name: Check for deprecated packages
+      run: |
+        output=$(dotnet list package --deprecated --include-transitive)
+        echo "$output"
+        if echo "$output" | grep -q ">"; then
+          echo "::error::Deprecated NuGet packages detected!"
+          exit 1
+        fi
 
-      - name: Run Tests
-        run: |
-          dotnet test --no-build --configuration Release --verbosity normal
+    # 4. Fast Whitespace Check
+    - name: Verify Formatting
+      run: |
+        dotnet format whitespace --verify-no-changes --no-restore
+
+    # 5. Build with Strict Code & Style Analysis
+    - name: Build with Strict Code Analysis
+      run: |
+        dotnet build --no-restore --configuration Release --warnaserror \
+          -p:EnforceCodeStyleInBuild=true \
+          -p:ContinuousIntegrationBuild=true
+
+    # 6. Unit & Integration Tests (with hang protection & coverage)
+    - name: Run Tests with Coverage
+      run: |
+        dotnet test --no-build --configuration Release --verbosity normal \
+          --blame-hang-timeout 2m \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./TestResults \
+          --logger "trx;LogFileName=test-results.trx"
+
+    # 7. Publish Coverage Summary to GitHub PR / Job Summary
+    - name: Generate Code Coverage Report
+      uses: danielpalme/ReportGenerator-GitHub-Action@v5
+      with:
+        reports: './TestResults/**/coverage.cobertura.xml'
+        targetdir: './CoverageReport'
+        reporttypes: 'HtmlInline_AzurePipelines;Cobertura;MarkdownSummaryGithub'
 
   build-test-env:
     name: Build image for test environment
