@@ -1,0 +1,42 @@
+name: Notify team
+
+# Reusable workflow: call it as the last job of any pipeline
+on:
+  workflow_call:
+    inputs:
+      results:
+        description: "toJSON(needs) of the calling workflow"
+        required: true
+        type: string
+    secrets:
+      DISCORD_WEBHOOK_URL:
+        required: true
+
+jobs:
+  notify:
+    name: Send result to Discord
+    runs-on: [self-hosted, build-server]
+    steps:
+      - name: Send pipeline result to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          RESULTS: ${{ inputs.results }}
+        run: |
+          set -euo pipefail
+          python3 - > payload.json <<'EOF'
+          import json, os
+          needs = json.loads(os.environ["RESULTS"])
+          results = {job: info.get("result", "unknown") for job, info in needs.items()}
+          failed = any(r in ("failure", "cancelled") for r in results.values())
+          status = "❌ FAILED >:(" if failed else "✅ SUCCESS :)"
+          e = os.environ
+          lines = [
+              f"{status} | {e['GITHUB_WORKFLOW']} | {e['GITHUB_REPOSITORY']}",
+              f"{e['GITHUB_EVENT_NAME']} on {e['GITHUB_REF_NAME']} by {e['GITHUB_ACTOR']}",
+              " | ".join(f"{job}: {r}" for job, r in results.items()),
+              f"{e['GITHUB_SERVER_URL']}/{e['GITHUB_REPOSITORY']}/actions/runs/{e['GITHUB_RUN_ID']}",
+          ]
+          print(json.dumps({"content": "\n".join(lines)}))
+          EOF
+          curl -fsS -H "Content-Type: application/json" -d @payload.json "$WEBHOOK"
+          rm -f payload.json

@@ -159,26 +159,10 @@ jobs:
 
   notify:
     name: Notify team
-    runs-on: [self-hosted, build-server]
     needs: [ci, build, deploy]
     if: always()
-
-    steps:
-      - name: Send pipeline result to Discord
-        env:
-          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          R_CI: ${{ needs.ci.result }}
-          R_BUILD: ${{ needs.build.result }}
-          R_DEPLOY: ${{ needs.deploy.result }}
-        run: |
-          set -euo pipefail
-          STATUS="✅ GELUKT"
-          for r in "$R_CI" "$R_BUILD" "$R_DEPLOY"; do
-            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then STATUS="❌ MISLUKT"; fi
-          done
-          export MSG="$STATUS | $GITHUB_REPOSITORY | $GITHUB_EVENT_NAME op $GITHUB_REF_NAME door $GITHUB_ACTOR
-          ci: $R_CI | build: $R_BUILD | deploy: $R_DEPLOY
-          $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          python3 -c 'import json,os; print(json.dumps({"content": os.environ["MSG"]}))' > payload.json
-          curl -fsS -H "Content-Type: application/json" -d @payload.json "$WEBHOOK"
-          rm -f payload.json
+    uses: ./.github/workflows/notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+    secrets:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
