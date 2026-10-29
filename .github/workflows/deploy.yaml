@@ -87,7 +87,7 @@ jobs:
       with:
         reports: './TestResults/**/coverage.cobertura.xml'
         targetdir: './CoverageReport'
-        reporttypes: 'HtmlInline_AzurePipelines;Cobertura;MarkdownSummaryGithub'
+        reporttypes: 'HtmlInline;Cobertura;MarkdownSummaryGithub'
 
     # 8. Show Coverage Table directly in GitHub Actions UI
     - name: Publish Coverage to Job Summary
