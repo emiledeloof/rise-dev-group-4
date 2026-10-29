@@ -21,14 +21,6 @@ jobs:
   ci:
     runs-on: [self-hosted, build-server]
     steps:
-    # Ensures the exact SDK in global.json is used and handles NuGet caching natively
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        global-json-file: global.json
-        cache: true
-        cache-dependency-path: '**/packages.lock.json'
-
     # 1. Secret Scanning
     - name: Scan for committed secrets
       uses: gitleaks/gitleaks-action@v2
