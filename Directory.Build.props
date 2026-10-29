@@ -18,7 +18,5 @@
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.*" PrivateAssets="all" />
     <!-- Extra maintainability and performance analyzers -->
     <PackageReference Include="Meziantou.Analyzer" Version="2.*" PrivateAssets="all" />
-    <!-- Catch NUnit/xUnit/MSTest mistakes (swap for your test framework) -->
-    <PackageReference Include="xunit.analyzers" Version="1.*" PrivateAssets="all" />
   </ItemGroup>
 </Project>
