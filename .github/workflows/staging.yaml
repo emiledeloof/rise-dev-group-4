@@ -8,7 +8,7 @@ on:
 
 env:
   REPO_PATH: hogent-rise/rise-dev-group-4
-  TEST_CONTAINER_NAME: rise-server-test
+  TEST_CONTAINER_NAME: rise-server-staging
 
 jobs: 
   build-test-env:
@@ -47,8 +47,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ env.REPO_PATH }}:${{ steps.vars.outputs.sha_short }}
-            ghcr.io/${{ env.REPO_PATH }}:latest
+            ghcr.io/${{ env.REPO_PATH }}/staging:${{ steps.vars.outputs.sha_short }}
+            ghcr.io/${{ env.REPO_PATH }}/staging:latest
 
   deploy-test-env:
     name: Deploy to Test environment
@@ -71,7 +71,7 @@ jobs:
           TAG: ${{ needs.build-test-env.outputs.images_tag }}
         run: |
           echo "Pulling image: ghcr.io/$REPO_PATH:$TAG"
-          docker pull "ghcr.io/$REPO_PATH:$TAG"
+          docker pull "ghcr.io/$REPO_PATH/staging:$TAG"
 
           if docker ps -a --format '{{.Names}}' | grep -Eq "^${TEST_CONTAINER_NAME}\$"; then
             echo "Stopping and removing existing container..."
