@@ -10,6 +10,7 @@ using Rise.Server.Processors;
 using Rise.Services;
 using Rise.Services.Identity;
 using Serilog.Events;
+using Serilog.Sinks.Grafana.Loki;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
@@ -23,8 +24,22 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     builder.Services
-        .AddSerilog((_, lc) => lc.ReadFrom.Configuration(builder.Configuration) // Configuration in AppSettings.json
-            .Destructure.UsingAttributes()) // Sensitive data logging
+        .AddSerilog((_, lc) =>
+        {
+            lc.ReadFrom.Configuration(builder.Configuration) // Configuration in AppSettings.json
+                .Destructure.UsingAttributes(); // Sensitive data logging
+
+            // * loki only when an url is configured, for example in the environment of the server, local dev keeps console and file
+            var lokiUrl = builder.Configuration["Loki:Url"];
+
+            if (!string.IsNullOrWhiteSpace(lokiUrl))
+            {
+                lc.WriteTo.GrafanaLoki(
+                    lokiUrl,
+                    [new LokiLabel { Key = "app", Value = "rise" },
+                    new LokiLabel { Key = "env", Value = builder.Environment.EnvironmentName }]);
+            }
+        })
         .AddIdentity<IdentityUser, IdentityRole>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .Services.AddDbContext<ApplicationDbContext>(o =>
