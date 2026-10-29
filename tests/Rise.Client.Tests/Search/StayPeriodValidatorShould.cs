@@ -116,16 +116,18 @@ public class StayPeriodValidatorShould
     }
 
     /// <summary>
-    /// guest counts between 1 and the maximum capacity (6) are accepted
+    /// guest counts between 1 and the maximum capacity with enough rooms are accepted
     /// </summary>
     [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(6)]
-    public void AcceptValidAdultsCount(int adults)
+    [InlineData(1, 1)]
+    [InlineData(2, 1)]
+    [InlineData(4, 2)]
+    [InlineData(6, 3)]
+    public void AcceptValidAdultsCount(int adults, int rooms)
     {
         var period = Period(10, 13);
         period.Adults = adults;
+        period.Rooms = rooms;
 
         _validator.Validate(period).IsValid.ShouldBeTrue();
     }
@@ -147,7 +149,7 @@ public class StayPeriodValidatorShould
     }
 
     /// <summary>
-    /// exceeding the resort's maximum capacity is refused (ENOG acceptance criteria)
+    /// exceeding maximum capacity is refused when MaxCapacity is set
     /// </summary>
     [Theory]
     [InlineData(7)]
@@ -155,7 +157,9 @@ public class StayPeriodValidatorShould
     public void RejectExceedingMaxCapacity(int adults)
     {
         var period = Period(10, 13);
+        period.MaxCapacity = 6;
         period.Adults = adults;
+        period.Rooms = 3;
 
         var result = _validator.Validate(period);
         result.IsValid.ShouldBeFalse();
@@ -163,20 +167,146 @@ public class StayPeriodValidatorShould
     }
 
     /// <summary>
-    /// dynamic maximum capacity from room data is respected when set
+    /// room counts with enough adults are accepted (ENOR)
     /// </summary>
-    [Fact]
-    public void RespectDynamicMaxCapacityWhenProvided()
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(1, 2)]
+    [InlineData(1, 4)]
+    [InlineData(2, 2)]
+    [InlineData(2, 4)]
+    [InlineData(3, 3)]
+    [InlineData(3, 6)]
+    public void AcceptValidRoomsCount(int rooms, int adults)
     {
         var period = Period(10, 13);
-        period.DynamicMaxCapacity = 8;
-        period.Adults = 8;
+        period.Rooms = rooms;
+        period.Adults = adults;
 
         _validator.Validate(period).IsValid.ShouldBeTrue();
+    }
 
-        period.Adults = 9;
+    /// <summary>
+    /// at least 1 room is required (ENOR acceptance criteria)
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void RejectLessThanOneRoom(int rooms)
+    {
+        var period = Period(10, 13);
+        period.Rooms = rooms;
+
+        var result = _validator.Validate(period);
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(SearchRequest.StayPeriod.Rooms));
+    }
+
+    /// <summary>
+    /// exceeding maximum rooms is refused when MaxRooms is set
+    /// </summary>
+    [Theory]
+    [InlineData(4)]
+    [InlineData(10)]
+    public void RejectExceedingMaxRooms(int rooms)
+    {
+        var period = Period(10, 13);
+        period.MaxRooms = 3;
+        period.Rooms = rooms;
+        period.Adults = rooms;
+
+        var result = _validator.Validate(period);
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(SearchRequest.StayPeriod.Rooms));
+    }
+
+    /// <summary>
+    /// each room requires at least 1 adult (ENOR acceptance criteria)
+    /// </summary>
+    [Theory]
+    [InlineData(1, 2)]
+    [InlineData(2, 3)]
+    public void RejectFewerAdultsThanRooms(int adults, int rooms)
+    {
+        var period = Period(10, 13);
+        period.Adults = adults;
+        period.Rooms = rooms;
+
         var result = _validator.Validate(period);
         result.IsValid.ShouldBeFalse();
         result.Errors.ShouldContain(e => e.PropertyName == nameof(SearchRequest.StayPeriod.Adults));
+    }
+
+    /// <summary>
+    /// estate rooms have individual capacities in the database,
+    /// so StayPeriod does not enforce an artificial 2 guests/room limit
+    /// </summary>
+    [Theory]
+    [InlineData(3, 1)]
+    [InlineData(4, 1)]
+    [InlineData(5, 2)]
+    public void AllowMoreThanTwoGuestsPerRoomWithoutStaticCap(int adults, int rooms)
+    {
+        var period = Period(10, 13);
+        period.Adults = adults;
+        period.Rooms = rooms;
+
+        _validator.Validate(period).IsValid.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// when MaxCapacity and MaxRooms are not set, higher counts are accepted
+    /// </summary>
+    [Fact]
+    public void AcceptHigherCountsWhenMaxPropertiesNotSet()
+    {
+        var period = Period(10, 13);
+        period.Rooms = 5;
+        period.Adults = 10;
+        period.MaxRooms = null;
+        period.MaxCapacity = null;
+
+        _validator.Validate(period).IsValid.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// maximum capacity from room data is respected when set
+    /// </summary>
+    [Fact]
+    public void RespectMaxCapacityWhenProvided()
+    {
+        var period = Period(10, 13);
+        period.Rooms = 2;
+        period.MaxCapacity = 4;
+        period.Adults = 4;
+
+        _validator.Validate(period).IsValid.ShouldBeTrue();
+
+        // 5 adults exceeds maximum capacity of 4
+        period.Adults = 5;
+        var result = _validator.Validate(period);
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(SearchRequest.StayPeriod.Adults));
+    }
+
+    /// <summary>
+    /// maximum rooms from room data is respected when set
+    /// </summary>
+    [Fact]
+    public void RespectMaxRoomsWhenProvided()
+    {
+        var period = Period(10, 13);
+        period.MaxRooms = 2;
+        period.Adults = 2;
+        period.Rooms = 2;
+
+        _validator.Validate(period).IsValid.ShouldBeTrue();
+
+        // 3 rooms exceeds maximum rooms of 2
+        period.Rooms = 3;
+        period.Adults = 3;
+        var result = _validator.Validate(period);
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(SearchRequest.StayPeriod.Rooms));
     }
 }

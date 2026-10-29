@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 
 <PageTitle>Stazzu La Vigna di Maria</PageTitle>
 
@@ -19,7 +19,7 @@
 
         @* shared search bar, same as on the search and results pages, goes to the results page *@
         @* TODO: guests and rooms fields of the mockup, when a story asks for them *@
-        <SearchBar />
+        <SearchBar MaxRooms="@(_totalCount > 0 ? _totalCount : null)" MaxGuests="@(_totalCapacity > 0 ? _totalCapacity : null)" />
     </div>
 </div>
 
@@ -62,7 +62,7 @@
         }
         else
         {
-            @* at most MaxRooms cards, see Index.razor.cs *@
+            @* at most FeaturedRoomsCount cards, see Index.razor.cs *@
             <div class="card-grid">
                 @foreach (var room in _rooms)
                 {

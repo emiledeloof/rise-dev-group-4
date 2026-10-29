@@ -9,11 +9,11 @@
     <span class="eyebrow">Book a room</span>
     <h1>Available rooms</h1>
     <p class="subtitle">
-        @CheckIn?.ToString("d MMM") – @CheckOut?.ToString("d MMM yyyy") · @Stay.Nights @(Stay.Nights == 1 ? "night" : "nights") · @Stay.Adults @(Stay.Adults == 1 ? "guest" : "guests")
+        @CheckIn?.ToString("d MMM") – @CheckOut?.ToString("d MMM yyyy") · @Stay.Nights @(Stay.Nights == 1 ? "night" : "nights") · @Stay.Adults @(Stay.Adults == 1 ? "guest" : "guests") · @Stay.Rooms @(Stay.Rooms == 1 ? "room" : "rooms")
     </p>
 
-    @* compact bar to change the dates and guests without leaving the page *@
-    <SearchBar CheckIn="@CheckIn" CheckOut="@CheckOut" Adults="@Stay.Adults" />
+    @* compact bar to change the dates, guests and rooms without leaving the page *@
+    <SearchBar CheckIn="@CheckIn" CheckOut="@CheckOut" Adults="@Stay.Adults" Rooms="@Stay.Rooms" MaxGuests="@_totalCapacity" MaxRooms="@_totalRooms" />
 
     @if (_rooms is null)
     {
@@ -38,23 +38,76 @@
     {
         @* cards on the left and the selection summary on the right, styles in Results.razor.css *@
         <div class="results-layout">
-            @* one card per room, styles of the list in Results.razor.css *@
-            <div class="room-list">
-                @foreach (var room in _rooms)
+            <div class="results-main">
+                @if (Recommendation is not null)
                 {
-                    <RoomCard Name="@room.Name"
-                        Description="@room.Description"
-                        MaxGuests="@room.MaxGuests"
-                        PricePerNight="@room.PricePerNight"
-                        Nights="@room.Nights"
-                        TotalPrice="@room.TotalPrice"
-                        Rates="@room.Rates"
-                        PhotoUrl="@room.PhotoUrl"
-                        DetailsUrl="@DetailsUrlOf(room.Id)"
-                        SelectedRateId="@SelectedRateOf(room.Id)"
-                        OnRateSelected="rateId => SelectRate(room.Id, rateId)"
-                        OnRemove="() => RemoveRoom(room.Id)"/>
+                    <section class="recommendation-card" aria-label="Recommended room combination">
+                        <div class="recommendation-badge">
+                            Recommended combination
+                        </div>
+
+                        <div class="recommendation-content">
+                            <div class="recommendation-info">
+                                <h2 class="recommendation-title">
+                                    @Stay.Rooms @(Stay.Rooms == 1 ? "room" : "rooms") for @Stay.Adults @(Stay.Adults == 1 ? "guest" : "guests")
+                                </h2>
+                                <p class="recommendation-desc">
+                                    Suggested combination to fit your group comfortably at the best available rate.
+                                </p>
+
+                                <div class="recommendation-items">
+                                    @foreach (var item in Recommendation.Items)
+                                    {
+                                        <span class="recommendation-chip">
+                                            <strong>@item.Room.Name</strong> · @item.Rate.Name (€@item.Rate.TotalPrice.ToString("0"))
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="recommendation-action">
+                                <div class="recommendation-price-box">
+                                    <span class="recommendation-price-label">Total for @Stay.Nights @(Stay.Nights == 1 ? "night" : "nights")</span>
+                                    <span class="recommendation-price">€@Recommendation.TotalPrice.ToString("0")</span>
+                                </div>
+
+                                @if (IsRecommendationSelected)
+                                {
+                                    <div class="recommendation-applied">
+                                        ✓ Selected
+                                    </div>
+                                }
+                                else
+                                {
+                                    <Button Variant="ButtonVariant.Primary"
+                                            OnClick="ApplyRecommendation"
+                                            Class="recommendation-btn">
+                                        Select combination
+                                    </Button>
+                                }
+                            </div>
+                        </div>
+                    </section>
                 }
+
+                @* one card per room, styles of the list in Results.razor.css *@
+                <div class="room-list">
+                    @foreach (var room in _rooms)
+                    {
+                        <RoomCard Name="@room.Name"
+                            Description="@room.Description"
+                            MaxGuests="@room.MaxGuests"
+                            PricePerNight="@room.PricePerNight"
+                            Nights="@room.Nights"
+                            TotalPrice="@room.TotalPrice"
+                            Rates="@room.Rates"
+                            PhotoUrl="@room.PhotoUrl"
+                            DetailsUrl="@DetailsUrlOf(room.Id)"
+                            SelectedRateId="@SelectedRateOf(room.Id)"
+                            OnRateSelected="rateId => SelectRate(room.Id, rateId)"
+                            OnRemove="() => RemoveRoom(room.Id)"/>
+                    }
+                </div>
             </div>
 
             @* picked rooms and total, on the right on big screens, under the cards on phones *@

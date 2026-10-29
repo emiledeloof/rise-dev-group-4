@@ -1,4 +1,5 @@
 @* compact search bar used on the home, search and results pages, styles in SearchBar.razor.css *@
+@using Rise.Shared.Search
 
 @* same form as before, Search is only called when the validator passes *@
 @* EditContext instead of Model so the code behind can ask for a new check when the dates change *@
@@ -14,10 +15,14 @@
             @* check in and check out picker, both dates go into _stay *@
             @* :after runs DatesChanged right after a date is written into _stay *@
             <DateRangePicker @bind-CheckIn="_stay.CheckIn" @bind-CheckIn:after="DatesChanged"
-                             @bind-CheckOut="_stay.CheckOut" @bind-CheckOut:after="DatesChanged" />
+                             @bind-CheckOut="_stay.CheckOut" @bind-CheckOut:after="DatesChanged"
+                             IsOpen="_isCalendarOpen" IsOpenChanged="OnCalendarOpenChanged" />
 
-            @* guest count picker, defaults to 2 adults *@
-            <GuestPicker @bind-Value="_stay.Adults" />
+            @* guest and room count picker *@
+            <GuestPicker @bind-Value="_stay.Adults" @bind-Rooms="_stay.Rooms"
+                         Max="@(_stay.MaxCapacity ?? MaxGuests ?? 0)"
+                         MaxRooms="@(_stay.MaxRooms ?? MaxRooms ?? 0)"
+                         IsOpen="_isGuestPickerOpen" IsOpenChanged="OnGuestPickerOpenChanged" />
 
             @* submit btn, label from the mockup *@
             <Button Type="submit" Class="search-btn">Check availability</Button>
@@ -27,5 +32,6 @@
         <ValidationMessage For="@(() => _stay.CheckIn)" class="has-text-danger"/>
         <ValidationMessage For="@(() => _stay.CheckOut)" class="has-text-danger"/>
         <ValidationMessage For="@(() => _stay.Adults)" class="has-text-danger"/>
+        <ValidationMessage For="@(() => _stay.Rooms)" class="has-text-danger"/>
     </div>
 </EditForm>

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FluentValidation;
 
 namespace Rise.Shared.Search;
 
@@ -8,7 +9,7 @@ namespace Rise.Shared.Search;
 public static partial class SearchRequest
 {
     /// <summary>
-    /// dates and guest requirements of the stay the guest is looking for,
+    /// dates, guest and room requirements of the stay the guest is looking for,
     /// used by the search form and the availability endpoint
     /// </summary>
     public class StayPeriod
@@ -19,19 +20,19 @@ public static partial class SearchRequest
         public const int MinAdults = 1;
 
         /// <summary>
-        /// default maximum guest capacity of the estate when dynamic data is not yet loaded
-        /// </summary>
-        public const int DefaultMaxCapacity = 6;
-
-        /// <summary>
-        /// fallback constant for initial resort capacity (backward-compatible)
-        /// </summary>
-        public const int MaxCapacity = DefaultMaxCapacity;
-
-        /// <summary>
         /// default number of adults in search forms
         /// </summary>
         public const int DefaultAdults = 2;
+
+        /// <summary>
+        /// minimum number of rooms required for a booking
+        /// </summary>
+        public const int MinRooms = 1;
+
+        /// <summary>
+        /// default number of rooms in search forms
+        /// </summary>
+        public const int DefaultRooms = 1;
 
         /// <summary>
         /// arrival date, null until the guest picks one
@@ -49,9 +50,19 @@ public static partial class SearchRequest
         public int Adults { get; set; } = DefaultAdults;
 
         /// <summary>
-        /// dynamic maximum guest capacity of the estate, defaults to DefaultMaxCapacity and can be updated from room data
+        /// number of rooms requested, defaults to 1
         /// </summary>
-        public int? DynamicMaxCapacity { get; set; }
+        public int Rooms { get; set; } = DefaultRooms;
+
+        /// <summary>
+        /// maximum guest capacity of the estate, loaded from room data
+        /// </summary>
+        public int? MaxCapacity { get; set; }
+
+        /// <summary>
+        /// maximum number of rooms available in the estate, loaded from room data
+        /// </summary>
+        public int? MaxRooms { get; set; }
 
         /// <summary>
         /// nb of nights between check in and check out, 0 when a date is missing or the period is invalid
@@ -67,7 +78,7 @@ public static partial class SearchRequest
         public class Validator : AbstractValidator<StayPeriod>
         {
             /// <summary>
-            /// sets up the date and guest validation rules
+            /// sets up the date, guest and room validation rules
             /// </summary>
             public Validator()
             {
@@ -100,8 +111,22 @@ public static partial class SearchRequest
                     .WithMessage("At least 1 adult is required.");
 
                 RuleFor(x => x.Adults)
-                    .Must((period, adults) => adults <= (period.DynamicMaxCapacity ?? MaxCapacity))
-                    .WithMessage(period => $"Maximum capacity of {period.DynamicMaxCapacity ?? MaxCapacity} guests cannot be exceeded.");
+                    .Must((period, adults) => !period.MaxCapacity.HasValue || adults <= period.MaxCapacity.Value)
+                    .WithMessage(period => $"Maximum capacity of {period.MaxCapacity} guests cannot be exceeded.");
+
+                // room count rules (ENOR acceptance criteria: specify the number of rooms needed)
+                RuleFor(x => x.Rooms)
+                    .GreaterThanOrEqualTo(MinRooms)
+                    .WithMessage("At least 1 room is required.");
+
+                RuleFor(x => x.Rooms)
+                    .Must((period, rooms) => !period.MaxRooms.HasValue || rooms <= period.MaxRooms.Value)
+                    .WithMessage(period => $"Maximum {period.MaxRooms} rooms can be selected.");
+
+                // room capacity rules: at least 1 adult per room
+                RuleFor(x => x.Adults)
+                    .Must((period, adults) => adults >= period.Rooms)
+                    .WithMessage("At least 1 adult per room is required.");
             }
         }
     }

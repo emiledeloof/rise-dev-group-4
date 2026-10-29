@@ -25,13 +25,13 @@
     </ItemGroup>
     
     <ItemGroup>
-      <Compile Update="Bookings\Confirmationn.razor.cs">
+      <Compile Update="Bookings\Confirmation.razor.cs">
         <DependentUpon>Confirmation.razor</DependentUpon>
       </Compile>
     </ItemGroup>
     
     <ItemGroup>
-      <None Update="Bookings\Confirmationn.razor.css">
+      <None Update="Bookings\Confirmation.razor.css">
         <DependentUpon>Confirmation.razor</DependentUpon>
       </None>
     </ItemGroup>

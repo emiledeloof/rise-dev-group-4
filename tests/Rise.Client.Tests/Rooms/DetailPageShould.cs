@@ -115,6 +115,21 @@ public class DetailPageShould : BunitContext
     }
 
     /// <summary>
+    /// opened from the results with adults and rooms, the back btn preserves both
+    /// </summary>
+    [Fact]
+    public void GoBackToTheResultsOfTheSameDatesGuestsAndRooms()
+    {
+        // arrange and act
+        var cut = RenderPage("?checkIn=2026-10-14&checkOut=2026-10-17&adults=4&rooms=2");
+
+        // assert
+        var back = cut.Find(".back-btn");
+        back.GetAttribute("href").ShouldBe("search/results?checkIn=2026-10-14&checkOut=2026-10-17&adults=4&rooms=2");
+        back.TextContent.Trim().ShouldBe("Back to available rooms");
+    }
+
+    /// <summary>
     /// opened without dates, the back btn goes to the search form
     /// </summary>
     [Fact]
@@ -331,7 +346,7 @@ public class DetailPageShould : BunitContext
     }
 
     /// <summary>
-    /// a room without amenities shows an empty state, not a made up list
+    /// a room without amenities shows an empty state, not a practical made up list
     /// </summary>
     [Fact]
     public void ShowAnEmptyStateWhenThereAreNoAmenities()

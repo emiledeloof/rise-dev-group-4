@@ -33,6 +33,18 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
             .SingleAsync(item => item.Id == GeneralSettings.SingletonId, ctx);
 
         var totalCapacity = await ActiveRooms.SumAsync(r => r.MaxGuests, ctx);
+        var totalRooms = await ActiveRooms.CountAsync(ctx);
+
+        // if requested rooms exceeds total estate rooms, return empty rooms
+        if (request.Rooms > totalRooms)
+        {
+            return Result.Success(new RoomResponse.Available
+            {
+                Rooms = [],
+                TotalCapacity = totalCapacity,
+                TotalRooms = totalRooms
+            });
+        }
 
         // rooms with a booking during the stay, EF turns this into a subquery
         var bookedRoomIds = dbContext.BookingRooms
@@ -112,7 +124,8 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         return Result.Success(new RoomResponse.Available
         {
             Rooms = rooms,
-            TotalCapacity = totalCapacity
+            TotalCapacity = totalCapacity,
+            TotalRooms = totalRooms
         });
     }
 

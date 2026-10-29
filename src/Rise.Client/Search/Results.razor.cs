@@ -7,7 +7,7 @@ using Rise.Client.Components;
 namespace Rise.Client.Search;
 
 /// <summary>
-/// results page of the stay search, shows the rooms free for the chosen dates and guests
+/// results page of the stay search, shows the rooms free for the chosen dates, guests and rooms
 /// </summary>
 public partial class Results
 {
@@ -27,12 +27,20 @@ public partial class Results
     /// </summary>
     [SupplyParameterFromQuery] private int? Adults { get; set; }
 
-    // dates and guests of the url grouped in a stay period, to reuse its Nights calculation
+    /// <summary>
+    /// number of rooms read from the url, eg rooms=1
+    /// </summary>
+    [SupplyParameterFromQuery] private int? Rooms { get; set; }
+
+    // dates, guests and rooms of the url grouped in a stay period
     private SearchRequest.StayPeriod Stay => new()
     {
         CheckIn = CheckIn,
         CheckOut = CheckOut,
         Adults = Adults ?? SearchRequest.StayPeriod.DefaultAdults,
+        Rooms = Rooms ?? SearchRequest.StayPeriod.DefaultRooms,
+        MaxCapacity = _totalCapacity,
+        MaxRooms = _totalRooms,
     };
 
     // blazor service used to change page from the code, same as in Search/Index.razor.cs
@@ -46,6 +54,8 @@ public partial class Results
 
     // free rooms from the api, null while the page is still loading
     private IReadOnlyList<RoomDto.Available>? _rooms;
+    private int? _totalCapacity;
+    private int? _totalRooms;
 
     // msg shown when the api call fails, null when all is fine
     private string? _errorMessage;
@@ -53,6 +63,16 @@ public partial class Results
     // rooms the guest picked, key = id of the room, value = id of the chosen rate
     // one selected rate per room; the room can still offer multiple rates to choose from
     private readonly Dictionary<int, int> _selection = [];
+
+    // computed Booking.com style recommendation based on available rooms and search criteria
+    private RecommendedCombination? Recommendation =>
+        RecommendedCombination.FindBest(_rooms, Stay.Adults, Stay.Rooms);
+
+    // true when the current selection matches the recommended combination
+    private bool IsRecommendationSelected =>
+        Recommendation is not null &&
+        Recommendation.Items.Count == _selection.Count &&
+        Recommendation.Items.All(item => _selection.TryGetValue(item.Room.Id, out var rateId) && rateId == item.Rate.Id);
 
     /// <summary>
     /// runs when the page opens and each time the dates in the url change, checks the dates then loads the free rooms
@@ -99,6 +119,8 @@ public partial class Results
 
         // all good, keep the rooms so the page can show them
         _rooms = result.Value.Rooms.ToList();
+        _totalCapacity = result.Value.TotalCapacity > 0 ? result.Value.TotalCapacity : null;
+        _totalRooms = result.Value.TotalRooms > 0 ? result.Value.TotalRooms : null;
 
         // back from the guest form or the overview for the same dates, show the rooms picked before
         RestoreSelectionFromDraft();
@@ -117,6 +139,19 @@ public partial class Results
             var room = _rooms!.FirstOrDefault(r => r.Id == picked.RoomId);
             if (room is not null && room.Rates.Any(x => x.Id == picked.RateId && MinStayText.IsBookable(x, Stay.Nights)))
                 _selection[picked.RoomId] = picked.RateId;
+        }
+    }
+
+    // one-click selection of the recommended combination
+    private void ApplyRecommendation()
+    {
+        if (Recommendation is null)
+            return;
+
+        _selection.Clear();
+        foreach (var item in Recommendation.Items)
+        {
+            _selection[item.Room.Id] = item.Rate.Id;
         }
     }
 
@@ -159,8 +194,8 @@ public partial class Results
             return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice);
         }).ToList();
 
-    // url of the detail page of a room, keeps the dates and guests so its back btn returns to these results
-    private string DetailsUrlOf(int roomId) => $"rooms/{roomId}?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}&adults={Stay.Adults}";
+    // url of the detail page of a room, keeps the dates, guests and rooms so its back btn returns to these results
+    private string DetailsUrlOf(int roomId) => $"rooms/{roomId}?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}&adults={Stay.Adults}&rooms={Stay.Rooms}";
 
     // rate chosen for a room, null when the room is not in the selection
     // TryGetValue gives true and the value when the key is there, false otherwise

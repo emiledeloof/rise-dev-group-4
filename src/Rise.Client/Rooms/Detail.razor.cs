@@ -1,4 +1,5 @@
 using System.Globalization;
+using Ardalis.Result;
 using Microsoft.AspNetCore.Components;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
@@ -30,6 +31,11 @@ public partial class Detail
     /// </summary>
     [SupplyParameterFromQuery] private int? Adults { get; set; }
 
+    /// <summary>
+    /// room count of the search the guest came from, eg rooms=1
+    /// </summary>
+    [SupplyParameterFromQuery] private int? Rooms { get; set; }
+
     // client RoomService registered in Program.cs, calls the room detail endpoint
     [Inject] public required IRoomService RoomService { get; set; }
 
@@ -45,12 +51,18 @@ public partial class Detail
     // came from the results with dates, so go back to the same results, otherwise to the search form
     private bool HasSearchDates => CheckIn is not null && CheckOut is not null;
     private string BackUrl => HasSearchDates
-        ? $"search/results?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}{(Adults.HasValue ? $"&adults={Adults}" : "")}"
+        ? $"search/results?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}{(Adults.HasValue ? $"&adults={Adults}" : "")}{(Rooms.HasValue ? $"&rooms={Rooms}" : "")}"
         : "search";
     private string BackText => HasSearchDates ? "Back to available rooms" : "Search rooms";
 
     // dates of the url grouped in a stay period, to reuse its Nights calculation
-    private SearchRequest.StayPeriod Stay => new() { CheckIn = CheckIn, CheckOut = CheckOut };
+    private SearchRequest.StayPeriod Stay => new()
+    {
+        CheckIn = CheckIn,
+        CheckOut = CheckOut,
+        Adults = Adults ?? SearchRequest.StayPeriod.DefaultAdults,
+        Rooms = Rooms ?? SearchRequest.StayPeriod.DefaultRooms,
+    };
 
     // dates of the stay card, eg 14 Oct – 17 Oct 2026, english month names like the date picker until the languages task
     private string StayDatesText =>

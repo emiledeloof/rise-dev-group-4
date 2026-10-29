@@ -87,32 +87,33 @@ public class ResultsPageShould : BunitContext
     }
 
     /// <summary>
-    /// the page sends the adults count from the url to the api
+    /// the page sends the adults and rooms count from the url to the api
     /// </summary>
     [Fact]
     public void AskTheApiForAdultsOfTheUrl()
     {
         // arrange and act
-        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=4");
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=4&rooms=2");
         Render<Results>();
 
         // assert
         var request = _roomService.Requests.Last();
         request.Adults.ShouldBe(4);
+        request.Rooms.ShouldBe(2);
     }
 
     /// <summary>
-    /// subtitle shows the stay period nights and guest count
+    /// subtitle shows the stay period nights, guest and room count
     /// </summary>
     [Fact]
     public void ShowGuestCountInSubtitle()
     {
         // arrange and act
-        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=3");
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=3&rooms=2");
         var cut = Render<Results>();
 
         // assert
-        cut.Find("p.subtitle").TextContent.ShouldContain("3 guests");
+        cut.Find("p.subtitle").TextContent.ShouldContain("3 guests · 2 rooms");
     }
 
     /// <summary>
@@ -345,5 +346,89 @@ public class ResultsPageShould : BunitContext
 
         // assert
         cut.Find(".selection-summary-empty");
+    }
+
+    /// <summary>
+    /// recommendation card is displayed when available rooms fit the requested combination
+    /// </summary>
+    [Fact]
+    public void ShowRecommendationCardForMatchingCriteria()
+    {
+        // arrange & act
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=2&rooms=1");
+        var cut = Render<Results>();
+
+        // assert
+        cut.Find(".recommendation-card").ShouldNotBeNull();
+        cut.Find(".recommendation-title").TextContent.ShouldContain("1 room for 2 guests");
+        cut.Find(".recommendation-chip").TextContent.ShouldContain("Double Room");
+    }
+
+    /// <summary>
+    /// clicking select combination button populates the selection with the recommended rooms
+    /// </summary>
+    [Fact]
+    public void ApplyRecommendationWhenButtonClick()
+    {
+        // arrange
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=2&rooms=1");
+        var cut = Render<Results>();
+
+        // act
+        cut.Find(".recommendation-btn").Click();
+
+        // assert
+        cut.FindAll(".selection-summary-room").Count.ShouldBe(1);
+        cut.Find(".selection-summary-room-name").TextContent.ShouldBe("Double Room");
+        cut.Find(".recommendation-applied").TextContent.ShouldContain("Selected");
+    }
+
+    /// <summary>
+    /// recommended combination can be selected for multiple rooms
+    /// </summary>
+    [Fact]
+    public void ApplyMultiRoomRecommendationWhenMultipleRoomsAvailable()
+    {
+        // arrange: 2 rooms with rates
+        _roomService.Answer = Result.Success(new RoomResponse.Available
+        {
+            Rooms =
+            [
+                new RoomDto.Available
+                {
+                    Id = 1, Name = "Double Room", MaxGuests = 2, PricePerNight = 100m, Nights = 3, TotalPrice = 300m,
+                    Rates = [new RateDto.Available { Id = 10, Name = "Standard", PricePerNight = 100m, TotalPrice = 300m, IsRefundable = false, FullRefundDays = 0, PartialRefundDays = 0, PartialRefundPercent = 0 }]
+                },
+                new RoomDto.Available
+                {
+                    Id = 2, Name = "Deluxe Room", MaxGuests = 2, PricePerNight = 150m, Nights = 3, TotalPrice = 450m,
+                    Rates = [new RateDto.Available { Id = 20, Name = "Standard", PricePerNight = 150m, TotalPrice = 450m, IsRefundable = false, FullRefundDays = 0, PartialRefundDays = 0, PartialRefundPercent = 0 }]
+                }
+            ]
+        });
+
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=3&rooms=2");
+        var cut = Render<Results>();
+
+        // act
+        cut.Find(".recommendation-btn").Click();
+
+        // assert: both rooms selected, total is 300 + 450 = 750
+        cut.FindAll(".selection-summary-room").Count.ShouldBe(2);
+        cut.Find(".selection-summary-total").TextContent.ShouldContain("€750");
+    }
+
+    /// <summary>
+    /// recommendation card is not displayed when not enough rooms are available for the target room count
+    /// </summary>
+    [Fact]
+    public void NotShowRecommendationCardWhenNotEnoughRoomsAvailable()
+    {
+        // arrange: only 1 room with rates is available in the fake service, but guest requests 2 rooms
+        Navigation.NavigateTo($"search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=2&rooms=2");
+        var cut = Render<Results>();
+
+        // assert: only 1 room available with rates, so cannot satisfy 2 rooms
+        cut.FindAll(".recommendation-card").ShouldBeEmpty();
     }
 }

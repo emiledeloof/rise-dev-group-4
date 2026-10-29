@@ -10,6 +10,7 @@
     /* colors, estimated from the mockup, TODO: replace with exact hex values from the ba */
     --color-primary: #5e6b43;        /* olive green, main btns */
     --color-primary-dark: #4b5636;   /* olive green on hover */
+    --color-primary-tint: rgba(94, 107, 67, 0.08); /* light olive green tint, eg notices */
     --color-accent: #7a2e2e;         /* burgundy, small labels and danger actions */
     --color-bg: #f5f3ee;             /* cream page bg */
     --color-bg-alt: #eeebe3;         /* slightly darker beige band, eg the rooms band of the home */
@@ -22,6 +23,7 @@
     --color-text-muted: #6b6b6b;     /* secondary text, eg descriptions and hints */
     --color-footer: #242428;         /* dark footer bg */
     --color-warning-bg: #fae5b6;     /* info boxes like refund notices */
+    --color-hover-tint: rgba(0, 0, 0, 0.04); /* subtle light grey hover */
 
     /* fonts, serif for titles and sans serif for body text */
     --font-title: 'Cormorant Garamond', Georgia, serif;
