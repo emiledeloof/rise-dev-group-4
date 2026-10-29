@@ -156,3 +156,13 @@ jobs:
             docker logs "$CONTAINER_NAME"
             exit 1
           fi
+
+  notify:
+    name: Notify team
+    needs: [ci, build, deploy]
+    if: always()
+    uses: ./.github/workflows/notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+    secrets:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
