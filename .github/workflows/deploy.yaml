@@ -21,11 +21,16 @@ jobs:
   ci:
     runs-on: [self-hosted, build-server]
     steps:
+    - name: Check out repo
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+
     # 1. Secret Scanning
-    - name: Scan for committed secrets
-      uses: gitleaks/gitleaks-action@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Secret Scanning (TruffleHog)
+      uses: trufflesecurity/trufflehog@main
+      with:
+        extra_args: --results=verified,unknown --fail
 
     # 2. Dependency Restore & Built-in NuGet Audit (Fails on CVEs)
     - name: Restore dependencies & Audit CVEs
