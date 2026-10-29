@@ -15,6 +15,9 @@ public static partial class RoomResponse
 
         // total guest capacity of all active rooms in the estate
         public int TotalCapacity { get; set; }
+
+        // total number of active rooms in the estate
+        public int TotalRooms { get; set; }
     }
 
     /// <summary>
@@ -30,5 +33,8 @@ public static partial class RoomResponse
 
         // total guest capacity of all active rooms in the estate
         public int TotalCapacity { get; set; }
+
+        // total number of active rooms in the estate
+        public int TotalRooms { get => TotalCount; set => TotalCount = value; }
     }
 }

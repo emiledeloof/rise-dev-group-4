@@ -3,13 +3,13 @@
     @* field showing the chosen dates, opens or closes the calendar *@
     <button type="button"
             class="drp-field"
-            aria-expanded="@(_isOpen ? "true" : "false")"
+            aria-expanded="@(IsOpenValue ? "true" : "false")"
             @onclick="Toggle">
         <span class="drp-label">@FieldLabel</span>
         <span class="drp-value">@FieldText</span>
     </button>
 
-    @if (_isOpen)
+    @if (IsOpenValue)
     {
         <div class="drp-panel" role="dialog" aria-label="Choose your stay dates">
             @* month navigation, going back stops at the current month *@

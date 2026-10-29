@@ -64,7 +64,18 @@ public partial class DateRangePicker
     /// </summary>
     [Parameter] public int MonthsShown { get; set; } = 2;
 
-    private bool _isOpen;
+    /// <summary>
+    /// controls whether the calendar dropdown panel is open
+    /// </summary>
+    [Parameter] public bool? IsOpen { get; set; }
+
+    /// <summary>
+    /// called when the open state changes
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    private bool _internalIsOpen;
+    private bool IsOpenValue => IsOpen ?? _internalIsOpen;
     private DateOnly _firstVisibleMonth;
     private DateOnly? _hoverDate;
 
@@ -94,7 +105,13 @@ public partial class DateRangePicker
 
     private void NextMonth() => _firstVisibleMonth = _firstVisibleMonth.AddMonths(1);
 
-    private void Toggle() => _isOpen = !_isOpen;
+    private async Task Toggle()
+    {
+        var newState = !IsOpenValue;
+        _internalIsOpen = newState;
+        if (IsOpenChanged.HasDelegate)
+            await IsOpenChanged.InvokeAsync(newState);
+    }
 
     // ---------- selection ----------
 
@@ -122,7 +139,9 @@ public partial class DateRangePicker
         await CheckOutChanged.InvokeAsync(CheckOut);
 
         // range is complete so the calendar can close
-        _isOpen = false;
+        _internalIsOpen = false;
+        if (IsOpenChanged.HasDelegate)
+            await IsOpenChanged.InvokeAsync(false);
         _hoverDate = null;
     }
 

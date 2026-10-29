@@ -79,7 +79,7 @@
 /* the form of the search bar is centered and as wide as the bar, otherwise it shrinks to its content */
 .hero-content ::deep form {
     width: 100%;
-    max-width: 38rem;
+    max-width: 48rem;
 }
 
 /* more transparent glass on the photo, no bottom margin in the hero */

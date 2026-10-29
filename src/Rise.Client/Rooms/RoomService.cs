@@ -15,9 +15,9 @@ public class RoomService(HttpClient httpClient) : IRoomService
     /// </summary>
     public Task<Result<RoomResponse.Available>> GetAvailableAsync(SearchRequest.StayPeriod request, CancellationToken ctx = default)
     {
-        // dates and guests in the url, same format as the search page uses, eg ?checkIn=2026-10-10&checkOut=2026-10-12&adults=2
+        // dates, guests and rooms in the url, same format as the search page uses, eg ?checkIn=2026-10-10&checkOut=2026-10-12&adults=2&rooms=1
         return GetAsync<RoomResponse.Available>(
-            $"/api/rooms/available?checkIn={request.CheckIn:yyyy-MM-dd}&checkOut={request.CheckOut:yyyy-MM-dd}&adults={request.Adults}", ctx);
+            $"/api/rooms/available?checkIn={request.CheckIn:yyyy-MM-dd}&checkOut={request.CheckOut:yyyy-MM-dd}&adults={request.Adults}&rooms={request.Rooms}", ctx);
     }
 
     /// <summary>

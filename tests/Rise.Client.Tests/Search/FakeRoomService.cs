@@ -15,6 +15,8 @@ public class FakeRoomService : IRoomService
     /// </summary>
     public Result<RoomResponse.Available> Answer { get; set; } = Result.Success(new RoomResponse.Available
     {
+        TotalCapacity = 3,
+        TotalRooms = 2,
         Rooms =
         [
             new RoomDto.Available
@@ -86,6 +88,8 @@ public class FakeRoomService : IRoomService
     /// </summary>
     public Result<RoomResponse.List> ListAnswer { get; set; } = Result.Success(new RoomResponse.List
     {
+        TotalCapacity = 3,
+        TotalRooms = 2,
         Rooms =
         [
             new RoomDto.Summary

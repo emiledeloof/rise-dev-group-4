@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.Extensions.DependencyInjection;
+using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 
 namespace Rise.Client.Components;
 
 /// <summary>
-/// compact search bar like the one of the mockup, dates + guests + check availability btn
+/// compact search bar like the one of the mockup, dates + guests + rooms + check availability btn
 /// used on the home, search and results pages so the bar looks the same everywhere
-/// TODO: add rooms field when ENOR story asks for it
 /// </summary>
 public partial class SearchBar
 {
@@ -26,7 +27,43 @@ public partial class SearchBar
     /// </summary>
     [Parameter] public int? Adults { get; set; }
 
-    // dates and guest count of the form
+    /// <summary>
+    /// number of rooms already chosen, eg from the url
+    /// </summary>
+    [Parameter] public int? Rooms { get; set; }
+
+    /// <summary>
+    /// maximum number of adult guests allowed (optional, can be passed from parent or fetched dynamically)
+    /// </summary>
+    [Parameter] public int? MaxGuests { get; set; }
+
+    /// <summary>
+    /// maximum number of rooms allowed (optional, can be passed from parent or fetched dynamically)
+    /// </summary>
+    [Parameter] public int? MaxRooms { get; set; }
+
+    // optional service provider to dynamically fetch estate capacity and room count when not passed as parameters
+    [Inject] private IServiceProvider? ServiceProvider { get; set; }
+
+    // mutual exclusion of popups so calendar and guest picker never overlap
+    private bool _isCalendarOpen;
+    private bool _isGuestPickerOpen;
+
+    private void OnCalendarOpenChanged(bool isOpen)
+    {
+        _isCalendarOpen = isOpen;
+        if (isOpen)
+            _isGuestPickerOpen = false;
+    }
+
+    private void OnGuestPickerOpenChanged(bool isOpen)
+    {
+        _isGuestPickerOpen = isOpen;
+        if (isOpen)
+            _isCalendarOpen = false;
+    }
+
+    // dates, guest and room count of the form
     private readonly SearchRequest.StayPeriod _stay = new();
 
     // state of the form, which fields have errors, created once in OnInitialized
@@ -45,9 +82,58 @@ public partial class SearchBar
         _stay.CheckIn = CheckIn;
         _stay.CheckOut = CheckOut;
         _stay.Adults = Adults ?? SearchRequest.StayPeriod.DefaultAdults;
+        _stay.Rooms = Rooms ?? SearchRequest.StayPeriod.DefaultRooms;
+
+        if (MaxGuests.HasValue)
+            _stay.MaxCapacity = MaxGuests.Value;
+
+        if (MaxRooms.HasValue)
+            _stay.MaxRooms = MaxRooms.Value;
 
         // the form state works on _stay, same as Model="_stay" before
         _editContext = new EditContext(_stay);
+    }
+
+    /// <summary>
+    /// updates dynamic capacities when parent parameters change
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        if (MaxGuests.HasValue)
+            _stay.MaxCapacity = MaxGuests.Value;
+
+        if (MaxRooms.HasValue)
+            _stay.MaxRooms = MaxRooms.Value;
+    }
+
+    /// <summary>
+    /// dynamically loads the estate capacity and room count from the database if not provided
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        if (!_stay.MaxCapacity.HasValue || !_stay.MaxRooms.HasValue)
+        {
+            var roomService = ServiceProvider?.GetService<IRoomService>();
+            if (roomService is not null)
+            {
+                try
+                {
+                    var result = await roomService.GetListAsync(new RoomRequest.List { Take = 0 });
+                    if (result.IsSuccess)
+                    {
+                        if (!_stay.MaxRooms.HasValue && result.Value.TotalCount > 0)
+                            _stay.MaxRooms = result.Value.TotalCount;
+
+                        if (!_stay.MaxCapacity.HasValue && result.Value.TotalCapacity > 0)
+                            _stay.MaxCapacity = result.Value.TotalCapacity;
+                    }
+                }
+                catch
+                {
+                    // offline or in tests without IRoomService
+                }
+            }
+        }
     }
 
     // called after each date change in the picker
@@ -62,9 +148,9 @@ public partial class SearchBar
         }
     }
 
-    // called by the form when the inputs are valid, navigates to results with dates and adults in url
+    // called by the form when the inputs are valid, navigates to results with dates, adults and rooms in url
     private void Search()
     {
-        Navigation.NavigateTo($"/search/results?checkIn={_stay.CheckIn:yyyy-MM-dd}&checkOut={_stay.CheckOut:yyyy-MM-dd}&adults={_stay.Adults}");
+        Navigation.NavigateTo($"/search/results?checkIn={_stay.CheckIn:yyyy-MM-dd}&checkOut={_stay.CheckOut:yyyy-MM-dd}&adults={_stay.Adults}&rooms={_stay.Rooms}");
     }
 }

@@ -32,14 +32,17 @@
 
 /* ---------- dates field ---------- */
 
-/* the date picker takes flexible space */
+/* both date picker and guest picker take equal flexible space */
 .search-bar ::deep .drp {
-    flex: 1 1 14rem;
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
     max-width: none;
 }
 
 /* compact field, almost white so it stands out on the glass, no border, the box around already has one */
 .search-bar ::deep .drp .drp-field {
+    width: 100%;
     padding: 0.4rem 0.9rem;
     background-color: rgba(255, 255, 255, 0.9);
     border-color: transparent;
@@ -60,14 +63,17 @@
     font-size: 0.875rem;
 }
 
-/* ---------- guests field ---------- */
+/* ---------- guests and rooms field ---------- */
 
 .search-bar ::deep .gp {
-    flex: 0 0 9.5rem;
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
     max-width: none;
 }
 
 .search-bar ::deep .gp .gp-field {
+    width: 100%;
     padding: 0.4rem 0.9rem;
     background-color: rgba(255, 255, 255, 0.9);
     border-color: transparent;
@@ -103,59 +109,63 @@
     font-weight: 500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
+    border-radius: 10px;
+    white-space: nowrap;
 }
 
-/* ---------- calendar ---------- */
+/* ---------- calendar popup ---------- */
 
-/* compact panel under the bar with rounded corners and a soft shadow */
+/* dropdown of the dates, softer shadow and round corners to fit the glass look */
 .search-bar ::deep .drp .drp-panel {
-    padding: var(--space-md);
     border-radius: 14px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
 }
 
-/* smaller months, days and gaps than the default picker */
+/* 2 months side by side, spaced out */
 .search-bar ::deep .drp .drp-months {
-    gap: var(--space-md);
+    gap: 1.5rem;
 }
 
 .search-bar ::deep .drp .drp-month-title {
-    font-size: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
 }
 
 .search-bar ::deep .drp .drp-grid {
-    grid-template-columns: repeat(7, 2rem);
+    gap: 2px;
 }
 
 .search-bar ::deep .drp .drp-weekday {
     font-size: 0.6875rem;
+    color: var(--color-text-muted);
 }
 
 .search-bar ::deep .drp .drp-day {
-    height: 2rem;
     font-size: 0.8125rem;
 }
 
+/* next and previous month arrows */
 .search-bar ::deep .drp .drp-nav-btn {
-    width: 1.75rem;
-    height: 1.75rem;
-    font-size: 1rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
 }
 
+/* helper text at the bottom of the calendar, eg pick check in date */
 .search-bar ::deep .drp .drp-hint {
-    margin-top: var(--space-sm);
     font-size: 0.75rem;
+    border-top: 1px solid var(--color-border);
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
 }
 
-/* ---------- errors ---------- */
+/* ---------- errors under the row ---------- */
 
-/* error messages as small burgundy labels under the row, readable on white and on the glass of the home */
-/* !important because bulma puts it on has-text-danger */
+/* red text for invalid dates, padding so it stays off the glass border */
 .search-bar ::deep .has-text-danger {
-    width: fit-content;
-    margin: var(--space-xs) var(--space-xs) 0;
-    padding: 2px var(--space-sm);
-    border-radius: var(--radius);
+    padding: 0.4rem 0.9rem;
+    margin-top: 4px;
+    border-radius: 8px;
     background-color: var(--color-accent);
     color: #fff !important;
     font-size: 0.8125rem;
