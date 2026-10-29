@@ -89,6 +89,18 @@ jobs:
         targetdir: './CoverageReport'
         reporttypes: 'HtmlInline_AzurePipelines;Cobertura;MarkdownSummaryGithub'
 
+    # 8. Show Coverage Table directly in GitHub Actions UI
+    - name: Publish Coverage to Job Summary
+      run: cat ./CoverageReport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+
+    # 9. Upload full HTML report for download
+    - name: Upload HTML Coverage Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage-report
+        path: ./CoverageReport
+        retention-days: 7
+
   build-test-env:
     name: Build image for test environment
     runs-on: [self-hosted, build-server]
