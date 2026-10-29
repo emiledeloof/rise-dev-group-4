@@ -36,13 +36,20 @@ jobs:
     - name: Restore dependencies & Audit CVEs
       run: |
         dotnet restore
-    # 3. Check for Deprecated Packages (Fail if output contains '>')
+        
+    # 3. Check for Deprecated Packages (with allowlist)
     - name: Check for deprecated packages
       run: |
         output=$(dotnet list package --deprecated --include-transitive)
         echo "$output"
-        if echo "$output" | grep -q ">"; then
-          echo "::error::Deprecated NuGet packages detected!"
+        
+        # Filter out lines with '>' that DO NOT match our allowed packages
+        # Note: '^   > xunit' matches both 'xunit' and transitive 'xunit.core', 'xunit.assert', etc.
+        disallowed=$(echo "$output" | grep ">" | grep -vE "^[[:space:]]*>[[:space:]]*(xunit(\.[a-zA-Z0-9_.-]+)?)[[:space:]]" || true)
+        
+        if [ -n "$disallowed" ]; then
+          echo "::error::Disallowed deprecated NuGet packages detected:"
+          echo "$disallowed"
           exit 1
         fi
 
