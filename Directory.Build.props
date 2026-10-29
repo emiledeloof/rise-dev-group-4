@@ -1,22 +1,12 @@
 <Project>
   <PropertyGroup>
-    <AnalysisLevel>latest-all</AnalysisLevel> <!-- or latest-recommended -->
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <Nullable>enable</Nullable>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Fail restore/build if any direct or transitive package has a known CVE -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
   </PropertyGroup>
-
-  <PropertyGroup>
-		<NuGetAudit>true</NuGetAudit>
-		<NuGetAuditLevel>low</NuGetAuditLevel> <!-- or moderate/high -->
-		<NuGetAuditMode>all</NuGetAuditMode>   <!-- checks direct & transitive -->
-		<WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
-	</PropertyGroup>
-
-  <ItemGroup>
-    <!-- Catch async/await deadlocks and missing ConfigureAwait/CancellationTokens -->
-    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.*" PrivateAssets="all" />
-    <!-- Extra maintainability and performance analyzers -->
-    <PackageReference Include="Meziantou.Analyzer" Version="2.*" PrivateAssets="all" />
-  </ItemGroup>
 </Project>

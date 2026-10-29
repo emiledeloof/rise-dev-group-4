@@ -54,7 +54,8 @@ jobs:
     # 5. Build with Strict Code & Style Analysis
     - name: Build with Strict Code Analysis
       run: |
-        dotnet build --no-restore --configuration Release --warnaserror
+        dotnet build --no-restore --configuration Release --warnaserror \
+          -p:ContinuousIntegrationBuild=true
 
     # 6. Unit & Integration Tests (with hang protection & coverage)
     - name: Run Tests with Coverage
