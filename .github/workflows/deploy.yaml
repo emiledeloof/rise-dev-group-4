@@ -32,11 +32,19 @@ jobs:
       with:
         extra_args: --results=verified,unknown
 
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/packages.lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
     # 2. Dependency Restore & Built-in NuGet Audit (Fails on CVEs)
     - name: Restore dependencies & Audit CVEs
       run: |
         dotnet restore
-        
+
     # 3. Check for Deprecated Packages (with allowlist)
     - name: Check for deprecated packages
       run: |
