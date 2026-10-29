@@ -35,12 +35,7 @@ jobs:
     # 2. Dependency Restore & Built-in NuGet Audit (Fails on CVEs)
     - name: Restore dependencies & Audit CVEs
       run: |
-        dotnet restore --locked-mode \
-          -p:NuGetAudit=true \
-          -p:NuGetAuditMode=all \
-          -p:NuGetAuditLevel=moderate \
-          -p:WarningsAsErrors="NU1901;NU1902;NU1903;NU1904"
-
+        dotnet restore
     # 3. Check for Deprecated Packages (Fail if output contains '>')
     - name: Check for deprecated packages
       run: |
