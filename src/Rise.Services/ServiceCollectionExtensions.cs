@@ -2,11 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Rise.Persistence;
 
 using Rise.Services.Bookings;
+using Rise.Services.Email;
 using Rise.Services.Guests;
 using Rise.Services.Invoice;
 using Rise.Services.Payments;
 using Rise.Services.Rates;
 using Rise.Shared.Bookings;
+using Rise.Shared.Email;
 using Rise.Shared.Guests;
 using Rise.Shared.Invoice;
 using Rise.Services.Rooms;
@@ -29,6 +31,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRateService, RateService>();
         services.AddScoped<IRoomService, RoomService>();
         services.AddScoped<IRatePricingService, RatePricingService>();
+        services.AddScoped<IEmailService, SmtpEmailService>();
         services.AddTransient<DbSeeder>();
 
         // Add other application services here.
