@@ -2,41 +2,33 @@ using System.Globalization;
 using System.Net;
 using System.Net.Mail;
 using System.Text;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Rise.Shared.Email;
 
 namespace Rise.Services.Email;
 
 /// <summary>
 /// Sends transactional emails via SMTP.
-/// Connection details are read from the <c>Email</c> configuration section.
+/// Connection details are read from <see cref="EmailOptions"/> (bound from the <c>Email</c> configuration section).
 /// </summary>
-public sealed class SmtpEmailService(IConfiguration configuration) : IEmailService
+public sealed class SmtpEmailService(IOptions<EmailOptions> options) : IEmailService
 {
+    private readonly EmailOptions _options = options.Value;
+
     public async Task SendBookingConfirmationAsync(BookingConfirmationEmail email, CancellationToken ct = default)
     {
-        var smtpHost = configuration["Email:SmtpHost"]
-            ?? throw new InvalidOperationException("Email:SmtpHost is not configured.");
-        var smtpPort = configuration.GetValue<int>("Email:SmtpPort", 587);
-        var fromAddress = configuration["Email:FromAddress"]
-            ?? throw new InvalidOperationException("Email:FromAddress is not configured.");
-        var fromName = configuration["Email:FromName"] ?? "Rise Hotel";
-        var username = configuration["Email:Username"];
-        var password = configuration["Email:Password"];
-        var useSsl = configuration.GetValue<bool>("Email:UseSsl", true);
-
-        using var client = new SmtpClient(smtpHost, smtpPort)
+        using var client = new SmtpClient(_options.SmtpHost, _options.SmtpPort)
         {
-            EnableSsl = useSsl,
-            Credentials = !string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password)
-                ? new NetworkCredential(username, password)
+            EnableSsl = _options.UseSsl,
+            Credentials = !string.IsNullOrWhiteSpace(_options.Username) && !string.IsNullOrWhiteSpace(_options.Password)
+                ? new NetworkCredential(_options.Username, _options.Password)
                 : null,
         };
 
         var body = BuildHtmlBody(email);
         using var message = new MailMessage
         {
-            From = new MailAddress(fromAddress, fromName),
+            From = new MailAddress(_options.FromAddress, _options.FromName),
             Subject = $"Booking Confirmation – {email.BookingNumber}",
             Body = body,
             IsBodyHtml = true,

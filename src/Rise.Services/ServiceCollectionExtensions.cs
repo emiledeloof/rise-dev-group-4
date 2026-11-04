@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Rise.Persistence;
 
 using Rise.Services.Bookings;
@@ -31,6 +32,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRateService, RateService>();
         services.AddScoped<IRoomService, RoomService>();
         services.AddScoped<IRatePricingService, RatePricingService>();
+        services
+            .AddOptions<EmailOptions>()
+            .BindConfiguration(EmailOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         services.AddScoped<IEmailService, SmtpEmailService>();
         services.AddTransient<DbSeeder>();
 
