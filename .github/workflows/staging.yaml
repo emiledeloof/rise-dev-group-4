@@ -7,16 +7,13 @@ on:
       - main
 
 env:
-  REPO_PATH: hogent-rise/rise-dev-group-4
+  IMAGE_NAME: rise-staging
   TEST_CONTAINER_NAME: rise-server-staging
 
 jobs: 
   build-test-env:
     name: Build image for test environment
     runs-on: [self-hosted, build-server]
-    permissions:
-      contents: read
-      packages: write
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     outputs:
@@ -36,9 +33,8 @@ jobs:
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_STAGING_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_STAGING_TOKEN }}
 
       - name: Build and push image
         uses: docker/build-push-action@v7
@@ -47,31 +43,28 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ env.REPO_PATH }}/staging:${{ steps.vars.outputs.sha_short }}
-            ghcr.io/${{ env.REPO_PATH }}/staging:latest
+            ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.version }}
+          ${{ env.IMAGE_NAME }}:latest
 
   deploy-test-env:
     name: Deploy to Test environment
     needs: build-test-env
     runs-on: [self-hosted, prod-server]
-    permissions:
-      packages: read
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Log in to GHCR
+      - name: Log in to Docker hub
         uses: docker/login-action@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_STAGING_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_STAGING_DEPLOY_TOKEN }}
 
       - name: Deploy container
         env:
           TAG: ${{ needs.build-test-env.outputs.images_tag }}
         run: |
-          echo "Pulling image: ghcr.io/$REPO_PATH:$TAG"
-          docker pull "ghcr.io/$REPO_PATH/staging:$TAG"
+          echo "Pulling image: $IMAGE_NAME:$TAG"
+          docker pull "$IMAGE_NAME:$TAG"
 
           if docker ps -a --format '{{.Names}}' | grep -Eq "^${TEST_CONTAINER_NAME}\$"; then
             echo "Stopping and removing existing container..."
@@ -86,7 +79,7 @@ jobs:
             --env-file /opt/rise/.env \
             -p 8000:8080 \
             -v rise-logs-test:/app/Logs \
-            "ghcr.io/$REPO_PATH:$TAG"
+            "$IMAGE_NAME:$TAG"
 
           sleep 3
           if docker ps --filter "name=^/${TEST_CONTAINER_NAME}$" --filter "status=running" | grep -q "$TEST_CONTAINER_NAME"; then
