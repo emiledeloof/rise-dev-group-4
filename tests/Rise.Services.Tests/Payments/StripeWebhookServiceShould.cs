@@ -20,7 +20,7 @@ public class StripeWebhookServiceShould
     private readonly IStripePaymentGateway paymentGateway = Substitute.For<IStripePaymentGateway>();
     private readonly IEmailService emailService = Substitute.For<IEmailService>();
 
-    private static async Task<(ApplicationDbContext DbContext, Payment Payment)> CreateSeededDbContextAsync(string databaseName)
+    private static async Task<(ApplicationDbContext DbContext, Payment Payment)> CreateSeededDbContextAsync(string databaseName, bool withRoom = false)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: databaseName) // Do NOT use InMemoryDatabase... it's not reliable. Use a real database and come up with a strategy to clean up the database between tests.
@@ -31,36 +31,17 @@ public class StripeWebhookServiceShould
         var guest = new Guest("Jan Janssens", "jan.janssens@example.com", "+32 470 12 34 56",
             new GuestAddress("Koningstraat 12", null, "Belgium"));
         var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
-        var payment = booking.AddPayment(100m, SessionId);
 
-        dbContext.Guests.Add(guest);
-        dbContext.Bookings.Add(booking);
-        await dbContext.SaveChangesAsync();
+        if (withRoom)
+        {
+            var room = new Room("101", "Single Room", 1);
+            var rate = room.AddRate("Standard", 79m);
+            booking.AddRoom(room, rate);
+            dbContext.Rooms.Add(room);
+        }
 
-        return (dbContext, payment);
-    }
+        var payment = booking.AddPayment(withRoom ? 158m : 100m, SessionId);
 
-    /// <summary>
-    /// Seeded db with a booking that has a room so the email DTO can be fully populated.
-    /// </summary>
-    private static async Task<(ApplicationDbContext DbContext, Payment Payment)> CreateSeededDbContextWithRoomAsync(string databaseName)
-    {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: databaseName)
-            .Options;
-
-        var dbContext = new ApplicationDbContext(options);
-
-        var room = new Room("101", "Single Room", 1);
-        var rate = room.AddRate("Standard", 79m);
-
-        var guest = new Guest("Jan Janssens", "jan.janssens@example.com", "+32 470 12 34 56",
-            new GuestAddress("Koningstraat 12", null, "Belgium"));
-        var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
-        booking.AddRoom(room, rate);
-        var payment = booking.AddPayment(158m, SessionId);
-
-        dbContext.Rooms.Add(room);
         dbContext.Guests.Add(guest);
         dbContext.Bookings.Add(booking);
         await dbContext.SaveChangesAsync();
@@ -161,7 +142,7 @@ public class StripeWebhookServiceShould
     public async Task SendConfirmationEmailWhenPaymentSucceeds()
     {
         // Arrange
-        var (dbContext, payment) = await CreateSeededDbContextWithRoomAsync(nameof(SendConfirmationEmailWhenPaymentSucceeds));
+        var (dbContext, payment) = await CreateSeededDbContextAsync(nameof(SendConfirmationEmailWhenPaymentSucceeds), withRoom: true);
         await using var _ = dbContext;
         var service = CreateService(dbContext);
 
@@ -180,7 +161,7 @@ public class StripeWebhookServiceShould
     public async Task SendConfirmationEmailWithCorrectGuestAndRoomData()
     {
         // Arrange
-        var (dbContext, payment) = await CreateSeededDbContextWithRoomAsync(nameof(SendConfirmationEmailWithCorrectGuestAndRoomData));
+        var (dbContext, payment) = await CreateSeededDbContextAsync(nameof(SendConfirmationEmailWithCorrectGuestAndRoomData), withRoom: true);
         await using var _ = dbContext;
         var service = CreateService(dbContext);
 
@@ -211,7 +192,7 @@ public class StripeWebhookServiceShould
     public async Task NotSendEmailWhenPaymentWasAlreadyPaid()
     {
         // Arrange — the payment is already paid (idempotency path returns early)
-        var (dbContext, payment) = await CreateSeededDbContextWithRoomAsync(nameof(NotSendEmailWhenPaymentWasAlreadyPaid));
+        var (dbContext, payment) = await CreateSeededDbContextAsync(nameof(NotSendEmailWhenPaymentWasAlreadyPaid), withRoom: true);
         await using var _ = dbContext;
         payment.MarkAsPaid(SessionCreated);
         await dbContext.SaveChangesAsync();
@@ -230,7 +211,7 @@ public class StripeWebhookServiceShould
     public async Task NotFailWebhookWhenEmailServiceThrows()
     {
         // Arrange — the email service throws a transient error
-        var (dbContext, payment) = await CreateSeededDbContextWithRoomAsync(nameof(NotFailWebhookWhenEmailServiceThrows));
+        var (dbContext, payment) = await CreateSeededDbContextAsync(nameof(NotFailWebhookWhenEmailServiceThrows), withRoom: true);
         await using var _ = dbContext;
         emailService
             .SendBookingConfirmationAsync(Arg.Any<BookingConfirmationEmail>(), Arg.Any<CancellationToken>())
