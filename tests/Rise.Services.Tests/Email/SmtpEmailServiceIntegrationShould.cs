@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Rise.Services.Email;
 using Rise.Shared.Email;
 
@@ -9,18 +9,20 @@ public class SmtpEmailServiceIntegrationShould
     [Fact]
     public async Task SendRealEmailToMailpitIfRunning()
     {
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Email:SmtpHost"] = "localhost",
-                ["Email:SmtpPort"] = "1025",
-                ["Email:UseSsl"] = "false",
-                ["Email:FromAddress"] = "reservations@rise-hotel.example.com",
-                ["Email:FromName"] = "Rise Hotel",
-            })
-            .Build();
+        var host = Environment.GetEnvironmentVariable("MAILPIT_HOST");
+        if (string.IsNullOrWhiteSpace(host))
+            return; // Mailpit not available – skip silently on CI
 
-        var service = new SmtpEmailService(config);
+        var options = Options.Create(new EmailOptions
+        {
+            SmtpHost = host,
+            SmtpPort = 1025,
+            UseSsl = false,
+            FromAddress = "reservations@rise-hotel.example.com",
+            FromName = "Rise Hotel",
+        });
+
+        var service = new SmtpEmailService(options);
 
         var email = new BookingConfirmationEmail
         {
