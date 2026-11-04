@@ -1,41 +1,55 @@
 using System.Globalization;
-using System.Net;
-using System.Net.Mail;
 using System.Text;
+using static System.Net.WebUtility;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Extensions.Options;
+using MimeKit;
+using MimeKit.Text;
 using Rise.Shared.Email;
 
 namespace Rise.Services.Email;
 
 /// <summary>
-/// Sends transactional emails via SMTP.
+/// Sends transactional emails via SMTP using MailKit.
 /// Connection details are read from <see cref="EmailOptions"/> (bound from the <c>Email</c> configuration section).
+/// Only registered when <see cref="EmailOptions.SmtpHost"/> is configured;
+/// otherwise <see cref="NullEmailService"/> is used.
 /// </summary>
-public sealed class SmtpEmailService(IOptions<EmailOptions> options) : IEmailService
+public sealed class SmtpEmailService : IEmailService
 {
-    private readonly EmailOptions _options = options.Value;
+    private readonly EmailOptions _options;
+
+    public SmtpEmailService(IOptions<EmailOptions> options)
+    {
+        _options = options.Value;
+        if (string.IsNullOrWhiteSpace(_options.SmtpHost))
+            throw new InvalidOperationException("Cannot initialize SmtpEmailService without a configured SmtpHost.");
+    }
 
     public async Task SendBookingConfirmationAsync(BookingConfirmationEmail email, CancellationToken ct = default)
     {
-        using var client = new SmtpClient(_options.SmtpHost, _options.SmtpPort)
-        {
-            EnableSsl = _options.UseSsl,
-            Credentials = !string.IsNullOrWhiteSpace(_options.Username) && !string.IsNullOrWhiteSpace(_options.Password)
-                ? new NetworkCredential(_options.Username, _options.Password)
-                : null,
-        };
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_options.FromName, _options.FromAddress));
+        message.To.Add(new MailboxAddress(email.GuestName, email.GuestEmail));
+        message.Subject = $"Booking Confirmation \u2013 {email.BookingNumber}";
+        message.Body = new TextPart(TextFormat.Html) { Text = BuildHtmlBody(email) };
 
-        var body = BuildHtmlBody(email);
-        using var message = new MailMessage
-        {
-            From = new MailAddress(_options.FromAddress, _options.FromName),
-            Subject = $"Booking Confirmation – {email.BookingNumber}",
-            Body = body,
-            IsBodyHtml = true,
-        };
-        message.To.Add(new MailAddress(email.GuestEmail, email.GuestName));
+        using var client = new SmtpClient();
 
-        await client.SendMailAsync(message, ct);
+        // UseSsl = true  → port 465, SSL on connect
+        // UseSsl = false → port 587, STARTTLS when available (default for most providers)
+        var socketOptions = _options.UseSsl
+            ? SecureSocketOptions.SslOnConnect
+            : SecureSocketOptions.StartTlsWhenAvailable;
+
+        await client.ConnectAsync(_options.SmtpHost, _options.SmtpPort, socketOptions, ct);
+
+        if (!string.IsNullOrWhiteSpace(_options.Username))
+            await client.AuthenticateAsync(_options.Username, _options.Password, ct);
+
+        await client.SendAsync(message, ct);
+        await client.DisconnectAsync(quit: true, ct);
 
         Log.Information(
             "Confirmation email sent for booking {BookingNumber} to {GuestEmail}.",
@@ -44,19 +58,20 @@ public sealed class SmtpEmailService(IOptions<EmailOptions> options) : IEmailSer
 
     private static string BuildHtmlBody(BookingConfirmationEmail email)
     {
+        // All user-sourced strings are HTML-encoded to prevent injection / malformed output.
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html>");
         sb.AppendLine("<html lang='en'><head><meta charset='UTF-8'></head><body style='font-family:sans-serif;color:#333'>");
-        sb.AppendLine($"<h2 style='color:#2c5f8a'>Booking Confirmed – {email.BookingNumber}</h2>");
-        sb.AppendLine($"<p>Dear {email.GuestName},</p>");
+        sb.AppendLine($"<h2 style='color:#2c5f8a'>Booking Confirmed \u2013 {H(email.BookingNumber)}</h2>");
+        sb.AppendLine($"<p>Dear {H(email.GuestName)},</p>");
         sb.AppendLine("<p>Thank you for your payment. Your reservation is confirmed. Here are your booking details:</p>");
 
-        // Stay summary
+        // Stay summary — dates/numbers are safe without encoding
         sb.AppendLine("<table style='border-collapse:collapse;margin-bottom:1rem'>");
         sb.AppendLine(Row("Check-in", email.CheckIn.ToString("D", CultureInfo.InvariantCulture)));
         sb.AppendLine(Row("Check-out", email.CheckOut.ToString("D", CultureInfo.InvariantCulture)));
         sb.AppendLine(Row("Nights", email.Nights.ToString(CultureInfo.InvariantCulture)));
-        sb.AppendLine(Row("Guests", email.Adults.ToString(CultureInfo.InvariantCulture)));
+        sb.AppendLine(Row("Adults", email.Adults.ToString(CultureInfo.InvariantCulture)));
         sb.AppendLine("</table>");
 
         // Room breakdown
@@ -71,17 +86,17 @@ public sealed class SmtpEmailService(IOptions<EmailOptions> options) : IEmailSer
 
         foreach (var room in email.Rooms)
         {
-            sb.AppendLine($"<tr style='border-bottom:1px solid #ddd'>");
-            sb.AppendLine($"<td style='padding:8px'>{room.RoomNumber} – {room.RoomName}</td>");
-            sb.AppendLine($"<td style='padding:8px'>{room.RateName}</td>");
-            sb.AppendLine($"<td style='padding:8px;text-align:right'>€{room.PricePerNight.ToString("F2", CultureInfo.InvariantCulture)}</td>");
-            sb.AppendLine($"<td style='padding:8px;text-align:right'>€{room.Total.ToString("F2", CultureInfo.InvariantCulture)}</td>");
+            sb.AppendLine("<tr style='border-bottom:1px solid #ddd'>");
+            sb.AppendLine($"<td style='padding:8px'>{H(room.RoomNumber)} \u2013 {H(room.RoomName)}</td>");
+            sb.AppendLine($"<td style='padding:8px'>{H(room.RateName)}</td>");
+            sb.AppendLine($"<td style='padding:8px;text-align:right'>\u20ac{room.PricePerNight.ToString("F2", CultureInfo.InvariantCulture)}</td>");
+            sb.AppendLine($"<td style='padding:8px;text-align:right'>\u20ac{room.Total.ToString("F2", CultureInfo.InvariantCulture)}</td>");
             sb.AppendLine("</tr>");
         }
 
-        sb.AppendLine($"<tr style='font-weight:bold;background:#f5f5f5'>");
+        sb.AppendLine("<tr style='font-weight:bold;background:#f5f5f5'>");
         sb.AppendLine("<td colspan='3' style='padding:8px;text-align:right'>Total</td>");
-        sb.AppendLine($"<td style='padding:8px;text-align:right'>€{email.TotalAmount.ToString("F2", CultureInfo.InvariantCulture)}</td>");
+        sb.AppendLine($"<td style='padding:8px;text-align:right'>\u20ac{email.TotalAmount.ToString("F2", CultureInfo.InvariantCulture)}</td>");
         sb.AppendLine("</tr></tbody></table>");
 
         sb.AppendLine("<p style='margin-top:1.5rem'>We look forward to welcoming you!</p>");
@@ -90,6 +105,9 @@ public sealed class SmtpEmailService(IOptions<EmailOptions> options) : IEmailSer
 
         return sb.ToString();
     }
+
+    /// <summary>HTML-encodes a user-supplied string to prevent injection in the email body.</summary>
+    private static string H(string value) => HtmlEncode(value);
 
     /// <summary>Two-column summary row with a label on the left and a value on the right.</summary>
     private static string Row(string label, string value)

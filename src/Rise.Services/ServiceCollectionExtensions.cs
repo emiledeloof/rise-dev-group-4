@@ -1,5 +1,5 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Rise.Persistence;
 
 using Rise.Services.Bookings;
@@ -22,7 +22,7 @@ namespace Rise.Services;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IGuestService, GuestService>();
@@ -35,9 +35,24 @@ public static class ServiceCollectionExtensions
         services
             .AddOptions<EmailOptions>()
             .BindConfiguration(EmailOptions.SectionName)
+            .Validate(options =>
+            {
+                if (string.IsNullOrWhiteSpace(options.SmtpHost))
+                    return true;
+
+                return !string.IsNullOrWhiteSpace(options.FromAddress)
+                       && options.SmtpPort is >= 1 and <= 65535;
+            }, "When Email:SmtpHost is configured, FromAddress and a valid SmtpPort (1-65535) are required.")
             .ValidateDataAnnotations()
             .ValidateOnStart();
-        services.AddScoped<IEmailService, SmtpEmailService>();
+
+        // Register SmtpEmailService only when a host is configured; fall back to a no-op
+        // so the app starts cleanly in CI or local dev without an SMTP server.
+        var emailOptions = configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>();
+        if (!string.IsNullOrWhiteSpace(emailOptions?.SmtpHost))
+            services.AddScoped<IEmailService, SmtpEmailService>();
+        else
+            services.AddScoped<IEmailService, NullEmailService>();
         services.AddTransient<DbSeeder>();
 
         // Add other application services here.
