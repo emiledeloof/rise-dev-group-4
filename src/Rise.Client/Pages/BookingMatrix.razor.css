@@ -272,6 +272,8 @@
     padding: 0 0.75rem;
     overflow: hidden;
     position: relative;
+    cursor: pointer;
+    text-decoration: none;
 }
 
 /* Temporary — provisional booking using gold tint from theme with dashed border */
@@ -283,6 +285,14 @@
     padding: 0 0.75rem;
     overflow: hidden;
     position: relative;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.matrix-cell-occupied:hover,
+.matrix-cell-temporary:hover {
+    text-decoration: none;
+    filter: brightness(0.96);
 }
 
 /* Guest name label — shared by Occupied and Temporary cells */

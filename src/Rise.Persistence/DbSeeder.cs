@@ -134,6 +134,11 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         foreach (var amenity in new[] { wifi, airConditioning, heating, tv, fridge, coffeeMachine, teaMaker, bathtub, hairdryer, bathrobes, iron, nonSmoking })
             deluxeBathtub.AddAmenity(amenity);
 
+        // one type per room for now, the estate has 3 different rooms
+        standard.ChangeType(new RoomType("Standard Room", "Twin room with shower, breakfast included."));
+        deluxe.ChangeType(new RoomType("Deluxe Room", "Bright room with a California king bed and a shower."));
+        deluxeBathtub.ChangeType(new RoomType("Deluxe Room with bathtub", "Room with a California king bed and a bathtub."));
+
         dbContext.Rooms.AddRange(standard, deluxe, deluxeBathtub);
         await dbContext.SaveChangesAsync();
     }
