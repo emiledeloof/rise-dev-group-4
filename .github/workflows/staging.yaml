@@ -76,8 +76,8 @@ jobs:
           docker volume create rise-logs-test
           docker run -d --name "$TEST_CONTAINER_NAME" \
             --restart unless-stopped \
-            --env-file /opt/rise/.env \
-            -p 8000:8080 \
+            --env-file /opt/rise/.env-test \
+            -p 8080:8080 \
             -v rise-logs-test:/app/Logs \
             "$IMAGE_NAME:$TAG"
 
