@@ -43,10 +43,10 @@ public sealed class SmtpEmailService : IEmailService
             ? SecureSocketOptions.SslOnConnect
             : SecureSocketOptions.StartTlsWhenAvailable;
 
-        await client.ConnectAsync(_options.SmtpHost, _options.SmtpPort, socketOptions, ct);
+        await client.ConnectAsync(_options.SmtpHost!, _options.SmtpPort, socketOptions, ct);
 
         if (!string.IsNullOrWhiteSpace(_options.Username))
-            await client.AuthenticateAsync(_options.Username, _options.Password, ct);
+            await client.AuthenticateAsync(_options.Username, _options.Password ?? string.Empty,ct);
 
         await client.SendAsync(message, ct);
         await client.DisconnectAsync(quit: true, ct);

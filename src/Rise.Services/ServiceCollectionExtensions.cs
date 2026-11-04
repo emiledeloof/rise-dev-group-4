@@ -35,14 +35,6 @@ public static class ServiceCollectionExtensions
         services
             .AddOptions<EmailOptions>()
             .BindConfiguration(EmailOptions.SectionName)
-            .Validate(options =>
-            {
-                if (string.IsNullOrWhiteSpace(options.SmtpHost))
-                    return true;
-
-                return !string.IsNullOrWhiteSpace(options.FromAddress)
-                       && options.SmtpPort is >= 1 and <= 65535;
-            }, "When Email:SmtpHost is configured, FromAddress and a valid SmtpPort (1-65535) are required.")
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
