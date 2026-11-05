@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
+using Rise.Client.Common;
 using Rise.Client.Bookings;
 using Rise.Client.Guests;
 using Rise.Client.Identity;
@@ -15,6 +16,8 @@ using Rise.Client.Rates;
 using Rise.Shared.Rates;
 using Rise.Shared.RatePricing;
 using Rise.Client.RatePricing;
+using Toolbelt.Blazor.I18nText;
+using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Rise.Client.RoomTypes;
 using Rise.Shared.RoomTypes;
 
@@ -35,6 +38,13 @@ try
 
     // register the cookie handler
     builder.Services.AddTransient<CookieHandler>();
+
+    // register i18n localization
+    builder.Services.AddI18nText(options =>
+    {
+        options.PersistenceLevel = PersistanceLevel.SessionAndLocal;
+    });
+    builder.Services.AddScoped<IAppTextProvider, AppTextProvider>();
 
     // set up authorization
     builder.Services.AddAuthorizationCore();

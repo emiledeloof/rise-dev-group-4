@@ -1,13 +1,21 @@
+@inherits LocalizedComponentBase
 @page "/payment/cancel"
 @* Stripe sends the guest here when they leave the checkout page without paying, see Stripe:CancelUrl *@
 @* TODO: translate the texts with the languages task *@
 
-<PageTitle>Payment cancelled</PageTitle>
+<PageTitle>@Text["PaymentCancelled"]</PageTitle>
 
 <div class="page">
-    <span class="eyebrow">Book a room</span>
-    <h1>Payment cancelled</h1>
-    <p class="subtitle cancel-message">The payment was not completed, so your booking is not paid.</p>
+    <span class="eyebrow">@Text["BookARoom"]</span>
+    <h1>@Text["PaymentCancelled"]</h1>
+    <p class="subtitle cancel-message">@Text["PaymentCancelledMessage"]</p>
 
-    <Button Variant="ButtonVariant.Secondary" Href="" Class="mt-4">Back to home</Button>
+    <Button Variant="ButtonVariant.Secondary" Href="" Class="mt-4">@Text["BackToHome"]</Button>
 </div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTextAsync();
+    }
+}

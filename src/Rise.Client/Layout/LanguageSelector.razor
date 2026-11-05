@@ -1,0 +1,93 @@
+@inject Toolbelt.Blazor.I18nText.I18nText I18nText
+@implements IDisposable
+
+@if (FooterStyle)
+{
+    <nav class="site-footer-languages" aria-label="@Text["Language"]">
+        @foreach (var language in SupportedLanguages)
+        {
+            <button type="button"
+                    class="site-footer-language @(CurrentLanguage == language.Code ? "is-current" : null)"
+                    aria-current="@(CurrentLanguage == language.Code ? "true" : null)"
+                    @onclick="() => ChangeLanguage(language.Code)">
+                @language.Code.ToUpperInvariant()
+            </button>
+        }
+    </nav>
+}
+else
+{
+    <label class="site-language-selector">
+        <span class="sr-only">@Text["Language"]</span>
+        <select value="@CurrentLanguage" @onchange="ChangeLanguage" aria-label="@Text["Language"]">
+            @foreach (var language in SupportedLanguages)
+            {
+                <option value="@language.Code">@language.Code.ToUpperInvariant()</option>
+            }
+        </select>
+    </label>
+}
+
+@code {
+    [Parameter]
+    public bool FooterStyle { get; set; }
+
+    private AppText Text { get; set; } = new();
+    private string CurrentLanguage { get; set; } = "en";
+
+    private static readonly IReadOnlyList<LanguageOption> SupportedLanguages =
+    [
+        new("en"),
+        new("nl"),
+        new("fr"),
+        new("de"),
+        new("it"),
+        new("pl")
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Text = await I18nText.GetTextTableAsync<AppText>(this);
+        CurrentLanguage = NormalizeLanguage(await I18nText.GetCurrentLanguageAsync());
+        I18nText.ChangeLanguage += HandleLanguageChanged;
+    }
+
+    private async Task ChangeLanguage(ChangeEventArgs args)
+    {
+        var language = args.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            await ChangeLanguage(language);
+        }
+    }
+
+    private async Task ChangeLanguage(string language)
+    {
+        if (SupportedLanguages.All(option => option.Code != language))
+        {
+            return;
+        }
+
+        await I18nText.SetCurrentLanguageAsync(language);
+        CurrentLanguage = language;
+    }
+
+    private async void HandleLanguageChanged(object? sender, EventArgs args)
+    {
+        CurrentLanguage = NormalizeLanguage(await I18nText.GetCurrentLanguageAsync());
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static string NormalizeLanguage(string language)
+    {
+        var baseLanguage = language.Split('-', 2)[0].ToLowerInvariant();
+        return SupportedLanguages.Any(option => option.Code == baseLanguage) ? baseLanguage : "en";
+    }
+
+    private sealed record LanguageOption(string Code);
+
+    public void Dispose()
+    {
+        I18nText.ChangeLanguage -= HandleLanguageChanged;
+    }
+}

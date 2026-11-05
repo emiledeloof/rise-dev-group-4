@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Rise.Client.Bookings;
+using Rise.Client.Common;
+using Rise.Client.I18nText;
 using Rise.Shared.Guests;
 
 namespace Rise.Client.Guests;
@@ -8,8 +10,9 @@ namespace Rise.Client.Guests;
 /// Code-behind class for the guest details page (<see cref="Create"/>), a step of the booking flow.
 /// The details are kept in the <see cref="BookingDraft"/>; they are only saved with the booking on "Pay now".
 /// </summary>
-public partial class Create
+public partial class Create : LocalizedComponentBase
 {
+
     /// <summary>
     /// The booking the guest is putting together, holds the picked rooms and receives the guest details.
     /// </summary>
@@ -42,8 +45,10 @@ public partial class Create
     /// Sends the guest back to the search when no rooms are picked (e.g. after a page refresh),
     /// otherwise prefills the form with the details entered before.
     /// </summary>
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await LoadTextAsync();
+
         if (!Draft.HasRooms)
         {
             NavigationManager.NavigateTo("/search");

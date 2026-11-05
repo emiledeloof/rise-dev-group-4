@@ -1,35 +1,33 @@
+@inherits LocalizedComponentBase
 @page "/rooms"
 @* overview of all the rooms, opened from the navbar, styles in Overview.razor.css *@
 @* first a showcase of the rooms, then a list of every room with a link to its detail page *@
 @* TODO: translate the texts with the languages task *@
 
-<PageTitle>Our rooms</PageTitle>
+<PageTitle>@Text["OurRoomsEyebrow"]</PageTitle>
 
 @* ---------- hero, a photo of a room with the title on it ---------- *@
 <section class="rooms-hero">
     <img class="rooms-hero-photo" src="images/home/hero-2-room.jpg" alt="" aria-hidden="true" />
 
     <div class="rooms-hero-content">
-        <span class="eyebrow rooms-hero-eyebrow">Our rooms</span>
-        <h1 class="rooms-hero-title">Rooms made for slow days</h1>
-        <p class="rooms-hero-intro">
-            Granite walls, linen sheets and the quiet of the vineyards. Every room of the stazzu has its own character.
-        </p>
+        <span class="eyebrow rooms-hero-eyebrow">@Text["OurRoomsEyebrow"]</span>
+        <h1 class="rooms-hero-title">@Text["RoomsHeroTitle"]</h1>
+        <p class="rooms-hero-intro">@Text["RoomsHeroIntro"]</p>
 
         <div class="rooms-hero-actions">
-            <Button Href="search" Class="rooms-hero-cta">Check availability</Button>
+            <Button Href="search" Class="rooms-hero-cta">@Text["CheckAvailability"]</Button>
             @* same page with the anchor, a bare #all-rooms would go to the home because of the base href *@
-            <a class="rooms-hero-link" href="rooms#all-rooms">See all rooms <i class="fas fa-arrow-down" aria-hidden="true"></i></a>
+            <a class="rooms-hero-link" href="rooms#all-rooms">@Text["SeeAllRooms"] <i class="fas fa-arrow-down" aria-hidden="true"></i></a>
         </div>
     </div>
 </section>
 
 @* ---------- welcome note, pulled over the bottom of the hero, static so it shows even when the rooms fail ---------- *@
-<section class="rooms-welcome" aria-label="Welcome">
+<section class="rooms-welcome" aria-label="@Text["Welcome"]">
     <img class="rooms-welcome-emblem" src="images/logo/emblem.png" alt="" aria-hidden="true" />
     <p class="rooms-welcome-text">
-        A stazzu is the traditional granite farmhouse of Gallura. Ours keeps its thick walls and quiet rhythm,
-        and each room was made to feel like a home among the vines.
+        @Text["WelcomeStazzuText"]
     </p>
     <span class="rooms-welcome-line" aria-hidden="true"></span>
 </section>
@@ -43,7 +41,7 @@ else if (_errorMessage is not null)
     <section class="rooms-section">
         <div class="rooms-inner">
             <p class="rooms-muted rooms-empty">
-                @_errorMessage <a class="rooms-link" href="search">Search rooms <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                @_errorMessage <a class="rooms-link" href="search">@Text["SearchRooms"] <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
             </p>
         </div>
     </section>
@@ -54,8 +52,8 @@ else
     <section class="rooms-section">
         <div class="rooms-inner">
             <div class="rooms-heading">
-                <span class="eyebrow">The rooms</span>
-                <h2>Each room, its own character</h2>
+                <span class="eyebrow">@Text["TheRooms"]</span>
+                <h2>@Text["EachRoomOwnCharacter"]</h2>
             </div>
 
             @for (var i = 0; i < FeaturedRooms.Count; i++)
@@ -85,12 +83,12 @@ else
                         }
 
                         <ul class="rooms-feature-meta">
-                            <li><i class="fas fa-user-group" aria-hidden="true"></i><span>Up to @room.MaxGuests @(room.MaxGuests == 1 ? "guest" : "guests")</span></li>
+                            <li><i class="fas fa-user-group" aria-hidden="true"></i><span>@Text["UpTo"] @room.MaxGuests @(room.MaxGuests == 1 ? Text["Guest"] : Text["Guests"])</span></li>
                         </ul>
 
                         <div class="rooms-feature-actions">
-                            <Button Href="@($"rooms/{room.Id}")" Class="rooms-feature-cta">Discover the room</Button>
-                            <a class="rooms-link" href="search">Check availability <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                            <Button Href="@($"rooms/{room.Id}")" Class="rooms-feature-cta">@Text["DiscoverTheRoom"]</Button>
+                            <a class="rooms-link" href="search">@Text["CheckAvailability"] <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                         </div>
                     </div>
                 </article>
@@ -102,8 +100,8 @@ else
     <section class="rooms-section rooms-section-alt">
         <div class="rooms-inner">
             <div class="rooms-heading">
-                <span class="eyebrow">Every stay</span>
-                <h2>More than a room</h2>
+                <span class="eyebrow">@Text["EveryStay"]</span>
+                <h2>@Text["MoreThanARoom"]</h2>
             </div>
 
             <ul class="rooms-experience">
@@ -125,8 +123,8 @@ else
         <section class="rooms-section">
             <div class="rooms-inner">
                 <div class="rooms-heading">
-                    <span class="eyebrow">Gallery</span>
-                    <h2>A glimpse inside</h2>
+                    <span class="eyebrow">@Text["Gallery"]</span>
+                    <h2>@Text["AGlimpseInside"]</h2>
                 </div>
 
                 <div class="rooms-mosaic">
@@ -146,8 +144,8 @@ else
     <section class="rooms-section rooms-section-alt" id="all-rooms">
         <div class="rooms-inner">
             <div class="rooms-heading">
-                <span class="eyebrow">All rooms</span>
-                <h2>Find your room</h2>
+                <span class="eyebrow">@Text["AllRooms"]</span>
+                <h2>@Text["FindYourRoom"]</h2>
             </div>
 
             <ul class="rooms-list">
@@ -173,11 +171,11 @@ else
                                 {
                                     <span class="rooms-row-description">@room.Description</span>
                                 }
-                                <span class="rooms-row-guests"><i class="fas fa-user-group" aria-hidden="true"></i> Up to @room.MaxGuests @(room.MaxGuests == 1 ? "guest" : "guests")</span>
+                                <span class="rooms-row-guests"><i class="fas fa-user-group" aria-hidden="true"></i> @Text["UpTo"] @room.MaxGuests @(room.MaxGuests == 1 ? Text["Guest"] : Text["Guests"])</span>
                             </span>
 
                             <span class="rooms-row-end">
-                                <span class="rooms-row-more">View room <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                                <span class="rooms-row-more">@Text["ViewRoom"] <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                             </span>
                         </a>
                     </li>
@@ -190,9 +188,9 @@ else
 @* ---------- closing invitation to book ---------- *@
 <section class="rooms-closing">
     <div class="rooms-inner">
-        <span class="eyebrow rooms-closing-eyebrow">Your stay</span>
-        <h2>Ready for slow days among the vines?</h2>
-        <p>Choose your dates and see which rooms are free for your stay.</p>
-        <Button Href="search" Class="rooms-closing-cta">Check availability</Button>
+        <span class="eyebrow rooms-closing-eyebrow">@Text["YourStay"]</span>
+        <h2>@Text["ReadyForSlowDays"]</h2>
+        <p>@Text["ChooseStayDates"]</p>
+        <Button Href="search" Class="rooms-closing-cta">@Text["CheckAvailability"]</Button>
     </div>
 </section>

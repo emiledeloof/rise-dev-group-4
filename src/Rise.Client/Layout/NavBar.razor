@@ -14,20 +14,32 @@
                                                                                                                                 
         <!-- RIGHT: Navigation links, Language, and Book a Room button -->                                                      
         <div class="navbar-end">                                                                                                
-          <NavLink class="navbar-item" href="rooms">Rooms</NavLink>                                                             
-          <NavLink class="navbar-item" href="estate">The Estate</NavLink>                                                       
-          <NavLink class="navbar-item" href="reviews">Reviews</NavLink>                                                         
-          <NavLink class="navbar-item" href="contact">Contact</NavLink>                                                         
+          <NavLink class="navbar-item" href="rooms">@Text["Rooms"]</NavLink>
+          <NavLink class="navbar-item" href="estate">@Text["TheEstate"]</NavLink>
+          <NavLink class="navbar-item" href="reviews">@Text["Reviews"]</NavLink>
+          <NavLink class="navbar-item" href="contact">@Text["Contact"]</NavLink>
                                                                                                                                 
           <!-- Language Button / Indicator -->                                                                                  
-          <div class="navbar-item">                                                                                             
-            <button class="button is-secondary is-small">EN</button>                                                            
+          <div class="navbar-item">
+            <LanguageSelector />
           </div>                                                                                                                
                                                                                                                                 
           <!-- Green Book a Room Button (ButtonVariant.Primary uses --color-primary: olive green) -->                           
           <div class="navbar-item">                                                                                             
-            <Button Variant="ButtonVariant.Primary" Href="search">Book a room</Button>                                            
+            <Button Variant="ButtonVariant.Primary" Href="search">@Text["BookARoom"]</Button>
           </div>                                                                                                                
         </div>                                                                                                                  
       </div>                                                                                                                    
     </nav>
+
+@code {
+    [Inject]
+    private Toolbelt.Blazor.I18nText.I18nText I18nText { get; set; } = null!;
+
+    private AppText Text { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Text = await I18nText.GetTextTableAsync<AppText>(this);
+    }
+}
