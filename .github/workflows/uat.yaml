@@ -79,9 +79,9 @@ jobs:
           VERSION: ${{ needs.build.outputs.image_tag }}
         run: |
           KEY="$RUNNER_TEMP/backup_key"
+          trap 'rm -f "$KEY"' EXIT
           install -m 600 /dev/null "$KEY"
           printf '%s\n' "$SSH_KEY" > "$KEY"
-          trap 'rm -f "$KEY"' EXIT
           LABEL=$(printf '%s' "pre-deploy-${VERSION}" | tr -c 'A-Za-z0-9._-' '-' | cut -c1-40)
           ssh -i "$KEY" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new backup@10.11.2.113 "$LABEL"
 
