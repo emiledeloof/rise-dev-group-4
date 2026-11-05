@@ -11,7 +11,6 @@ using Rise.Persistence;
 using Rise.Services.Bookings;
 using Rise.Services.Payments;
 using Rise.Shared.Bookings;
-using Rise.Shared.Common;
 using Rise.Shared.Guests;
 
 namespace Rise.Services.Tests.Bookings;
@@ -618,7 +617,7 @@ public class BookingServiceCancelRoomsShould
 
         // act
         var detail = (await seed.Service.GetDetailAsync(seed.BookingId)).Value;
-        var index = (await seed.Service.GetIndexAsync(new QueryRequest.SkipTake { Skip = 0, Take = 50 })).Value.Bookings.Single();
+        var index = (await seed.Service.GetIndexAsync(new BookingRequest.Index { Skip = 0, Take = 50 })).Value.Bookings.Single();
 
         // assert
         detail.Status.ShouldBe(BookingStatus.Paid);
@@ -648,13 +647,88 @@ public class BookingServiceCancelRoomsShould
         await seed.Service.CancelAsync(Request(seed.BookingId, null, (seed.FlexibleId, 0m), (seed.SaverId, 0m)));
 
         // act
-        var index = (await seed.Service.GetIndexAsync(new QueryRequest.SkipTake { Skip = 0, Take = 50 })).Value.Bookings.Single();
+        var index = (await seed.Service.GetIndexAsync(new BookingRequest.Index { Skip = 0, Take = 50 })).Value.Bookings.Single();
 
         // assert
         index.Status.ShouldBe(BookingStatus.Cancelled);
         index.CancelledRoomCount.ShouldBe(2);
         index.TotalAmount.ShouldBe(300m);
         index.RoomNumbers.ShouldBe(["201", "202"], ignoreOrder: true);
+    }
+
+    // the result of the admin list with the given cancellation filter
+    private static async Task<BookingResponse.Index> IndexAsync(Seed seed, string filter)
+        => (await seed.Service.GetIndexAsync(new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = filter })).Value;
+
+    /// <summary>
+    /// a partly cancelled booking still has booked rooms, so it counts as not cancelled
+    /// </summary>
+    [Fact]
+    public async Task ShowAPartlyCancelledBookingWhenFilteringNotCancelled()
+    {
+        // arrange
+        var seed = await SeedAsync(nameof(ShowAPartlyCancelledBookingWhenFilteringNotCancelled));
+        await using var _ = seed.DbContext;
+        await seed.Service.CancelAsync(Request(seed.BookingId, adults: 2, (seed.SaverId, 30m)));
+
+        // act
+        var result = await IndexAsync(seed, BookingCancellationFilters.NotCancelled);
+
+        // assert
+        result.TotalCount.ShouldBe(1);
+        result.Bookings.Single().CancelledRoomCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task HideAPartlyCancelledBookingWhenFilteringOnlyCancelled()
+    {
+        // arrange
+        var seed = await SeedAsync(nameof(HideAPartlyCancelledBookingWhenFilteringOnlyCancelled));
+        await using var _ = seed.DbContext;
+        await seed.Service.CancelAsync(Request(seed.BookingId, adults: 2, (seed.SaverId, 30m)));
+
+        // act
+        var result = await IndexAsync(seed, BookingCancellationFilters.OnlyCancelled);
+
+        // assert
+        result.TotalCount.ShouldBe(0);
+        result.Bookings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ShowABookingWithAllRoomsCancelledOnlyWhenFilteringOnlyCancelled()
+    {
+        // arrange
+        var seed = await SeedAsync(nameof(ShowABookingWithAllRoomsCancelledOnlyWhenFilteringOnlyCancelled));
+        await using var _ = seed.DbContext;
+        await seed.Service.CancelAsync(Request(seed.BookingId, null, (seed.FlexibleId, 0m), (seed.SaverId, 0m)));
+
+        // act
+        var onlyCancelled = await IndexAsync(seed, BookingCancellationFilters.OnlyCancelled);
+        var notCancelled = await IndexAsync(seed, BookingCancellationFilters.NotCancelled);
+
+        // assert
+        onlyCancelled.TotalCount.ShouldBe(1);
+        notCancelled.TotalCount.ShouldBe(0);
+    }
+
+    /// <summary>
+    /// the booking moves to the cancelled ones when its last room is cancelled, also in a later cancellation
+    /// </summary>
+    [Fact]
+    public async Task MoveABookingToOnlyCancelledWhenItsLastRoomIsCancelled()
+    {
+        // arrange
+        var seed = await SeedAsync(nameof(MoveABookingToOnlyCancelledWhenItsLastRoomIsCancelled));
+        await using var _ = seed.DbContext;
+        await seed.Service.CancelAsync(Request(seed.BookingId, adults: 2, (seed.SaverId, 0m)));
+
+        // act
+        await seed.Service.CancelAsync(Request(seed.BookingId, null, (seed.FlexibleId, 0m)));
+
+        // assert
+        (await IndexAsync(seed, BookingCancellationFilters.OnlyCancelled)).TotalCount.ShouldBe(1);
+        (await IndexAsync(seed, BookingCancellationFilters.NotCancelled)).TotalCount.ShouldBe(0);
     }
 
     /// <summary>

@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
+using Rise.Client.I18nText;
 using Rise.Shared.Rooms;
 
 namespace Rise.Client.Rooms;
@@ -6,8 +8,9 @@ namespace Rise.Client.Rooms;
 /// <summary>
 /// overview of all the rooms, a showcase of the first ones then a list of every room with a link to its detail page
 /// </summary>
-public partial class Overview
+public partial class Overview : LocalizedComponentBase
 {
+
     // max nb of rooms asked to the api, the max of the list validator
     // TODO: paging once the hotel has more than 20 rooms
     private const int MaxRooms = 20;
@@ -63,6 +66,8 @@ public partial class Overview
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
+        await LoadTextAsync();
+
         var result = await RoomService.GetListAsync(new RoomRequest.List { Take = MaxRooms });
 
         if (!result.IsSuccess)

@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rise-server-prod
+  labels:
+    app: rise
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rise
+  template:
+    metadata:
+      labels:
+        app: rise
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: rise-server
+        image: emiledeloofhg/devops:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - secretRef:
+            name: rise-secrets
+        volumeMounts:
+        - mountPath: /app/Logs
+          name: rise-logs
+      volumes:
+      - name: rise-logs
+        persistentVolumeClaim:
+          claimName: rise-logs-pvc
+

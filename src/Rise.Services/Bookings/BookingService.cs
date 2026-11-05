@@ -501,14 +501,24 @@ public sealed class BookingService(
     }
 
     /// <summary>
-    /// Returns a paginated list of all bookings for the admin overview.
+    /// Returns a paginated list of the bookings for the admin overview, optionally filtered on cancellation.
     /// Status is "Cancelled" when all rooms are cancelled, else "Paid" when at least one payment has been settled, otherwise "Pending".
     /// </summary>
     public async Task<Result<BookingResponse.Index>> GetIndexAsync(
-        QueryRequest.SkipTake request,
+        BookingRequest.Index request,
         CancellationToken ctx = default)
     {
         var query = dbContext.Bookings.Where(b => !b.IsDeleted);
+
+        // same rule as Booking.IsCancelled, a partly cancelled booking still has booked rooms so it counts as not cancelled
+        query = request.CancellationFilter switch
+        {
+            BookingCancellationFilters.NotCancelled => query.Where(b =>
+                !b.Rooms.Any(r => !r.IsDeleted) || b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt == null)),
+            BookingCancellationFilters.OnlyCancelled => query.Where(b =>
+                b.Rooms.Any(r => !r.IsDeleted) && !b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt == null)),
+            _ => query,
+        };
 
         var totalCount = await query.CountAsync(ctx);
 

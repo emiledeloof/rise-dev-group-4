@@ -10,6 +10,17 @@
 <div class="page">
     <h1 class="title">Bookings</h1>
 
+    @* outside the loading branch, so it stays available when a filter finds nothing *@
+    <FilterBar>
+        <SelectField Label="Show">
+            <select @bind="_cancellationFilter" @bind:after="ApplyFilterAsync">
+                <option value="@BookingCancellationFilters.All">All bookings</option>
+                <option value="@BookingCancellationFilters.NotCancelled">Not cancelled</option>
+                <option value="@BookingCancellationFilters.OnlyCancelled">Only cancelled</option>
+            </select>
+        </SelectField>
+    </FilterBar>
+
     @if (_bookings is null)
     {
         <p><em>Loading...</em></p>
@@ -18,7 +29,7 @@
     {
         @* same card style as the invoice list, styles in BookingList.razor.css *@
         <div class="box booking-list">
-            <h2 class="booking-list-title">All bookings</h2>
+            <h2 class="booking-list-title">@ListTitle</h2>
 
             @if (_errorMessage is not null)
             {
@@ -26,7 +37,7 @@
             }
             else if (!_bookings.Any())
             {
-                <p class="booking-muted">No bookings yet.</p>
+                <p class="booking-muted booking-empty">@EmptyMessage</p>
             }
             else
             {
