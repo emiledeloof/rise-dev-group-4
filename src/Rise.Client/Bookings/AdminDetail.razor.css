@@ -433,15 +433,6 @@
 
 /* ---------- cancellation ---------- */
 
-/* solid burgundy badge, the light bulma tag was almost white on the cream page */
-.booking-detail-cancelled-tag {
-    gap: var(--space-xs);
-    background-color: var(--color-accent);
-    color: var(--color-surface);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-}
-
 /* burgundy tinted card with a thick line on the left, the booking is cancelled but still readable below */
 .booking-detail-cancellation {
     border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));

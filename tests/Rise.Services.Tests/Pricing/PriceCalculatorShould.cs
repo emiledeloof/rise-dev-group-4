@@ -45,4 +45,17 @@ public class PriceCalculatorShould
         // Should.Throw checks that the code inside the lambda throws this exact exception
         Should.Throw<ArgumentOutOfRangeException>(() => PriceCalculator.Total(160m, nights));
     }
+
+    /// <summary>
+    /// the VAT inside a price that already holds it, eg 122 at 22 % holds 22
+    /// </summary>
+    [Theory]
+    [InlineData(122, 22, 22)]
+    [InlineData(110, 10, 10)]
+    [InlineData(100, 0, 0)]
+    [InlineData(10, 22, 1.80)]
+    public void TakeTheVatOutOfAPriceIncludingVat(decimal gross, decimal vatPercentage, decimal expected)
+    {
+        PriceCalculator.VatIncluded(gross, vatPercentage).ShouldBe(expected);
+    }
 }

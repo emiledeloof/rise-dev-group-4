@@ -54,10 +54,10 @@ public class InvoiceListShould : BunitContext
     }
 
     [Fact]
-    public void LinkTheBookingToItsDetail()
+    public void LinkTheInvoiceToTheFinalBill()
     {
         var cut = Render<InvoiceList>();
 
-        cut.FindAll("a.invoice-booking-link")[1].GetAttribute("href").ShouldBe("admin/bookings/2");
+        cut.FindAll("a.invoice-booking-link")[1].GetAttribute("href").ShouldBe("admin/bookings/2/bill");
     }
 }

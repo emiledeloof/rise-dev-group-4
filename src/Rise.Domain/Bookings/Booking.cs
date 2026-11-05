@@ -28,6 +28,12 @@ public class Booking : Entity
     public IReadOnlyList<Payment> Payments => _payments.AsReadOnly();
 
     /// <summary>
+    /// Free lines the admin adds to the bill for what the guest used, eg minibar or an excursion.
+    /// </summary>
+    private readonly List<BillLine> _billLines = [];
+    public IReadOnlyList<BillLine> BillLines => _billLines.AsReadOnly();
+
+    /// <summary>
     /// Nb of nights of the stay.
     /// </summary>
     public int Nights => CheckOut.DayNumber - CheckIn.DayNumber;
@@ -85,7 +91,8 @@ public class Booking : Entity
     /// <summary>
     /// Adds a room to the booking, the price per night is copied from the rate at booking time.
     /// </summary>
-    public BookingRoom AddRoom(Room room, Rate rate, decimal? pricePerNight = null)
+    /// <param name="vatPercentage">VAT pct included in the price per night, 0 when VAT is off</param>
+    public BookingRoom AddRoom(Room room, Rate rate, decimal? pricePerNight = null, decimal vatPercentage = 0m)
     {
         Guard.Against.Null(room);
         Guard.Against.Null(rate);
@@ -96,7 +103,7 @@ public class Booking : Entity
         if (_rooms.Any(x => x.Room == room))
             throw new ArgumentException("The room is already part of this booking.", nameof(room));
 
-        var bookingRoom = new BookingRoom(this, room, rate, pricePerNight ?? rate.PricePerNight);
+        var bookingRoom = new BookingRoom(this, room, rate, pricePerNight ?? rate.PricePerNight, vatPercentage);
         _rooms.Add(bookingRoom);
         return bookingRoom;
     }
@@ -161,5 +168,19 @@ public class Booking : Entity
         var payment = new Payment(this, amount, stripeCheckoutSession);
         _payments.Add(payment);
         return payment;
+    }
+
+    /// <summary>
+    /// Adds a free line to the bill, the bill of a fully cancelled booking can't be changed.
+    /// The rooms must be loaded, <see cref="IsCancelled"/> is derived from them.
+    /// </summary>
+    public BillLine AddBillLine(string description, int quantity, decimal unitPrice, decimal vatPercentage)
+    {
+        if (IsCancelled)
+            throw new InvalidOperationException("The bill of a cancelled booking can't be changed.");
+
+        var line = new BillLine(this, description, quantity, unitPrice, vatPercentage);
+        _billLines.Add(line);
+        return line;
     }
 }

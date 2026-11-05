@@ -69,6 +69,14 @@ public class AdminDetailShould : BunitContext
     }
 
     [Fact]
+    public void LinkToTheFinalBill()
+    {
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-bill-open").GetAttribute("href").ShouldBe("admin/bookings/7/bill");
+    }
+
+    [Fact]
     public void ShowPricePerRoomAndTotal()
     {
         var cut = RenderPage();

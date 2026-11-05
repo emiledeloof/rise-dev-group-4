@@ -519,4 +519,65 @@ public class BookingShould
         act.ShouldThrow<ArgumentException>();
         payment.Amount.ShouldBe(200m);
     }
+
+    [Fact]
+    public void KeepTheVatPercentageOfARoom()
+    {
+        var room = new Room("101", "Single Room", 1);
+        var rate = room.AddRate("Standard", 79m);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
+
+        var bookingRoom = booking.AddRoom(room, rate, 86.90m, 10m);
+
+        bookingRoom.VatPercentage.ShouldBe(10m);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(100.01)]
+    public void NotAddARoomWithAVatPercentageOutOfRange(decimal vatPercentage)
+    {
+        var room = new Room("101", "Single Room", 1);
+        var rate = room.AddRate("Standard", 79m);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
+
+        Action act = () => booking.AddRoom(room, rate, vatPercentage: vatPercentage);
+
+        act.ShouldThrow<ArgumentException>();
+    }
+
+    [Fact]
+    public void AddABillLine()
+    {
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
+
+        var line = booking.AddBillLine("  Minibar ", 3, 6.50m, 22m);
+
+        booking.BillLines.ShouldHaveSingleItem().ShouldBe(line);
+        line.Description.ShouldBe("Minibar");
+        line.Total.ShouldBe(19.50m);
+    }
+
+    [Fact]
+    public void NotAddABillLineToACancelledBooking()
+    {
+        var (booking, a, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(a, 0m), new RoomCancellation(b, 0m)], CancelledAt, "Guest is ill");
+
+        Action act = () => booking.AddBillLine("Minibar", 1, 5m, 22m);
+
+        act.ShouldThrow<InvalidOperationException>();
+        booking.BillLines.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void AddABillLineToAPartlyCancelledBooking()
+    {
+        var (booking, _, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(b, 0m)], CancelledAt, "Guest is ill");
+
+        var line = booking.AddBillLine("Minibar", 1, 5m, 22m);
+
+        booking.BillLines.ShouldHaveSingleItem().ShouldBe(line);
+    }
 }

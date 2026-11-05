@@ -45,5 +45,11 @@ internal class BookingConfiguration : EntityConfiguration<Booking>
             .WithOne(x => x.Booking)
             .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Bill lines are financial records too, never removed implicitly.
+        builder.HasMany(x => x.BillLines)
+            .WithOne(x => x.Booking)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -14,6 +14,12 @@ public static class Format
         => $"€{amount.ToString("0.00", CultureInfo.InvariantCulture)}";
 
     /// <summary>
+    /// eg 21 % or 5.5 %, no trailing zeros
+    /// </summary>
+    public static string Percent(decimal percentage)
+        => $"{percentage.ToString("0.##", CultureInfo.InvariantCulture)} %";
+
+    /// <summary>
     /// eg 02 Oct 2026
     /// </summary>
     public static string Date(DateOnly date)

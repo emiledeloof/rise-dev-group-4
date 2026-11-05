@@ -176,7 +176,8 @@ public sealed class BookingService(
                 rate.PricePerNight,
                 settings.IsVatEnabled,
                 settings.VatPercentage);
-            booking.AddRoom(room, rate, pricePerNight);
+            // the VAT pct is kept on the room, so the bill still shows the right VAT after the setting changes
+            booking.AddRoom(room, rate, pricePerNight, settings.IsVatEnabled ? settings.VatPercentage : 0m);
         }
 
         // guest and booking are saved together, one SaveChanges is atomic
@@ -290,7 +291,7 @@ public sealed class BookingService(
             Id = booking.Id,
             BookingNumber = booking.BookingNumber,
             CreatedAt = booking.CreatedAt,
-            Status = StatusOf(booking.IsCancelled, payments.Any(x => x.IsPaid)),
+            Status = BookingStatusRule.For(booking),
             CheckIn = booking.CheckIn,
             CheckOut = booking.CheckOut,
             Nights = nights,
@@ -326,12 +327,6 @@ public sealed class BookingService(
                 .ToList(),
         };
     }
-
-    /// <summary>
-    /// Cancelled when all rooms are cancelled, else Paid when a payment is settled, otherwise Pending.
-    /// </summary>
-    private static string StatusOf(bool isCancelled, bool isPaid)
-        => isCancelled ? BookingStatus.Cancelled : isPaid ? BookingStatus.Paid : BookingStatus.Pending;
 
     private static string Euro(decimal amount) => $"€{amount.ToString("0.00", CultureInfo.InvariantCulture)}";
 
@@ -552,7 +547,7 @@ public sealed class BookingService(
                     .Where(r => !r.IsDeleted)
                     .Select(r => new { r.PricePerNight, r.Room.RoomNumber, IsCancelled = r.CancelledAt != null })
                     .ToList(),
-                IsPaid = b.Payments.Any(p => p.PaidAt != null),
+                HasSettledPayment = b.Payments.AsQueryable().Any(BookingStatusRule.IsSettled),
             })
             .ToListAsync(ctx);
 
@@ -574,7 +569,7 @@ public sealed class BookingService(
                 GuestEmail = x.GuestEmail,
                 TotalAmount = shownRooms.Sum(r => PriceCalculator.Total(r.PricePerNight, nights)),
                 RoomNumbers = shownRooms.Select(r => r.RoomNumber).ToList(),
-                Status = StatusOf(isCancelled, x.IsPaid),
+                Status = BookingStatusRule.For(isCancelled, x.HasSettledPayment),
                 RoomCount = x.Rooms.Count,
                 CancelledRoomCount = cancelledRoomCount,
             };
