@@ -204,9 +204,23 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         cancelledBooking.AddRoom(rooms[1], rooms[1].Rates[1]);
         var cancelledPayment = cancelledBooking.AddPayment(3 * rooms[1].Rates[1].PricePerNight, "cs_test_seed_0007");
         cancelledPayment.MarkAsPaid(new DateTime(2026, 10, 7, 10, 20, 0, DateTimeKind.Utc), "in_test_seed_0007", "INV-2026-0005");
-        cancelledBooking.Cancel(new DateTime(2026, 10, 12, 16, 5, 0, DateTimeKind.Utc), "Guest asked to cancel by phone, flight was cancelled", cancelledBooking.PaidAmount);
+        cancelledBooking.CancelRooms(
+            [new RoomCancellation(cancelledBooking.Rooms[0], cancelledBooking.PaidAmount)],
+            new DateTime(2026, 10, 12, 16, 5, 0, DateTimeKind.Utc),
+            "Guest asked to cancel by phone, flight was cancelled");
 
-        dbContext.Bookings.AddRange(paidBooking, openBooking, familyBooking, suiteBooking, shortBooking, cancelledBooking);
+        // Paid for 2 rooms with different policies, the refundable room is cancelled and the other one stays booked.
+        var partlyCancelledBooking = new Booking("20261008-0007", guests[0], new DateOnly(2027, 2, 12), new DateOnly(2027, 2, 15), 2);
+        partlyCancelledBooking.AddRoom(rooms[0], rooms[0].Rates[0]);
+        var cancelledRoom = partlyCancelledBooking.AddRoom(rooms[2], rooms[2].Rates[1]);
+        var partlyCancelledPayment = partlyCancelledBooking.AddPayment(3 * (rooms[0].Rates[0].PricePerNight + rooms[2].Rates[1].PricePerNight), "cs_test_seed_0008");
+        partlyCancelledPayment.MarkAsPaid(new DateTime(2026, 10, 8, 12, 0, 0, DateTimeKind.Utc), "in_test_seed_0008", "INV-2026-0006");
+        partlyCancelledBooking.CancelRooms(
+            [new RoomCancellation(cancelledRoom, cancelledRoom.TotalPrice)],
+            new DateTime(2026, 10, 20, 9, 30, 0, DateTimeKind.Utc),
+            "One of the two couples can no longer travel");
+
+        dbContext.Bookings.AddRange(paidBooking, openBooking, familyBooking, suiteBooking, shortBooking, cancelledBooking, partlyCancelledBooking);
         await dbContext.SaveChangesAsync();
     }
 }
