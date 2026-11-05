@@ -1,6 +1,5 @@
 using Ardalis.Result;
 using Rise.Shared.Bookings;
-using Rise.Shared.Common;
 
 namespace Rise.Client.Bookings;
 
@@ -96,8 +95,21 @@ public class FakeBookingService : IBookingService
         return Task.FromResult(answer);
     }
 
-    public Task<Result<BookingResponse.Index>> GetIndexAsync(QueryRequest.SkipTake request, CancellationToken ctx = default)
-        => Task.FromResult(IndexAnswer);
+    /// <summary>
+    /// every list page the page asked for
+    /// </summary>
+    public List<BookingRequest.Index> IndexRequests { get; } = [];
+
+    /// <summary>
+    /// answers of GetIndexAsync that a test completes itself, used up first, then <see cref="IndexAnswer"/> is sent back
+    /// </summary>
+    public Queue<Task<Result<BookingResponse.Index>>> PendingIndexAnswers { get; } = new();
+
+    public Task<Result<BookingResponse.Index>> GetIndexAsync(BookingRequest.Index request, CancellationToken ctx = default)
+    {
+        IndexRequests.Add(request);
+        return PendingIndexAnswers.Count > 0 ? PendingIndexAnswers.Dequeue() : Task.FromResult(IndexAnswer);
+    }
 
     /// <summary>
     /// what CancelAsync sends back, a cancelled booking with a refund of 360 by default

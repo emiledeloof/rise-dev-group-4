@@ -1,0 +1,9 @@
+@* the label wraps the select, so clicking the text focuses it *@
+<label class="select-field">
+    <span>@Label</span>
+    <div class="select-field-control">
+        @ChildContent
+        <span class="select-field-arrow" aria-hidden="true"></span>
+    </div>
+    @Validation
+</label>
