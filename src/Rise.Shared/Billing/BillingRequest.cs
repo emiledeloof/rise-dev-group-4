@@ -79,4 +79,11 @@ public static partial class BillingRequest
 
         public int LineId { get; set; }
     }
+
+    /// <summary>settles the bill, the server computes what is still owed so nothing else is sent</summary>
+    public class Settle
+    {
+        /// <summary>from the route, /api/bookings/{BookingId}/bill/settle</summary>
+        public int BookingId { get; set; }
+    }
 }

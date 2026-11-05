@@ -46,6 +46,11 @@ public class Booking : Entity
 
     public bool IsCancelled => CancelledAt is not null;
 
+    /// <summary>set by settle, a settled bill is closed and can not be changed anymore</summary>
+    public DateTime? SettledAt { get; private set; }
+
+    public bool IsSettled => SettledAt is not null;
+
     /// <summary>
     /// Sum of the settled payments, the most that can be refunded.
     /// </summary>
@@ -114,6 +119,27 @@ public class Booking : Entity
         RefundAmount = refundAmount;
     }
 
+    /// <summary>closes the bill, what the guest still owes is recorded as a payment received on site</summary>
+    public void Settle(DateTime settledAt, decimal outstandingBalance)
+    {
+        if (IsCancelled)
+            throw new InvalidOperationException("A cancelled booking can't be settled.");
+
+        // ! a second settlement would record the payment twice
+        if (IsSettled)
+            throw new InvalidOperationException("The booking is already settled.");
+
+        // * the balance comes from the service, the booking alone does not know the bill totals
+        // a negative balance is a credit for the guest, there is nothing to collect then
+        if (outstandingBalance > 0)
+        {
+            var payment = AddPayment(outstandingBalance);
+            payment.MarkAsPaid(settledAt);
+        }
+
+        SettledAt = settledAt;
+    }
+
     public Payment AddPayment(decimal amount, string? stripeCheckoutSession = null)
     {
         var payment = new Payment(this, amount, stripeCheckoutSession);
@@ -128,6 +154,9 @@ public class Booking : Entity
     {
         if (IsCancelled)
             throw new InvalidOperationException("The bill of a cancelled booking can't be changed.");
+
+        if (IsSettled)
+            throw new InvalidOperationException("The bill of a settled booking can't be changed.");
 
         var line = new BillLine(this, description, quantity, unitPrice, vatPercentage);
         _billLines.Add(line);

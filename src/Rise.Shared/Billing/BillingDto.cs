@@ -52,6 +52,14 @@ public static class BillingDto
         public Cancellation? Cancellation { get; set; }
 
         public bool IsCancelled => Cancellation is not null;
+
+        /// <summary>null while the bill is not settled</summary>
+        public DateTime? SettledAt { get; set; }
+
+        public bool IsSettled => SettledAt is not null;
+
+        /// <summary>a cancelled or settled bill can not be changed anymore</summary>
+        public bool IsClosed => IsCancelled || IsSettled;
     }
 
     /// <summary>

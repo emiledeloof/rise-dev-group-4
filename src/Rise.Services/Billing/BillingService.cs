@@ -19,14 +19,8 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
     /// </summary>
     public async Task<Result<BillingDto.Bill>> GetBillAsync(int bookingId, CancellationToken ctx = default)
     {
-        var booking = await dbContext.Bookings
+        var booking = await BookingsWithBill()
             .AsNoTracking()
-            .AsSplitQuery()
-            .Include(x => x.Guest)
-            .Include(x => x.Rooms)
-                .ThenInclude(x => x.Room)
-            .Include(x => x.Payments)
-            .Include(x => x.BillLines)
             .SingleOrDefaultAsync(x => x.Id == bookingId && !x.IsDeleted, ctx);
 
         if (booking is null)
@@ -52,6 +46,11 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
             return CancelledConflict(booking);
         }
 
+        if (booking.IsSettled)
+        {
+            return SettledConflict(booking);
+        }
+
         booking.AddBillLine(request.Description, request.Quantity, request.UnitPrice, request.VatPercentage);
         await dbContext.SaveChangesAsync(ctx);
 
@@ -70,6 +69,11 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
         if (line.Booking.IsCancelled)
         {
             return CancelledConflict(line.Booking);
+        }
+
+        if (line.Booking.IsSettled)
+        {
+            return SettledConflict(line.Booking);
         }
 
         line.Update(request.Description, request.Quantity, request.UnitPrice, request.VatPercentage);
@@ -95,11 +99,57 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
             return CancelledConflict(line.Booking);
         }
 
+        if (line.Booking.IsSettled)
+        {
+            return SettledConflict(line.Booking);
+        }
+
         dbContext.BillLines.Remove(line);
         await dbContext.SaveChangesAsync(ctx);
 
         return await GetBillAsync(request.BookingId, ctx);
     }
+
+    /// <summary>closes the bill, the outstanding balance shown on the bill is recorded as paid on site</summary>
+    public async Task<Result<BillingDto.Bill>> SettleAsync(BillingRequest.Settle request, CancellationToken ctx = default)
+    {
+        // tracked this time, the booking gets a new payment and its settled date
+        var booking = await BookingsWithBill()
+            .SingleOrDefaultAsync(x => x.Id == request.BookingId && !x.IsDeleted, ctx);
+
+        if (booking is null)
+        {
+            return Result.NotFound($"Booking with ID '{request.BookingId}' was not found.");
+        }
+
+        if (booking.IsCancelled)
+        {
+            return Result.Conflict($"Booking {booking.BookingNumber} is cancelled, it can't be settled.");
+        }
+
+        // ! US-B11.7, a booking is never settled twice
+        if (booking.IsSettled)
+        {
+            return Result.Conflict($"Booking {booking.BookingNumber} is already settled.");
+        }
+
+        // * same balance as the bill on screen, so the admin collects exactly what is displayed
+        var outstandingBalance = ToBill(booking).OutstandingBalance;
+        booking.Settle(DateTime.UtcNow, outstandingBalance);
+        await dbContext.SaveChangesAsync(ctx);
+
+        return await GetBillAsync(booking.Id, ctx);
+    }
+
+    // everything the bill needs, shared by the read and the settlement so both compute the same totals
+    private IQueryable<Booking> BookingsWithBill()
+        => dbContext.Bookings
+            .AsSplitQuery()
+            .Include(x => x.Guest)
+            .Include(x => x.Rooms)
+                .ThenInclude(x => x.Room)
+            .Include(x => x.Payments)
+            .Include(x => x.BillLines);
 
     /// <summary>
     /// The line only counts when it belongs to the booking from the route, a line of another booking is not found.
@@ -114,6 +164,9 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
 
     private static Result<BillingDto.Bill> CancelledConflict(Booking booking)
         => Result.Conflict($"Booking {booking.BookingNumber} is cancelled, its bill can't be changed.");
+
+    private static Result<BillingDto.Bill> SettledConflict(Booking booking)
+        => Result.Conflict($"Booking {booking.BookingNumber} is settled, its bill can't be changed.");
 
     private static BillingDto.Bill ToBill(Booking booking)
     {
@@ -215,6 +268,7 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
                     RefundAmount = booking.RefundAmount ?? 0,
                 }
                 : null,
+            SettledAt = booking.SettledAt,
         };
     }
 }

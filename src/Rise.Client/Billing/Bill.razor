@@ -55,6 +55,14 @@
             </div>
         }
 
+        @if (_bill.SettledAt is { } settledAt)
+        {
+            <div class="bill-settled-banner" role="status">
+                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                <p class="bill-settled-title">Settled on @Format.Date(settledAt) · this bill is closed</p>
+            </div>
+        }
+
         <div class="bill-layout">
             <div class="bill-main">
                 @* ---------- accommodation, the prices agreed at booking time ---------- *@
@@ -99,7 +107,7 @@
                 <section class="box bill-card bill-other-services">
                     <div class="bill-card-header">
                         <span class="eyebrow">Other services</span>
-                        @if (!_bill.IsCancelled)
+                        @if (!_bill.IsClosed)
                         {
                             <Button Variant="ButtonVariant.Secondary" OnClick="OpenAddLine" Class="bill-add-line">
                                 <i class="fas fa-plus" aria-hidden="true"></i><span>Add line</span>
@@ -142,7 +150,7 @@
                                         </div>
                                         <div class="bill-line-end">
                                             <span class="bill-line-amount">@Format.Amount(line.Total)</span>
-                                            @if (!_bill.IsCancelled)
+                                            @if (!_bill.IsClosed)
                                             {
                                                 <div class="bill-line-actions">
                                                     <button type="button" class="bill-icon-btn bill-edit-line" @onclick="() => OpenEditLine(line)" aria-label="Edit @line.Description">
@@ -275,6 +283,36 @@
                         <div class="bill-balance @BalanceClass">
                             <span class="bill-balance-label">@BalanceLabel</span>
                             <span class="bill-balance-amount">@Format.Amount(Math.Abs(_bill.OutstandingBalance))</span>
+                        </div>
+                    }
+
+                    @* a cancelled booking has nothing to settle or print *@
+                    @if (!_bill.IsCancelled)
+                    {
+                        <div class="bill-actions">
+                            @if (!_bill.IsSettled && _confirmSettle)
+                            {
+                                <div class="bill-settle-confirm" role="alert">
+                                    <p>@SettleQuestion</p>
+                                    <div class="bill-settle-buttons">
+                                        <Button Variant="ButtonVariant.Secondary" OnClick="KeepOpen" IsDisabled="_isSettling">Keep open</Button>
+                                        <Button Variant="ButtonVariant.Primary" OnClick="SettleAsync" IsDisabled="_isSettling">Settle</Button>
+                                    </div>
+                                </div>
+                            }
+                            else if (!_bill.IsSettled)
+                            {
+                                <Button Variant="ButtonVariant.Primary" OnClick="AskSettle" Class="bill-settle">Settle bill</Button>
+                            }
+
+                            <Button Variant="ButtonVariant.Secondary" OnClick="PrintAsync" Class="bill-print">
+                                <i class="fas fa-print" aria-hidden="true"></i> Print bill
+                            </Button>
+
+                            @if (_settleError is not null)
+                            {
+                                <p class="bill-error bill-settle-error">@_settleError</p>
+                            }
                         </div>
                     }
                 </section>
