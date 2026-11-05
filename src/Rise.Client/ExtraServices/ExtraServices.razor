@@ -1,6 +1,7 @@
 @page "/admin/extra-services"
 @layout AdminLayout
 @attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Client.Components
 @using Rise.Shared.Identity
 @using Rise.Shared.ExtraServices
 
@@ -117,29 +118,29 @@
                             <ValidationMessage For="() => _formModel.Price" class="help is-danger" />
                         </label>
 
-                        <label class="rate-create-field">
-                            <span>Billing cadence</span>
-                            <div class="rate-select-wrap">
+                        <SelectField Label="Billing cadence">
+                            <ChildContent>
                                 <InputSelect @bind-Value="_formModel.Cadence" id="service-cadence">
                                     <option value="@ChargeCadence.PerNight">Per night</option>
                                     <option value="@ChargeCadence.Once">Once (per booking)</option>
                                 </InputSelect>
-                                <span class="rate-select-arrow" aria-hidden="true"></span>
-                            </div>
-                            <ValidationMessage For="() => _formModel.Cadence" class="help is-danger" />
-                        </label>
+                            </ChildContent>
+                            <Validation>
+                                <ValidationMessage For="() => _formModel.Cadence" class="help is-danger" />
+                            </Validation>
+                        </SelectField>
 
-                        <label class="rate-create-field">
-                            <span>Charging basis</span>
-                            <div class="rate-select-wrap">
+                        <SelectField Label="Charging basis">
+                            <ChildContent>
                                 <InputSelect @bind-Value="_formModel.IsPerPerson" id="service-target">
                                     <option value="true">Per person (multiplied by guests)</option>
                                     <option value="false">Per booking (flat rate)</option>
                                 </InputSelect>
-                                <span class="rate-select-arrow" aria-hidden="true"></span>
-                            </div>
-                            <ValidationMessage For="() => _formModel.IsPerPerson" class="help is-danger" />
-                        </label>
+                            </ChildContent>
+                            <Validation>
+                                <ValidationMessage For="() => _formModel.IsPerPerson" class="help is-danger" />
+                            </Validation>
+                        </SelectField>
 
                         <label class="rate-create-field rate-field-full">
                             <span>Description</span>
@@ -162,7 +163,7 @@
                     }
 
                     <div class="rate-create-actions">
-                        <Button Type="submit" IsDisabled="_isSaving">Save</Button>
+                        <Button Type="submit" IsDisabled="_isSaving">Save extra service</Button>
                         <Button Variant="ButtonVariant.Secondary" OnClick="CloseForm">Cancel</Button>
                     </div>
                 </EditForm>
