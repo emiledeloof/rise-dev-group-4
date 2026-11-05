@@ -28,17 +28,30 @@ public class Booking : Entity
     public IReadOnlyList<Payment> Payments => _payments.AsReadOnly();
 
     /// <summary>
-    /// Set by <see cref="Cancel"/>, a cancelled booking keeps its rooms, prices and payments for the admin.
+    /// Nb of nights of the stay.
     /// </summary>
-    public DateTime? CancelledAt { get; private set; }
-    public string? CancellationReason { get; private set; }
+    public int Nights => CheckOut.DayNumber - CheckIn.DayNumber;
 
     /// <summary>
-    /// Refund the admin decided on when cancelling, the website never refunds it, the admin does it by hand.
+    /// Rooms that are still part of the stay, the rooms must be loaded.
     /// </summary>
-    public decimal? RefundAmount { get; private set; }
+    public IReadOnlyList<BookingRoom> ActiveRooms => _rooms.Where(x => !x.IsDeleted && !x.IsCancelled).ToList();
 
-    public bool IsCancelled => CancelledAt is not null;
+    /// <summary>
+    /// True when all rooms are cancelled, derived from the rooms so it can't get out of sync, the rooms must be loaded.
+    /// A cancelled booking keeps its rooms, prices and payments for the admin.
+    /// </summary>
+    public bool IsCancelled => _rooms.Any(x => !x.IsDeleted) && _rooms.Where(x => !x.IsDeleted).All(x => x.IsCancelled);
+
+    /// <summary>
+    /// True when some but not all rooms are cancelled, the rooms must be loaded.
+    /// </summary>
+    public bool IsPartiallyCancelled => !IsCancelled && _rooms.Any(x => !x.IsDeleted && x.IsCancelled);
+
+    /// <summary>
+    /// Sum of the refunds recorded on the cancelled rooms, the rooms must be loaded.
+    /// </summary>
+    public decimal RefundedAmount => _rooms.Where(x => !x.IsDeleted).Sum(x => x.RefundAmount ?? 0m);
 
     /// <summary>
     /// Sum of the settled payments, the most that can be refunded.
@@ -89,22 +102,58 @@ public class Booking : Entity
     }
 
     /// <summary>
-    /// Cancels the booking and records the refund decision, the payments must be loaded to check the refund.
+    /// Cancels one or more rooms and records the refund of each, cancelling all rooms cancels the booking.
+    /// Everything is checked first, so a refused cancellation changes nothing.
+    /// The rooms with their <see cref="Room"/> and the payments must be loaded.
     /// </summary>
-    public void Cancel(DateTime cancelledAt, string reason, decimal refundAmount)
+    /// <param name="rooms">rooms to cancel with their refund</param>
+    /// <param name="cancelledAt">moment of the cancellation</param>
+    /// <param name="reason">why, stored on each room of this cancellation</param>
+    /// <param name="adults">new nb of guests of the remaining rooms, null keeps the current nb</param>
+    public void CancelRooms(IReadOnlyCollection<RoomCancellation> rooms, DateTime cancelledAt, string reason, int? adults = null)
     {
-        if (IsCancelled)
-            throw new InvalidOperationException("The booking is already cancelled.");
-
+        Guard.Against.Null(rooms);
         Guard.Against.NullOrWhiteSpace(reason);
-        Guard.Against.Negative(refundAmount);
 
-        if (refundAmount > PaidAmount)
-            throw new ArgumentException("The refund can't be more than the amount paid.", nameof(refundAmount));
+        if (rooms.Count == 0)
+            throw new ArgumentException("Select at least one room to cancel.", nameof(rooms));
 
-        CancelledAt = cancelledAt;
-        CancellationReason = reason.Trim();
-        RefundAmount = refundAmount;
+        if (rooms.Select(x => x.Room).Distinct().Count() != rooms.Count)
+            throw new ArgumentException("A room can only be cancelled once.", nameof(rooms));
+
+        foreach (var (room, refund) in rooms)
+        {
+            if (!_rooms.Contains(room) || room.IsDeleted)
+                throw new ArgumentException("The room is not part of this booking.", nameof(rooms));
+
+            if (room.IsCancelled)
+                throw new InvalidOperationException("The room is already cancelled.");
+
+            Guard.Against.Negative(refund);
+
+            if (refund > room.TotalPrice)
+                throw new ArgumentException("The refund can't be more than the price of the room.", nameof(rooms));
+        }
+
+        if (RefundedAmount + rooms.Sum(x => x.RefundAmount) > PaidAmount)
+            throw new ArgumentException("The refunds can't be more than the amount paid.", nameof(rooms));
+
+        var remaining = ActiveRooms.Where(x => rooms.All(c => c.Room != x)).ToList();
+
+        // ! with no rooms left the nb of guests is only history, nobody has to fit anywhere anymore
+        if (remaining.Count > 0)
+        {
+            var guests = Guard.Against.NegativeOrZero(adults ?? Adults);
+
+            if (guests > remaining.Sum(x => x.Room.MaxGuests))
+                throw new ArgumentException("The guests don't fit in the remaining rooms.", nameof(adults));
+
+            Adults = guests;
+        }
+
+        var trimmedReason = reason.Trim();
+        foreach (var (room, refund) in rooms)
+            room.Cancel(cancelledAt, trimmedReason, refund);
     }
 
     public Payment AddPayment(decimal amount, string? stripeCheckoutSession = null)
