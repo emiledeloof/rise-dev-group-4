@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Admins;
 using Rise.Domain.Bookings;
+using Rise.Domain.ExtraServices;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
 using Rise.Domain.Settings;
@@ -31,6 +32,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> opts) :
     public DbSet<BookingRoom> BookingRooms => Set<BookingRoom>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<GeneralSettings> GeneralSettings => Set<GeneralSettings>();
+    public DbSet<ExtraService> ExtraServices => Set<ExtraService>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

@@ -1,0 +1,160 @@
+@page "/admin/extra-services"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Shared.Identity
+@using Rise.Shared.ExtraServices
+
+<PageTitle>Extra Services</PageTitle>
+<div class="page">
+    <div class="service-heading">
+        <h1 class="title">Extra Services</h1>
+        <Button OnClick="OpenCreateForm">New extra service</Button>
+    </div>
+
+    @if (_services is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        @if (_message is not null)
+        {
+            <p class="notification @(_messageIsError ? "is-danger" : "is-success") is-light">@_message</p>
+        }
+
+        <div class="box service-list">
+            @if (_services.Count == 0 && !_loadFailed)
+            {
+                <p class="service-muted">No extra services yet.</p>
+            }
+            else
+            {
+                <div class="service-table-scroll">
+                    <table class="service-table">
+                        <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Price & Charging</th>
+                            <th scope="col">Status</th>
+                            <th scope="col"><span class="is-sr-only">Actions</span></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var service in _services)
+                        {
+                            <tr @key="service.Id" class="@(service.IsActive ? "" : "service-row-inactive")">
+                                <td class="service-name">
+                                    <strong>@service.Name</strong>
+                                </td>
+                                <td class="service-description">@(service.Description ?? "—")</td>
+                                <td class="service-price">
+                                    <span class="service-price-amount">@FormatPrice(service.Price)</span>
+                                    <span class="service-price-meta">@FormatPricingModel(service.Cadence, service.IsPerPerson)</span>
+                                </td>
+                                <td class="service-status">
+                                    @if (service.IsActive)
+                                    {
+                                        <span class="tag is-success is-light">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tag is-light">Inactive</span>
+                                    }
+                                </td>
+                                <td class="service-actions">
+                                    <Button Variant="ButtonVariant.Secondary" OnClick="() => OpenEditForm(service)">Edit</Button>
+                                    <Button Variant="@(service.IsActive ? ButtonVariant.Secondary : ButtonVariant.Primary)"
+                                            OnClick="() => ToggleActiveAsync(service)">
+                                        @(service.IsActive ? "Deactivate" : "Activate")
+                                    </Button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        @if (_formModel is not null)
+        {
+            <section class="service-panel" aria-labelledby="service-form-heading">
+                <h3 id="service-form-heading">@(_formModel is ExtraServiceRequest.Edit ? "Edit extra service" : "New extra service")</h3>
+
+                <EditForm Model="_formModel" OnValidSubmit="SaveAsync">
+                    <FluentValidationValidator />
+
+                    <label class="service-field">
+                        <span>Name</span>
+                        <InputText @bind-Value="_formModel.Name" id="service-name" placeholder="e.g. Breakfast, Extra Cleaning" />
+                        <ValidationMessage For="() => _formModel.Name" class="help is-danger" />
+                    </label>
+
+                    <label class="service-field">
+                        <span>Description</span>
+                        <InputTextArea @bind-Value="_formModel.Description" id="service-description" rows="2" placeholder="Optional details..." />
+                        <ValidationMessage For="() => _formModel.Description" class="help is-danger" />
+                    </label>
+
+                    <div class="columns is-multiline">
+                        <div class="column is-4">
+                            <label class="service-field">
+                                <span>Price (EUR)</span>
+                                <InputNumber @bind-Value="_formModel.Price" id="service-price" step="0.50" />
+                                <ValidationMessage For="() => _formModel.Price" class="help is-danger" />
+                            </label>
+                        </div>
+
+                        <div class="column is-4">
+                            <label class="service-field">
+                                <span>Billing Cadence</span>
+                                <InputSelect @bind-Value="_formModel.Cadence" id="service-cadence" class="input">
+                                    <option value="@ChargeCadence.PerNight">Per Night</option>
+                                    <option value="@ChargeCadence.Once">Once (Per Booking)</option>
+                                </InputSelect>
+                            </label>
+                        </div>
+
+                        <div class="column is-4">
+                            <label class="service-field">
+                                <span>Charging Scope</span>
+                                <InputSelect @bind-Value="_formModel.IsPerPerson" id="service-target" class="input">
+                                    <option value="true">Per Person (multiplied by guests)</option>
+                                    <option value="false">Per Booking (fixed total)</option>
+                                </InputSelect>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="service-summary-callout">
+                        <p>
+                            <strong>Summary:</strong>
+                            @FormatPrice(_formModel.Price) @FormatPricingModel(_formModel.Cadence, _formModel.IsPerPerson)
+                        </p>
+                    </div>
+
+                    @if (_formModel is ExtraServiceRequest.Edit editModel)
+                    {
+                        <div class="service-field-checkbox">
+                            <label class="checkbox">
+                                <InputCheckbox @bind-Value="editModel.IsActive" id="service-active" />
+                                <span>Active and offered for rates & bookings</span>
+                            </label>
+                        </div>
+                    }
+
+                    @if (_formError is not null)
+                    {
+                        <p class="notification is-danger is-light">@_formError</p>
+                    }
+
+                    <div class="service-form-actions">
+                        <Button Type="submit" IsDisabled="_isSaving">Save</Button>
+                        <Button Variant="ButtonVariant.Secondary" OnClick="CloseForm">Cancel</Button>
+                    </div>
+                </EditForm>
+            </section>
+        }
+    }
+</div>

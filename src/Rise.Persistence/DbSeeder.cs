@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Admins;
 using Rise.Domain.Bookings;
+using Rise.Domain.ExtraServices;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
 
@@ -23,6 +24,7 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         await RoomsAsync();
         await GuestsAsync();
         await BookingsAsync();
+        await ExtraServicesAsync();
     }
 
     private async Task RolesAsync()
@@ -207,6 +209,36 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         cancelledBooking.Cancel(new DateTime(2026, 10, 12, 16, 5, 0, DateTimeKind.Utc), "Guest asked to cancel by phone, flight was cancelled", cancelledBooking.PaidAmount);
 
         dbContext.Bookings.AddRange(paidBooking, openBooking, familyBooking, suiteBooking, shortBooking, cancelledBooking);
+        await dbContext.SaveChangesAsync();
+    }
+
+    private async Task ExtraServicesAsync()
+    {
+        if (dbContext.ExtraServices.Any())
+            return;
+
+        var breakfast = new ExtraService(
+            "Breakfast",
+            15m,
+            ChargeCadence.PerNight,
+            isPerPerson: true,
+            "Fresh buffet breakfast with local pastries, juices, coffee, and cooked options.");
+
+        var extraCleaning = new ExtraService(
+            "Extra Cleaning",
+            45m,
+            ChargeCadence.Once,
+            isPerPerson: false,
+            "Deep cleaning service requested during the stay.");
+
+        var bikeRental = new ExtraService(
+            "Bicycle Rental",
+            12m,
+            ChargeCadence.PerNight,
+            isPerPerson: true,
+            "City bicycle rental per day.");
+
+        dbContext.ExtraServices.AddRange(breakfast, extraCleaning, bikeRental);
         await dbContext.SaveChangesAsync();
     }
 }

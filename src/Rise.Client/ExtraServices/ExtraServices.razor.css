@@ -1,0 +1,151 @@
+.service-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.service-heading .title {
+    margin-bottom: 0;
+}
+
+.service-list {
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.service-muted {
+    padding: var(--space-md);
+    color: var(--color-text-muted);
+}
+
+.service-table-scroll {
+    overflow-x: auto;
+}
+
+.service-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.service-table th {
+    padding: 0.7rem 1rem;
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.service-table td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    vertical-align: middle;
+}
+
+.service-table tr:last-child td {
+    border-bottom: none;
+}
+
+.service-row-inactive {
+    opacity: 0.65;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.service-name {
+    font-weight: 600;
+}
+
+.service-description {
+    color: var(--color-text-muted);
+    max-width: 320px;
+}
+
+.service-price-amount {
+    font-weight: 600;
+    margin-right: 0.35rem;
+}
+
+.service-price-meta {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.service-actions {
+    display: flex;
+    gap: var(--space-xs);
+    justify-content: flex-end;
+}
+
+.service-panel {
+    margin-top: var(--space-lg);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.service-panel h3 {
+    margin-top: 0;
+    margin-bottom: var(--space-md);
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.service-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
+.service-field span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.service-field input,
+.service-field textarea,
+.service-field select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 0.95rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+.service-summary-callout {
+    margin-bottom: var(--space-md);
+    padding: 0.75rem 1rem;
+    background: var(--color-bg);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--color-primary, #b58d57);
+}
+
+.service-field-checkbox {
+    margin-bottom: var(--space-md);
+}
+
+.service-field-checkbox label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.service-form-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+}
