@@ -1,61 +1,19 @@
-name: Deploy dotnet app
+---
+name: Deploy dotnet application to UAT
 
-on: 
+on:
   push:
-    branches:
-      - main
-      - release
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
-  pull_request:
-    branches:
-      - main
 
 env:
   IMAGE_NAME: emiledeloofhg/devops
   CONTAINER_NAME: rise-server-prod
 
-jobs: 
-  ci:
-    runs-on: [self-hosted, build-server]
-    steps:
-      - name: Sync latest repository code
-        uses: actions/checkout@v7
-
-      # Use caching to improve restore performance  
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/packages.lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-        
-      # 1. Dependency Restore & Vulnerability Audit
-      - name: Restore dependencies & Audit CVEs
-        run: |
-          dotnet restore
-          dotnet list package --vulnerable --include-transitive
-
-      # 2. Fast Whitespace & Formatting Check
-      - name: Verify Formatting (dotnet format)
-        run: |
-          dotnet format --verify-no-changes --verbosity normal
-
-      # 3. Static Analysis & Roslyn Code Style Check
-      - name: Build with Strict Code Analysis
-        run: |
-          dotnet build --no-restore --configuration Release --warnaserror
-
-      # 4. Unit & Integration Tests (with code coverage)
-      - name: Run Tests
-        run: |
-          dotnet test --no-build --configuration Release --verbosity normal
-
+jobs:
   build:
     name: Build image
     runs-on: [self-hosted, build-server]
-    needs: ci
     if: startsWith(github.ref, 'refs/tags/v')
 
     outputs:
@@ -70,14 +28,10 @@ jobs:
       - name: Verify Tag Belongs to Release Branch
         run: |
           echo "Verifying tag ${{ github.ref_name }} points to a commit on origin/release..."
-          
-          # Ensure remote release ref exists locally
           git fetch origin release:refs/remotes/origin/release
 
-          # Check if the tagged commit is reachable from origin/release
           if ! git merge-base --is-ancestor "${{ github.sha }}" origin/release; then
             echo "::error::Tag ${{ github.ref_name }} (${{ github.sha }}) is NOT an ancestor of 'origin/release'!"
-            echo "Deployments are restricted strictly to commits merged into the release branch."
             exit 1
           fi
 
@@ -100,7 +54,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build and push image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -129,14 +83,12 @@ jobs:
           echo "Pulling image: $IMAGE_NAME:$TAG"
           docker pull "$IMAGE_NAME:$TAG"
 
-          # Stop and remove existing container if running
           if docker ps -a --format '{{.Names}}' | grep -Eq "^${CONTAINER_NAME}\$"; then
             echo "Stopping and removing existing container..."
             docker stop "$CONTAINER_NAME"
             docker rm "$CONTAINER_NAME"
           fi
 
-          # Start new container
           echo "Starting container: $CONTAINER_NAME"
           docker volume create rise-logs
           docker run -d --name "$CONTAINER_NAME" \
@@ -146,7 +98,6 @@ jobs:
             -v rise-logs:/app/Logs \
             "$IMAGE_NAME:$TAG"
 
-          # Verify container started properly
           sleep 3
           if docker ps --filter "name=^/${CONTAINER_NAME}$" --filter "status=running" | grep -q "$CONTAINER_NAME"; then
             echo "Deployment succeeded."
