@@ -33,10 +33,11 @@
                     @foreach (var invoice in invoices)
                     {
                         @* TODO: add the stripe invoice download with the download task *@
+                        @* the booking link covers the whole row, a click anywhere opens the final bill *@
                         <li @key="invoice.Id" class="invoice-row">
                             <div>
                                 <p class="invoice-booking">
-                                    <a class="invoice-booking-link" href="admin/bookings/@invoice.BookingId">Booking @invoice.BookingNumber</a> · @invoice.GuestName
+                                    <a class="invoice-booking-link" href="admin/bookings/@invoice.BookingId/bill">Booking @invoice.BookingNumber</a> · @invoice.GuestName
                                 </p>
                                 <p class="invoice-muted">
                                     @if (invoice.IsPaid)

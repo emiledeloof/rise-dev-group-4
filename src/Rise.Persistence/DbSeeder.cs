@@ -188,6 +188,10 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         familyBooking.AddRoom(rooms[2], rooms[2].Rates[0]);
         var familyPayment = familyBooking.AddPayment(3 * rooms[2].Rates[0].PricePerNight, "cs_test_seed_0003");
         familyPayment.MarkAsPaid(new DateTime(2026, 10, 4, 9, 15, 0, DateTimeKind.Utc), "in_test_seed_0003", "INV-2026-0002");
+        // used during the stay and still open on the final bill
+        // VAT is off in the seeded settings, so the rooms have 0 % VAT and only these lines carry VAT
+        familyBooking.AddBillLine("Minibar", 3, 6.50m, 22m);
+        familyBooking.AddBillLine("Guided vineyard tour", 2, 45m, 22m);
 
         // Deposit is paid, the remaining amount is still open.
         var suiteBooking = new Booking("20261005-0004", guests[0], new DateOnly(2026, 12, 23), new DateOnly(2026, 12, 27), 2);

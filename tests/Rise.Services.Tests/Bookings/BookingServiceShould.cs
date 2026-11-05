@@ -165,6 +165,20 @@ public class BookingServiceShould
             .SingleAsync(room => room.Booking.Id == result.Value.BookingId);
         bookingRoom.PricePerNight.ShouldBe(94.80m);
         bookingRoom.Rate.PricePerNight.ShouldBe(79m);
+        bookingRoom.VatPercentage.ShouldBe(20m);
+    }
+
+    [Fact]
+    public async Task StoreZeroVatWhenVatIsDisabled()
+    {
+        // the seeded settings have VAT off
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(StoreZeroVatWhenVatIsDisabled));
+        var standard = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+
+        var result = await CreateService(dbContext).CreateAsync(Request(20, 23, "marie@example.com", standard));
+
+        var bookingRoom = await dbContext.BookingRooms.SingleAsync(room => room.Booking.Id == result.Value.BookingId);
+        bookingRoom.VatPercentage.ShouldBe(0m);
     }
 
     [Fact]
@@ -280,6 +294,27 @@ public class BookingServiceShould
 
         // assert
         result.Value.Bookings.Single().Status.ShouldBe("Paid");
+    }
+
+    [Fact]
+    public async Task GetIndexIgnoresDeletedPaymentsForTheStatus()
+    {
+        // arrange — the only settled payment is deleted
+        await using var dbContext = await CreateSeededDbContextAsync(
+            nameof(GetIndexIgnoresDeletedPaymentsForTheStatus),
+            booking =>
+            {
+                var payment = booking.AddPayment(327m);
+                payment.MarkAsPaid(DateTime.UtcNow);
+                payment.IsDeleted = true;
+            });
+        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.Bookings.Single().Status.ShouldBe("Pending");
     }
 
     [Fact]

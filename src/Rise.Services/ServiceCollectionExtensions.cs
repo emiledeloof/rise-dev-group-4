@@ -1,12 +1,14 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rise.Persistence;
 
+using Rise.Services.Billing;
 using Rise.Services.Bookings;
 using Rise.Services.ExtraServices;
 using Rise.Services.Guests;
 using Rise.Services.Invoice;
 using Rise.Services.Payments;
 using Rise.Services.Rates;
+using Rise.Shared.Billing;
 using Rise.Shared.Bookings;
 using Rise.Shared.ExtraServices;
 using Rise.Shared.Guests;
@@ -25,6 +27,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<IBillingService, BillingService>();
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IGuestService, GuestService>();
         services.AddScoped<IInvoiceService, InvoiceService>();

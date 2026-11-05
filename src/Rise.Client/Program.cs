@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
+using Rise.Client.Billing;
 using Rise.Client.Common;
 using Rise.Client.Bookings;
 using Rise.Client.Guests;
@@ -9,6 +10,7 @@ using Rise.Client.Identity;
 using Rise.Client.Invoice;
 using Rise.Shared.Invoice;
 using Rise.Client.Rooms;
+using Rise.Shared.Billing;
 using Rise.Shared.Bookings;
 using Rise.Shared.Guests;
 using Rise.Shared.Rooms;
@@ -71,6 +73,12 @@ try
 
     // booking creation, checkout, confirmation are public; the admin list needs the auth cookie — CookieHandler is ignored on anonymous endpoints
     builder.Services.AddHttpClient<IBookingService, BookingService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
+    // the final bill is admin only, so send the auth cookie along
+    builder.Services.AddHttpClient<IBillingService, BillingService>(client =>
     {
         client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();

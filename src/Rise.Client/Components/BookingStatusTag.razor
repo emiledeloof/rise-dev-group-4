@@ -1,0 +1,20 @@
+@using Rise.Shared.Bookings
+
+@if (Status == BookingStatus.Cancelled)
+{
+    <span class="tag is-danger is-medium status-tag status-tag-cancelled">
+        <i class="fas fa-ban" aria-hidden="true"></i>
+        <span>Cancelled</span>
+    </span>
+}
+else if (Status == BookingStatus.Paid)
+{
+    <span class="tag is-primary is-light is-medium status-tag status-tag-paid">
+        <i class="fas fa-circle-check" aria-hidden="true"></i>
+        <span>Paid</span>
+    </span>
+}
+else
+{
+    <span class="tag is-warning is-light is-medium">Pending</span>
+}
