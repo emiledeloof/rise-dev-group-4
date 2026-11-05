@@ -23,38 +23,28 @@
     }
     else
     {
-        <div class="rate-filters">
-            <label class="rate-filter">
-                <span>Room type</span>
-                <div class="rate-select-wrap">
-                    <select @bind="_selectedRoomName" @bind:after="ApplyFiltersAsync">
-                        <option value="">All rooms</option>
-                        @foreach (var roomName in _roomNames)
-                        {
-                            <option value="@roomName">@roomName</option>
-                        }
-                    </select>
-                    <span class="rate-select-arrow" aria-hidden="true"></span>
-                </div>
-            </label>
+        <FilterBar>
+            <SelectField Label="Room type">
+                <select @bind="_selectedRoomName" @bind:after="ApplyFiltersAsync">
+                    <option value="">All rooms</option>
+                    @foreach (var roomName in _roomNames)
+                    {
+                        <option value="@roomName">@roomName</option>
+                    }
+                </select>
+            </SelectField>
 
-            <label class="rate-filter">
-                <span>Date range</span>
-                <div class="rate-select-wrap">
-                    <select @bind="_selectedDate" @bind:after="ApplyFiltersAsync">
-                        <option value="">All date ranges</option>
-                        @foreach (var dateRange in _dateRanges)
-                        {
-                            <option value="@dateRange">@FormatDateRangeOption(dateRange)</option>
-                        }
-                    </select>
-                    <span class="rate-select-arrow" aria-hidden="true"></span>
-                </div>
-            </label>
+            <SelectField Label="Date range">
+                <select @bind="_selectedDate" @bind:after="ApplyFiltersAsync">
+                    <option value="">All date ranges</option>
+                    @foreach (var dateRange in _dateRanges)
+                    {
+                        <option value="@dateRange">@FormatDateRangeOption(dateRange)</option>
+                    }
+                </select>
+            </SelectField>
 
-            <label class="rate-filter">
-            <span>Policy</span>
-            <div class="rate-select-wrap">
+            <SelectField Label="Policy">
                 <select @bind="_selectedPolicy" @bind:after="ApplyFiltersAsync">
                     <option value="">All policies</option>
                     @foreach (var policy in _policies)
@@ -62,10 +52,8 @@
                         <option value="@policy">@policy</option>
                     }
                 </select>
-                <span class="rate-select-arrow" aria-hidden="true"></span>
-            </div>
-            </label>
-        </div>
+            </SelectField>
+        </FilterBar>
         
         <div class="box rate-list">
             @if (_generalSettings is not null)
@@ -333,9 +321,8 @@
                             <ValidationMessage For="@(() => _createModel.Name)" class="help is-danger"/>
                         </label>
                         
-                        <label class="rate-filter">
-                            <span>Room type</span>
-                            <div class="rate-select-wrap">
+                        <SelectField Label="Room type">
+                            <ChildContent>
                                 <InputSelect @bind-Value="_createModel.RoomName">
                                     <option value="">Select a room</option>
                                     @foreach (var roomName in _createRoomNames)
@@ -343,10 +330,11 @@
                                         <option value="@roomName">@roomName</option>
                                     }
                                 </InputSelect>
-                                <span class="rate-select-arrow" aria-hidden="true"></span>
-                            </div>
-                            <ValidationMessage For="@(() => _createModel.RoomName)" class="help is-danger" />
-                        </label>
+                            </ChildContent>
+                            <Validation>
+                                <ValidationMessage For="@(() => _createModel.RoomName)" class="help is-danger" />
+                            </Validation>
+                        </SelectField>
 
                         <label class="rate-create-field">
                             <span>Price per night (€)</span>

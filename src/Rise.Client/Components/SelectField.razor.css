@@ -1,0 +1,42 @@
+.select-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+.select-field-control {
+    position: relative;
+}
+
+/* ::deep because the select comes from the page, it does not get the scope of this component */
+.select-field-control ::deep select {
+    appearance: none;
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 2rem 0 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.4rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+}
+
+.select-field-arrow {
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 1.5px solid var(--color-border);
+    border-bottom: 1.5px solid var(--color-border);
+    pointer-events: none;
+    transform: translateY(-70%) rotate(45deg);
+    transition: transform 180ms ease;
+}
+
+.select-field-control:focus-within .select-field-arrow {
+    transform: translateY(-30%) rotate(225deg);
+}
