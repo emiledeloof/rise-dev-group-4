@@ -1,0 +1,173 @@
+.promotion-codes-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.promotion-codes-heading .title {
+    margin: 0;
+}
+
+.promotion-code-form {
+    max-width: 920px;
+    margin-top: 1rem;
+    padding: 1.25rem;
+}
+
+.promotion-code-form h2 {
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.promotion-code-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.promotion-code-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.promotion-code-field label,
+.promotion-code-active {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+.promotion-code-field-full {
+    grid-column: 1 / -1;
+}
+
+.promotion-code-field ::deep input,
+.promotion-code-field ::deep select {
+    appearance: none;
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.promotion-code-field ::deep input:focus,
+.promotion-code-field ::deep select:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 0.125em var(--color-primary-tint);
+}
+
+.promotion-code-field ::deep input::placeholder {
+    color: var(--color-text-muted);
+    opacity: 0.7;
+}
+
+.promotion-code-field ::deep input.invalid,
+.promotion-code-field ::deep select.invalid {
+    border-color: var(--color-accent);
+    background-color: #fbf3f3;
+}
+
+.promotion-code-field ::deep input.invalid:focus,
+.promotion-code-field ::deep select.invalid:focus {
+    box-shadow: 0 0 0 0.125em rgba(122, 46, 46, 0.25);
+}
+
+.promotion-code-field ::deep select {
+    padding-right: 2.25rem;
+    background-image: linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%),
+        linear-gradient(135deg, var(--color-text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 1rem) 1.05rem, calc(100% - 0.7rem) 1.05rem;
+    background-repeat: no-repeat;
+    background-size: 0.3rem 0.3rem, 0.3rem 0.3rem;
+}
+
+.promotion-code-date-range ::deep input {
+    min-width: 0;
+}
+
+.promotion-code-field ::deep input[type="date"] {
+    appearance: auto;
+    padding-right: 0.5rem;
+    color-scheme: light;
+}
+
+.promotion-code-field ::deep input[type="date"]::-webkit-calendar-picker-indicator {
+    margin-left: auto;
+    cursor: pointer;
+}
+
+.promotion-code-field label span {
+    color: var(--color-text-muted);
+    font-weight: 400;
+}
+
+.promotion-code-date-range {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.promotion-code-active {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    margin-top: 1.25rem;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-bg-alt);
+    color: var(--color-text);
+    font-size: 0.875rem;
+}
+
+.promotion-code-active ::deep input {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin: 0;
+    accent-color: var(--color-primary);
+}
+
+.promotion-code-notice {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-card);
+    background: #d9edf7;
+    color: #23465a;
+    font-size: 0.85rem;
+}
+
+.promotion-code-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.promotion-code-save {
+    flex: 1;
+}
+
+@media (max-width: 640px) {
+    .promotion-code-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .promotion-code-field-full {
+        grid-column: auto;
+    }
+
+    .promotion-code-actions {
+        flex-direction: column;
+    }
+}
