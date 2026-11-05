@@ -1,3 +1,4 @@
+@inherits LocalizedComponentBase
 @page "/"
 
 <PageTitle>Stazzu La Vigna di Maria</PageTitle>
@@ -15,7 +16,7 @@
 
     <div class="hero-content">
         <img class="hero-logo" src="images/home/logo-white.png" alt="Stazzu La Vigna di Maria" />
-        <h1 class="hero-title">Slow days among vines and granite</h1>
+        <h1 class="hero-title">@Text["HeroTitle"]</h1>
 
         @* shared search bar, same as on the search and results pages, goes to the results page *@
         @* TODO: guests and rooms fields of the mockup, when a story asks for them *@
@@ -27,14 +28,14 @@
 <section class="home-section">
     <div class="home-inner estate">
         <div class="estate-text">
-            <span class="eyebrow">The estate</span>
-            <h2>A manor farm among three small vineyards</h2>
+            <span class="eyebrow">@Text["TheEstateEyebrow"]</span>
+            <h2>@Text["ManorFarmTitle"]</h2>
             <p class="home-muted">
                 Stazzu La Vigna di Maria stands on 2.4 hectares of gardens, three small vineyards and a wood
                 with granite rocks and caves. In one of those caves we found a small statue of Mary, which
                 gave the estate its name.
             </p>
-            <Button Variant="ButtonVariant.Secondary" Href="estate">Discover the estate</Button>
+            <Button Variant="ButtonVariant.Secondary" Href="estate">@Text["DiscoverTheEstate"]</Button>
         </div>
         @* photos of the estate, same glass arrows as the room cards, a click shows the photo large *@
         <div class="estate-photo">
@@ -46,8 +47,8 @@
 @* ---------- rooms ---------- *@
 <section class="home-section home-section-alt">
     <div class="home-inner">
-        <span class="eyebrow">Our rooms</span>
-        <h2>Three rooms, each with its own character</h2>
+        <span class="eyebrow">@Text["OurRoomsEyebrow"]</span>
+        <h2>@Text["ThreeRoomsTitle"]</h2>
 
         @* nothing while loading so no placeholder data flashes, a msg with a way on when there are no rooms *@
         @if (_isLoading)
@@ -57,7 +58,7 @@
         else if (_errorMessage is not null)
         {
             <p class="home-muted rooms-empty">
-                @_errorMessage <a class="home-link" href="search">Search rooms <i class="fas fa-arrow-right"></i></a>
+                @_errorMessage <a class="home-link" href="search">@Text["SearchRooms"] <i class="fas fa-arrow-right"></i></a>
             </p>
         }
         else
@@ -81,10 +82,10 @@
                             @* no price line for a room without a rate, never a €0 *@
                             @if (room.FromPrice is { } fromPrice)
                             {
-                                <p class="room-card-price home-small home-muted">from €@fromPrice.ToString("0") per night · incl. VAT</p>
+                                <p class="room-card-price home-small home-muted">@Text["From"] €@fromPrice.ToString("0") @Text["PerNight"] · @Text["InclVat"]</p>
                             }
 
-                            <a class="home-link" href="rooms/@room.Id">View room <i class="fas fa-arrow-right"></i></a>
+                            <a class="home-link" href="rooms/@room.Id">@Text["ViewRoom"] <i class="fas fa-arrow-right"></i></a>
                         </div>
                     </article>
                 }
@@ -93,7 +94,7 @@
             @* only when the db has more rooms than the cards *@
             @if (HasMoreRooms)
             {
-                <a class="home-link rooms-all" href="rooms">See all rooms <i class="fas fa-arrow-right"></i></a>
+                <a class="home-link rooms-all" href="rooms">@Text["SeeAllRooms"] <i class="fas fa-arrow-right"></i></a>
             }
         }
     </div>
@@ -102,20 +103,20 @@
 @* ---------- reviews ---------- *@
 <section class="home-section">
     <div class="home-inner">
-        <span class="eyebrow">Reviews</span>
-        <h2>What our guests say</h2>
+        <span class="eyebrow">@Text["ReviewsEyebrow"]</span>
+        <h2>@Text["WhatOurGuestsSay"]</h2>
 
         <div class="card-grid">
             @foreach (var review in ReviewList)
             {
                 <article class="review-card">
-                    <div class="review-stars" aria-label="5 out of 5 stars">★★★★★</div>
+                    <div class="review-stars" aria-label="@Text["FiveOutOfFiveStars"]">★★★★★</div>
                     <p>@review.Text</p>
                     <p class="home-small home-muted">@review.Author · @review.Source</p>
                 </article>
             }
         </div>
 
-        <a class="home-link review-all" href="reviews">Read all reviews on Google <i class="fas fa-arrow-right"></i></a>
+        <a class="home-link review-all" href="reviews">@Text["ReadAllReviewsOnGoogle"] <i class="fas fa-arrow-right"></i></a>
     </div>
 </section>

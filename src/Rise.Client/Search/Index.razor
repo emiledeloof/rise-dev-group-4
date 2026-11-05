@@ -1,14 +1,14 @@
 ﻿@page "/search"
 @* stay search page, the guest picks the dates of the stay here *@
-@* TODO: translate the texts with the languages task *@
+@inherits LocalizedComponentBase
 
-<PageTitle>Find your stay</PageTitle>
+<PageTitle>@Text["FindYourStay"]</PageTitle>
 
 @* centered frame, see .page in theme.css *@
 <div class="page">
-    <span class="eyebrow">Book a room</span>
-    <h1>Find your stay</h1>
-    <p class="subtitle">Choose your arrival and departure dates to see the available rooms.</p>
+    <span class="eyebrow">@Text["BookARoom"]</span>
+    <h1>@Text["FindYourStay"]</h1>
+    <p class="subtitle">@Text["FindYourStaySubtitle"]</p>
 
     @* same search bar as the home and results pages, it goes to the results page on submit *@
     <SearchBar />
