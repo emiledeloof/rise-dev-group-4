@@ -29,6 +29,38 @@ public class BookingListShould : BunitContext
         cut.FindAll("li.booking-row").Count.ShouldBe(3);
     }
 
+    /// <summary>
+    /// the payment status stays visible next to the nb of cancelled rooms
+    /// </summary>
+    [Fact]
+    public void ShowThePartialTagNextToTheStatusOfAPartlyCancelledBooking()
+    {
+        var first = _bookingService.IndexAnswer.Value.Bookings.First();
+        first.RoomCount = 2;
+        first.CancelledRoomCount = 1;
+
+        var cut = Render<BookingList>();
+
+        var row = cut.FindAll("li.booking-row")[0];
+        row.QuerySelector(".booking-list-status")!.TextContent.ShouldContain("Paid");
+        row.QuerySelector(".booking-list-partial")!.TextContent.ShouldBe("1 of 2 rooms cancelled");
+        cut.FindAll(".booking-list-partial").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void NotShowThePartialTagWhenAllRoomsAreCancelled()
+    {
+        var booking = _bookingService.IndexAnswer.Value.Bookings.First();
+        booking.Status = "Cancelled";
+        booking.RoomCount = 2;
+        booking.CancelledRoomCount = 2;
+
+        var cut = Render<BookingList>();
+
+        cut.FindAll(".booking-list-partial").ShouldBeEmpty();
+        cut.FindAll("li.booking-row")[0].QuerySelector(".booking-list-status")!.TextContent.Trim().ShouldBe("Cancelled");
+    }
+
     [Fact]
     public void ShowGuestNameRoomsDateAndStatusInEachRow()
     {
@@ -104,6 +136,8 @@ public class BookingListShould : BunitContext
                 TotalAmount = 100m,
                 RoomNumbers = ["101"],
                 Status = "Pending",
+                RoomCount = 1,
+                CancelledRoomCount = 0,
             }).ToList(),
             TotalCount = 25,
         });
