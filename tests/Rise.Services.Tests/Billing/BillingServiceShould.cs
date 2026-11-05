@@ -51,6 +51,16 @@ public class BillingServiceShould
         return (dbContext, booking);
     }
 
+    private static BookingRoom Single(Booking booking) => booking.Rooms.Single(x => x.Room.RoomNumber == "101");
+
+    private static BookingRoom Twin(Booking booking) => booking.Rooms.Single(x => x.Room.RoomNumber == "102");
+
+    /// <summary>
+    /// cancels room 102 of 244 for the stay, room 101 of 220 stays booked
+    /// </summary>
+    private static void CancelTwin(Booking booking, decimal refund)
+        => booking.CancelRooms([new RoomCancellation(Twin(booking), refund)], DateTime.UtcNow, "Guest is ill", adults: 1);
+
     private static BillingRequest.AddLine Minibar(int bookingId) => new()
     {
         BookingId = bookingId,
@@ -211,10 +221,205 @@ public class BillingServiceShould
         var bill = (await new BillingService(dbContext).GetBillAsync(booking.Id)).Value;
 
         bill.Status.ShouldBe(BookingStatus.Cancelled);
+        bill.IsCancelled.ShouldBeTrue();
         bill.OutstandingBalance.ShouldBe(0m);
-        bill.Cancellation.ShouldNotBeNull();
-        bill.Cancellation.RefundAmount.ShouldBe(150m);
-        bill.Cancellation.Reason.ShouldBe("Guest is ill");
+        bill.RefundedAmount.ShouldBe(150m);
+        bill.Accommodation.ShouldAllBe(x => x.Cancellation != null && x.Cancellation.Reason == "Guest is ill");
+        bill.Accommodation.Sum(x => x.Cancellation!.RefundAmount).ShouldBe(150m);
+    }
+
+    [Fact]
+    public async Task KeepWhatIsPaidAndNotRefundedAsFeesOfAFullyCancelledBooking()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(KeepWhatIsPaidAndNotRefundedAsFeesOfAFullyCancelledBooking), x =>
+        {
+            x.AddPayment(464m).MarkAsPaid(DateTime.UtcNow);
+            x.CancelRooms([new RoomCancellation(Twin(x), 100m), new RoomCancellation(Single(x), 0m)], DateTime.UtcNow, "Guest is ill");
+        });
+        await using var _db = dbContext;
+
+        var bill = (await new BillingService(dbContext).GetBillAsync(booking.Id)).Value;
+
+        bill.AccommodationTotal.ShouldBe(0m);
+        bill.CancellationFeesTotal.ShouldBe(364m);
+        bill.Total.ShouldBe(364m);
+        bill.OutstandingBalance.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task BillTheRemainingRoomAndTheFeeOfAPartlyCancelledBooking()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(BillTheRemainingRoomAndTheFeeOfAPartlyCancelledBooking), x =>
+        {
+            x.AddPayment(464m).MarkAsPaid(DateTime.UtcNow);
+            CancelTwin(x, 100m);
+        });
+        await using var _db = dbContext;
+
+        var bill = (await new BillingService(dbContext).GetBillAsync(booking.Id)).Value;
+
+        bill.Status.ShouldBe(BookingStatus.Paid);
+        bill.IsCancelled.ShouldBeFalse();
+        bill.IsPartiallyCancelled.ShouldBeTrue();
+        bill.AccommodationTotal.ShouldBe(220m);
+        bill.CancellationFeesTotal.ShouldBe(144m);
+        bill.Total.ShouldBe(364m);
+        bill.PaidAmount.ShouldBe(464m);
+        bill.RefundedAmount.ShouldBe(100m);
+        bill.OutstandingBalance.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task KeepTheCancelledRoomOnTheBillForTheRecords()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(KeepTheCancelledRoomOnTheBillForTheRecords), x =>
+        {
+            x.AddPayment(464m).MarkAsPaid(DateTime.UtcNow);
+            CancelTwin(x, 100m);
+        });
+        await using var _db = dbContext;
+
+        var bill = (await new BillingService(dbContext).GetBillAsync(booking.Id)).Value;
+
+        bill.Accommodation.Select(x => x.RoomNumber).ShouldBe(["101", "102"]);
+        bill.Accommodation[0].Cancellation.ShouldBeNull();
+        bill.Accommodation[0].CancellationFee.ShouldBe(0m);
+        bill.Accommodation[1].Total.ShouldBe(244m);
+        bill.Accommodation[1].CancellationFee.ShouldBe(144m);
+        var cancellation = bill.Accommodation[1].Cancellation.ShouldNotBeNull();
+        cancellation.Reason.ShouldBe("Guest is ill");
+        cancellation.RefundAmount.ShouldBe(100m);
+    }
+
+    [Fact]
+    public async Task NotLetAFreeLineLowerTheCancellationFee()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(NotLetAFreeLineLowerTheCancellationFee), x =>
+        {
+            x.AddPayment(464m).MarkAsPaid(DateTime.UtcNow);
+            CancelTwin(x, 100m);
+            x.AddBillLine("Minibar", 2, 8m, 22m);
+        });
+        await using var _db = dbContext;
+
+        var bill = (await new BillingService(dbContext).GetBillAsync(booking.Id)).Value;
+
+        bill.CancellationFeesTotal.ShouldBe(144m);
+        bill.Total.ShouldBe(380m);
+        bill.OutstandingBalance.ShouldBe(16m);
+    }
+
+    [Fact]
+    public async Task ChargeNoFeeForACancelledRoomWhenNothingIsPaid()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(ChargeNoFeeForACancelledRoomWhenNothingIsPaid), x => CancelTwin(x, 0m));
+        await using var _db = dbContext;
+
+        var bill = (await new BillingService(dbContext).GetBillAsync(booking.Id)).Value;
+
+        bill.Status.ShouldBe(BookingStatus.Pending);
+        bill.CancellationFeesTotal.ShouldBe(0m);
+        bill.Total.ShouldBe(220m);
+        bill.OutstandingBalance.ShouldBe(220m);
+    }
+
+    [Fact]
+    public async Task ChargeNoFeeWhenTheDepositOnlyCoversTheRemainingRoom()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(ChargeNoFeeWhenTheDepositOnlyCoversTheRemainingRoom), x =>
+        {
+            x.AddPayment(220m).MarkAsPaid(DateTime.UtcNow);
+            CancelTwin(x, 0m);
+        });
+        await using var _db = dbContext;
+
+        var bill = (await new BillingService(dbContext).GetBillAsync(booking.Id)).Value;
+
+        bill.CancellationFeesTotal.ShouldBe(0m);
+        bill.Total.ShouldBe(220m);
+        bill.OutstandingBalance.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task LimitTheFeeToWhatWasPaidAboveTheRemainingRoom()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(LimitTheFeeToWhatWasPaidAboveTheRemainingRoom), x =>
+        {
+            x.AddPayment(300m).MarkAsPaid(DateTime.UtcNow);
+            CancelTwin(x, 0m);
+        });
+        await using var _db = dbContext;
+
+        var bill = (await new BillingService(dbContext).GetBillAsync(booking.Id)).Value;
+
+        bill.CancellationFeesTotal.ShouldBe(80m);
+        bill.Total.ShouldBe(300m);
+        bill.OutstandingBalance.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task OnlyCountTheVatOfTheFeeForACancelledRoom()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(OnlyCountTheVatOfTheFeeForACancelledRoom), x =>
+        {
+            x.AddPayment(464m).MarkAsPaid(DateTime.UtcNow);
+            CancelTwin(x, 100m);
+        });
+        await using var _db = dbContext;
+
+        var bill = (await new BillingService(dbContext).GetBillAsync(booking.Id)).Value;
+
+        // 10 %: 220 holds 20, 22 %: the fee of 144 holds 25.97
+        bill.VatGroups.Select(x => x.VatPercentage).ShouldBe([10m, 22m]);
+        bill.VatGroups[1].GrossAmount.ShouldBe(144m);
+        bill.VatGroups[1].VatAmount.ShouldBe(25.97m);
+        bill.VatAmount.ShouldBe(45.97m);
+        bill.NetAmount.ShouldBe(364m - 45.97m);
+    }
+
+    [Fact]
+    public async Task NotShowAVatGroupForACancelledRoomWithoutFee()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(NotShowAVatGroupForACancelledRoomWithoutFee), x => CancelTwin(x, 0m));
+        await using var _db = dbContext;
+
+        var bill = (await new BillingService(dbContext).GetBillAsync(booking.Id)).Value;
+
+        bill.VatGroups.ShouldHaveSingleItem().VatPercentage.ShouldBe(10m);
+    }
+
+    [Fact]
+    public async Task LetTheAdminChangeTheBillOfAPartlyCancelledBooking()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(LetTheAdminChangeTheBillOfAPartlyCancelledBooking), x => CancelTwin(x, 0m));
+        await using var _db = dbContext;
+        var service = new BillingService(dbContext);
+        var bookingId = booking.Id;
+        // the service must load the rooms itself, tracked rooms would hide a missing include
+        dbContext.ChangeTracker.Clear();
+
+        var added = await service.AddLineAsync(Minibar(bookingId));
+        added.IsSuccess.ShouldBeTrue();
+        added.Value.Total.ShouldBe(236m);
+        dbContext.ChangeTracker.Clear();
+
+        var lineId = added.Value.OtherServices.Single().Id;
+        var edited = await service.EditLineAsync(new BillingRequest.EditLine
+        {
+            BookingId = bookingId,
+            LineId = lineId,
+            Description = "Wine tasting",
+            Quantity = 1,
+            UnitPrice = 30m,
+            VatPercentage = 10m,
+        });
+        edited.IsSuccess.ShouldBeTrue();
+        edited.Value.Total.ShouldBe(250m);
+        dbContext.ChangeTracker.Clear();
+
+        var deleted = await service.DeleteLineAsync(new BillingRequest.DeleteLine { BookingId = bookingId, LineId = lineId });
+        deleted.IsSuccess.ShouldBeTrue();
+        deleted.Value.Total.ShouldBe(220m);
     }
 
     [Fact]
