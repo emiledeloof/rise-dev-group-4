@@ -535,6 +535,77 @@ public class BookingServiceCancelRoomsShould
         result.Value.Rows.Single(x => x.RoomName == "Flexible Room").Bookings.ShouldHaveSingleItem();
     }
 
+    // ── checkout ───────────────────────────────────────────────────────────────
+
+    private static (IStripePaymentGateway Stripe, IConfiguration Configuration) StripeThatAccepts()
+    {
+        var stripe = Substitute.For<IStripePaymentGateway>();
+        stripe.CreateCheckoutSessionAsync(Arg.Any<StripeCheckoutSessionRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new StripeCheckoutSession("cs_new", "https://checkout.stripe.com/cs_new"));
+        var configuration = Substitute.For<IConfiguration>();
+        configuration["Stripe:SuccessUrl"].Returns("https://localhost/success");
+        configuration["Stripe:CancelUrl"].Returns("https://localhost/cancel");
+        return (stripe, configuration);
+    }
+
+    [Fact]
+    public async Task OnlyChargeTheRemainingRoomsAtCheckout()
+    {
+        // arrange, nothing paid, the saver room of 100 is cancelled
+        var (stripe, configuration) = StripeThatAccepts();
+        var seed = await SeedAsync(nameof(OnlyChargeTheRemainingRoomsAtCheckout), paid: 0m, stripe: stripe, configuration: configuration);
+        await using var _ = seed.DbContext;
+        await seed.Service.CancelAsync(Request(seed.BookingId, adults: 2, (seed.SaverId, 0m)));
+
+        // act
+        var result = await seed.Service.CreateCheckoutSessionAsync(new BookingRequest.CreateCheckoutSession { BookingId = seed.BookingId });
+
+        // assert
+        result.IsSuccess.ShouldBeTrue();
+        await stripe.Received(1).CreateCheckoutSessionAsync(
+            Arg.Is<StripeCheckoutSessionRequest>(x => x.Amount == 200m),
+            Arg.Any<CancellationToken>());
+        (await seed.DbContext.Payments.SingleAsync()).Amount.ShouldBe(200m);
+    }
+
+    /// <summary>
+    /// ! a payment without a session is reused, its amount must follow or PaidAmount and the refund limit would be too high after paying
+    /// </summary>
+    [Fact]
+    public async Task UpdateTheAmountOfAReusedPaymentAtCheckout()
+    {
+        // arrange, an earlier checkout failed and left a payment of the full 300 without a session
+        var (stripe, configuration) = StripeThatAccepts();
+        var seed = await SeedAsync(nameof(UpdateTheAmountOfAReusedPaymentAtCheckout), paid: 0m, stripe: stripe, configuration: configuration);
+        await using var _ = seed.DbContext;
+        (await seed.DbContext.Bookings.SingleAsync()).AddPayment(300m);
+        await seed.DbContext.SaveChangesAsync();
+        await seed.Service.CancelAsync(Request(seed.BookingId, adults: 2, (seed.SaverId, 0m)));
+
+        // act
+        await seed.Service.CreateCheckoutSessionAsync(new BookingRequest.CreateCheckoutSession { BookingId = seed.BookingId });
+
+        // assert
+        var payment = await seed.DbContext.Payments.SingleAsync();
+        payment.Amount.ShouldBe(200m);
+        payment.StripeCheckoutSession.ShouldBe("cs_new");
+    }
+
+    [Fact]
+    public async Task RefuseACheckoutWhenAllRoomsAreCancelled()
+    {
+        // arrange
+        var seed = await SeedAsync(nameof(RefuseACheckoutWhenAllRoomsAreCancelled), paid: 0m);
+        await using var _ = seed.DbContext;
+        await seed.Service.CancelAsync(Request(seed.BookingId, null, (seed.FlexibleId, 0m), (seed.SaverId, 0m)));
+
+        // act
+        var result = await seed.Service.CreateCheckoutSessionAsync(new BookingRequest.CreateCheckoutSession { BookingId = seed.BookingId });
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.Conflict);
+    }
+
     // ── overviews ──────────────────────────────────────────────────────────────
 
     [Fact]

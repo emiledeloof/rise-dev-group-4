@@ -48,8 +48,8 @@ public sealed class BookingService(
         if (booking.Payments.Any(x => x.IsPaid))
             return Result.Conflict("The booking has already been paid.");
 
-        var nights = booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
-        var amount = booking.Rooms.Sum(x => PriceCalculator.Total(x.PricePerNight, nights));
+        // cancelled rooms are not charged
+        var amount = booking.ActiveRooms.Sum(x => PriceCalculator.Total(x.PricePerNight, booking.Nights));
 
         if (amount <= 0)
             return Result.Invalid(new ValidationError("The booking amount must be greater than zero."));
@@ -59,6 +59,9 @@ public sealed class BookingService(
 
         if (payment is null)
             payment = booking.AddPayment(amount);
+        else
+            // ! a room can be cancelled since this payment was made, Stripe charges the new amount so the payment must match
+            payment.ChangeAmount(amount);
 
         if (payment.Id == 0)
             await dbContext.SaveChangesAsync(cancellationToken);

@@ -482,4 +482,41 @@ public class BookingShould
         booking.Nights.ShouldBe(2);
         a.TotalPrice.ShouldBe(120m);
     }
+
+    [Fact]
+    public void ChangeTheAmountOfAnUnpaidPayment()
+    {
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
+        var payment = booking.AddPayment(200m);
+
+        payment.ChangeAmount(120m);
+
+        payment.Amount.ShouldBe(120m);
+    }
+
+    [Fact]
+    public void NotChangeTheAmountOfAPaidPayment()
+    {
+        var (booking, _, _) = CreatePaidBookingWithTwoRooms();
+        var payment = booking.Payments.Single();
+
+        Action act = () => payment.ChangeAmount(120m);
+
+        act.ShouldThrow<InvalidOperationException>();
+        payment.Amount.ShouldBe(200m);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void NotChangeThePaymentToANonPositiveAmount(decimal amount)
+    {
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
+        var payment = booking.AddPayment(200m);
+
+        Action act = () => payment.ChangeAmount(amount);
+
+        act.ShouldThrow<ArgumentException>();
+        payment.Amount.ShouldBe(200m);
+    }
 }
