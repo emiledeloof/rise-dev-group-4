@@ -18,6 +18,7 @@ public sealed class StripeWebhookService(
     {
         var localPayment = await dbContext.Payments
             .Include(x => x.Booking)
+                .ThenInclude(x => x.Rooms)
             .SingleOrDefaultAsync(x => x.Id == payment.PaymentId, cancellationToken);
 
         if (localPayment is null)
@@ -37,10 +38,10 @@ public sealed class StripeWebhookService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // ! the guest finished an open checkout after the admin cancelled, the money is real so it stays paid,
-        // the admin detail page shows a warning, the refund is done by hand
-        if (localPayment.Booking.IsCancelled)
-            Log.Warning("Payment {PaymentId} was paid after booking {BookingNumber} was cancelled, refund it by hand.",
+        // ! the guest finished an open checkout after the admin cancelled some or all rooms, the amount can be too high
+        // the money is real so it stays paid, the admin detail page shows a warning, the refund is done by hand
+        if (localPayment.Booking.IsCancelled || localPayment.Booking.IsPartiallyCancelled)
+            Log.Warning("Payment {PaymentId} was paid after rooms of booking {BookingNumber} were cancelled, refund the difference by hand.",
                 localPayment.Id, localPayment.Booking.BookingNumber);
 
         return Result.Success();
