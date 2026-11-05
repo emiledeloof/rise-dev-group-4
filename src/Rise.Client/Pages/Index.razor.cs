@@ -1,13 +1,16 @@
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
 using Rise.Shared.Rooms;
+using Rise.Client.I18nText;
 
 namespace Rise.Client.Pages;
 
 /// <summary>
 /// landing page, the rooms come from the api, the hero, estate and reviews are static
 /// </summary>
-public partial class Index
+public partial class Index : LocalizedComponentBase
 {
+
     // photos of the hero slideshow, in order, the css keyframes are made for 5 photos of 6 s each
     private const int SlideSeconds = 6;
 
@@ -67,6 +70,8 @@ public partial class Index
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
+        await LoadTextAsync();
+
         var result = await RoomService.GetListAsync(new RoomRequest.List { Take = FeaturedRoomsCount });
 
         if (result.IsSuccess)

@@ -1,13 +1,13 @@
-﻿@using Rise.Client.Common
+@inherits LocalizedComponentBase
 @* "your selection" box of the results page, styles in SelectionSummary.razor.css *@
-<aside class="selection-summary" aria-label="Your selection">
-    <h2 class="selection-summary-title">Your selection</h2>
-    <p class="selection-summary-meta">@Nights @(Nights == 1 ? "night" : "nights")</p>
+<aside class="selection-summary" aria-label="@Text["YourSelection"]">
+    <h2 class="selection-summary-title">@Text["YourSelection"]</h2>
+    <p class="selection-summary-meta">@Nights @(Nights == 1 ? Text["Night"] : Text["Nights"])</p>
 
     @if (Rooms.Count == 0)
     {
         @* nothing picked yet, short hint instead of an empty box *@
-        <p class="selection-summary-empty">Choose a rate on a room to add it here.</p>
+        <p class="selection-summary-empty">@Text["ChooseRatePrompt"]</p>
     }
     else
     {
@@ -25,13 +25,20 @@
 
         @* total of all the rooms *@
         <p class="selection-summary-total">
-            <span>Total</span>
+            <span>@Text["Total"]</span>
             <span>@Format.Amount(Total)</span>
         </p>
     }
 
-    <p class="selection-summary-vat">Prices include VAT when enabled</p>
+    <p class="selection-summary-vat">@Text["PricesIncludeVat"]</p>
 
     @* next step of the booking, the page stores the selection and goes to the guest details *@
-    <Button IsFullWidth="true" IsDisabled="Rooms.Count == 0" OnClick="() => OnContinue.InvokeAsync()">Continue</Button>
+    <Button IsFullWidth="true" IsDisabled="Rooms.Count == 0" OnClick="() => OnContinue.InvokeAsync()">@Text["Continue"]</Button>
 </aside>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTextAsync();
+    }
+}

@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
+using Rise.Client.I18nText;
 using Rise.Shared.Search;
 
 namespace Rise.Client.Components;
@@ -8,8 +10,9 @@ namespace Rise.Client.Components;
 /// Allows specifying the number of adult guests and requested rooms with increment/decrement buttons,
 /// smoothly auto-adjusting rooms or guests to ensure valid capacity (at least 1 adult per room).
 /// </summary>
-public partial class GuestPicker
+public partial class GuestPicker : LocalizedComponentBase
 {
+
     /// <summary>
     /// Current number of adult guests (two-way bindable via @bind-Value).
     /// </summary>
@@ -112,12 +115,17 @@ public partial class GuestPicker
     private bool CanIncreaseRooms => HasRooms && (MaxRooms <= 0 || Rooms!.Value < MaxRooms);
 
     // Formatted label above the field
-    private string LabelText => HasRooms ? "Guests & Rooms" : "Guests";
+    private string LabelText => HasRooms ? Text["GuestsAndRooms"] : Text["GuestsLabel"];
 
     // Formatted display text (e.g., "2 Adults · 1 Room" or "2 Adults")
     private string FieldText => HasRooms
-        ? $"{Value} {(Value == 1 ? "Adult" : "Adults")} · {Rooms!.Value} {(Rooms!.Value == 1 ? "Room" : "Rooms")}"
-        : (Value == 1 ? "1 Adult" : $"{Value} Adults");
+        ? $"{Value} {(Value == 1 ? Text["Adult"] : Text["Adults"])} · {Rooms!.Value} {(Rooms!.Value == 1 ? Text["RoomLabel"] : Text["RoomsLabel"])}"
+        : (Value == 1 ? $"1 {Text["Adult"]}" : $"{Value} {Text["Adults"]}");
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTextAsync();
+    }
 
     // Toggles the popup open or closed
     private void Toggle()

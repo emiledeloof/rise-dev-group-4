@@ -443,14 +443,21 @@ public sealed class BookingService(
     }
 
     /// <summary>
-    /// Returns a paginated list of all bookings for the admin overview.
+    /// Returns a paginated list of the bookings for the admin overview, optionally filtered on cancellation.
     /// Status is "Cancelled" for a cancelled booking, else "Paid" when at least one payment has been settled, otherwise "Pending".
     /// </summary>
     public async Task<Result<BookingResponse.Index>> GetIndexAsync(
-        QueryRequest.SkipTake request,
+        BookingRequest.Index request,
         CancellationToken ctx = default)
     {
         var query = dbContext.Bookings.Where(b => !b.IsDeleted);
+
+        query = request.CancellationFilter switch
+        {
+            BookingCancellationFilters.NotCancelled => query.Where(b => b.CancelledAt == null),
+            BookingCancellationFilters.OnlyCancelled => query.Where(b => b.CancelledAt != null),
+            _ => query,
+        };
 
         var totalCount = await query.CountAsync(ctx);
 

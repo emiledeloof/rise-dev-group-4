@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
+using Rise.Client.Common;
+using Rise.Client.I18nText;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 
@@ -10,8 +12,9 @@ namespace Rise.Client.Components;
 /// compact search bar like the one of the mockup, dates + guests + rooms + check availability btn
 /// used on the home, search and results pages so the bar looks the same everywhere
 /// </summary>
-public partial class SearchBar
+public partial class SearchBar : LocalizedComponentBase
 {
+
     /// <summary>
     /// arrival date already chosen, eg from the url of the results page
     /// </summary>
@@ -111,6 +114,8 @@ public partial class SearchBar
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
+        await LoadTextAsync();
+
         if (!_stay.MaxCapacity.HasValue || !_stay.MaxRooms.HasValue)
         {
             var roomService = ServiceProvider?.GetService<IRoomService>();

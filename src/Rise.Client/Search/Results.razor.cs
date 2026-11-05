@@ -3,14 +3,23 @@ using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 using Rise.Client.Bookings;
 using Rise.Client.Components;
+using Rise.Client.Common;
+using System.Globalization;
 
 namespace Rise.Client.Search;
 
 /// <summary>
 /// results page of the stay search, shows the rooms free for the chosen dates, guests and rooms
 /// </summary>
-public partial class Results
+public partial class Results : LocalizedComponentBase
 {
+    private static CultureInfo DateDisplayCulture =>
+        OperatingSystem.IsBrowser() ? CultureInfo.CurrentCulture : CultureInfo.InvariantCulture;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTextAsync();
+    }
     /// <summary>
     /// arrival date read from the url, eg ?checkIn=2026-10-14
     /// SupplyParameterFromQuery fills it automatically from the query string
