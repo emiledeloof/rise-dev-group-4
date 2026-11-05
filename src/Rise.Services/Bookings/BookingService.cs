@@ -173,7 +173,8 @@ public sealed class BookingService(
                 rate.PricePerNight,
                 settings.IsVatEnabled,
                 settings.VatPercentage);
-            booking.AddRoom(room, rate, pricePerNight);
+            // the VAT pct is kept on the room, so the bill still shows the right VAT after the setting changes
+            booking.AddRoom(room, rate, pricePerNight, settings.IsVatEnabled ? settings.VatPercentage : 0m);
         }
 
         // guest and booking are saved together, one SaveChanges is atomic
@@ -275,8 +276,7 @@ public sealed class BookingService(
             Id = booking.Id,
             BookingNumber = booking.BookingNumber,
             CreatedAt = booking.CreatedAt,
-            // same rule as GetIndexAsync
-            Status = booking.IsCancelled ? BookingStatus.Cancelled : payments.Any(x => x.IsPaid) ? BookingStatus.Paid : BookingStatus.Pending,
+            Status = BookingStatusRule.For(booking),
             CheckIn = booking.CheckIn,
             CheckOut = booking.CheckOut,
             Nights = nights,
@@ -489,7 +489,8 @@ public sealed class BookingService(
                 GuestEmail = b.Guest.Email,
                 RoomPrices = b.Rooms.Select(r => r.PricePerNight).ToList(),
                 RoomNumbers = b.Rooms.Select(r => r.Room.RoomNumber).ToList(),
-                Status = b.CancelledAt != null ? BookingStatus.Cancelled : b.Payments.Any(p => p.PaidAt != null) ? BookingStatus.Paid : BookingStatus.Pending,
+                IsCancelled = b.CancelledAt != null,
+                HasSettledPayment = b.Payments.AsQueryable().Any(BookingStatusRule.IsSettled),
             })
             .ToListAsync(ctx);
 
@@ -507,7 +508,7 @@ public sealed class BookingService(
                 GuestEmail = x.GuestEmail,
                 TotalAmount = x.RoomPrices.Sum(p => PriceCalculator.Total(p, nights)),
                 RoomNumbers = x.RoomNumbers,
-                Status = x.Status,
+                Status = BookingStatusRule.For(x.IsCancelled, x.HasSettledPayment),
             };
         }).ToList();
 

@@ -13,6 +13,7 @@ internal class BookingRoomConfiguration : EntityConfiguration<BookingRoom>
     {
         base.Configure(builder);
         builder.Property(x => x.PricePerNight).IsRequired();
+        builder.Property(x => x.VatPercentage).IsRequired().HasPrecision(5, 2).HasDefaultValue(0m);
 
         builder.HasOne(x => x.Room)
             .WithMany()
