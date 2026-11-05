@@ -17,6 +17,8 @@ using Rise.Shared.Rates;
 using Rise.Shared.Rooms;
 using Rise.Services.RatePricing;
 using Rise.Shared.RatePricing;
+using Rise.Services.RoomTypes;
+using Rise.Shared.RoomTypes;
 
 namespace Rise.Services;
 
@@ -45,6 +47,7 @@ public static class ServiceCollectionExtensions
             services.AddScoped<IEmailService, SmtpEmailService>();
         else
             services.AddScoped<IEmailService, NullEmailService>();
+        services.AddScoped<IRoomTypeService, RoomTypeService>();
         services.AddTransient<DbSeeder>();
 
         // Add other application services here.

@@ -686,6 +686,9 @@ namespace Rise.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int?>("RoomTypeId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("SizeInSquareMeters")
                         .HasColumnType("integer");
 
@@ -704,6 +707,8 @@ namespace Rise.Persistence.Migrations
 
                     b.HasIndex("RoomNumber")
                         .IsUnique();
+
+                    b.HasIndex("RoomTypeId");
 
                     b.ToTable("Room", (string)null);
                 });
@@ -744,6 +749,43 @@ namespace Rise.Persistence.Migrations
                     b.HasIndex("RoomId");
 
                     b.ToTable("RoomPhoto", (string)null);
+                });
+
+            modelBuilder.Entity("Rise.Domain.Rooms.RoomType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RoomType", (string)null);
                 });
 
             modelBuilder.Entity("Rise.Domain.Settings.GeneralSettings", b =>
@@ -945,6 +987,16 @@ namespace Rise.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("Rise.Domain.Rooms.Room", b =>
+                {
+                    b.HasOne("Rise.Domain.Rooms.RoomType", "RoomType")
+                        .WithMany()
+                        .HasForeignKey("RoomTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("RoomType");
                 });
 
             modelBuilder.Entity("Rise.Domain.Rooms.RoomPhoto", b =>

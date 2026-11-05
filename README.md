@@ -1,4 +1,6 @@
-# Rise - [GROUPNAME]
+# Rise - Group 4
+
+Booking website for the Stazzu La Vigna di Maria estate. Guests search for available rooms, book them and pay online with Stripe. Administrators manage bookings, rates, room types and invoices.
 
 ## Quick Start
 
@@ -11,6 +13,12 @@ cp .env.example .env    # then open .env and replace `change-me` with your own p
 
 # store the app's connection string in User Secrets; use the SAME password as in .env
 dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;Port=5433;Database=rise;Username=rise;Password=<your password>" --project src/Rise.Server
+
+# booking features need a Stripe key to be set; this placeholder is enough until you want to test payments
+dotnet user-secrets set "Stripe:SecretKey" "sk_test_not_configured" --project src/Rise.Server
+
+# trust the local HTTPS certificate
+dotnet dev-certs https --trust
 ```
 
 **Every time:**
@@ -18,15 +26,28 @@ dotnet user-secrets set "ConnectionStrings:DatabaseConnection" "Host=localhost;P
 ```bash
 docker compose up -d                    # database only (PostgreSQL on localhost:5433)
 docker compose --profile tools up -d    # or: database + pgAdmin at http://localhost:5050
+dotnet run --project src/Rise.Server    # the app, wait for "Now listening on: https://localhost:5001"
 ```
 
-Then run `Rise.Server` (https://localhost:5001). See [Installation Instructions](#installation-instructions) for details. To test payments, see [Testing Stripe Payments Locally](#testing-stripe-payments-locally).
+| URL | What it is |
+| --- | --- |
+| https://localhost:5001 | The website |
+| https://localhost:5001/login | Log in as `admin@example.com` / `A1b2C3!` |
+| https://localhost:5001/admin | Admin area (after logging in) |
+| https://localhost:5001/swagger | API documentation |
+
+With the placeholder Stripe key everything works except **Pay now**. To test payments, see [Testing Stripe Payments Locally](#testing-stripe-payments-locally). See [Installation Instructions](#installation-instructions) for details about the setup, and [Build, Test and Format](#build-test-and-format) before you push.
 
 > **Coming from the old setup** (password `rise` hard-coded)? After the one-time setup, run `docker compose down -v` once so the database is recreated with your new password.
 
 ## Team Members
 
-- [MEMBER1_NAME] - [MEMBER1_EMAIL] - [MEMBER1_GITHUB_USERNAME]
+- Matti
+- Maelle
+- Martim
+- Nil
+- Tom
+- Jonathan
 
 ## Technologies & Packages Used
 
@@ -94,11 +115,29 @@ dotnet --version
 
    The secret is stored per machine outside the repository (`%APPDATA%\Microsoft\UserSecrets\` on Windows, `~/.microsoft/usersecrets/` on Linux/macOS). `appsettings.json` only contains an empty `DatabaseConnection` placeholder. In Development the app and `dotnet ef` read the secret automatically and it overrides the placeholder. Other environments must provide the environment variable `ConnectionStrings__DatabaseConnection`. If the connection string is missing, the app stops at startup with a message showing this command.
 
-6. Run the project using `Rise.Server` as the startup project.
+6. Set a placeholder Stripe key:
 
-7. The project should open in your default browser on port `5001`. In Development the database is dropped, migrated and seeded on every startup.
+   ```bash
+   dotnet user-secrets set "Stripe:SecretKey" "sk_test_not_configured" --project src/Rise.Server
+   ```
 
-8. Optional: start pgAdmin to browse the database:
+   Without this setting the app starts, but every booking feature fails. With the placeholder, only **Pay now** fails. To test payments, replace it with your own test key, see [Testing Stripe Payments Locally](#testing-stripe-payments-locally).
+
+7. Trust the local HTTPS development certificate:
+
+   ```bash
+   dotnet dev-certs https --trust
+   ```
+
+8. Run the project using `Rise.Server` as the startup project, or from the repository root:
+
+   ```bash
+   dotnet run --project src/Rise.Server
+   ```
+
+9. The project should open in your default browser on port `5001`. In Development the database is dropped, migrated and seeded on every startup.
+
+10. Optional: start pgAdmin to browse the database:
 
    ```bash
    docker compose --profile tools up -d
@@ -130,7 +169,11 @@ docker compose -f docker-compose.local.yml down -v         # stop and reset the 
 
 - Uses the same `.env` as development (`POSTGRES_PASSWORD` is required). It has its own database volume and no published DB port, so it runs side by side with the dev stack and dev runs never wipe its data.
 - On startup the app applies the migrations and seeds the test data (`APP_SEED=true`, same users as in development). The seeder skips data that already exists, so restarts are safe.
-- Stripe: the app needs `Stripe:SecretKey` at startup. Without `STRIPE_SECRET_KEY` in `.env` it gets a placeholder, so the app starts but payments fail. To test payments, put your Stripe test keys in `.env` (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_SUCCESS_URL`, `STRIPE_CANCEL_URL`).
+- Stripe: booking features need `Stripe:SecretKey`. Without `STRIPE_SECRET_KEY` in `.env` the app gets a placeholder, so everything works except payments. To test payments, put your Stripe test keys in `.env` (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_SUCCESS_URL`, `STRIPE_CANCEL_URL`), run `up -d` again and forward the webhook to this app:
+
+  ```bash
+  stripe listen --api-key <your sk_test key> --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed --forward-to http://localhost:8080/api/payments/stripe-webhook
+  ```
 
 ### Configuration
 
@@ -143,6 +186,7 @@ Outside Development, the database is only migrated or seeded when these settings
 | `Database__Seed` | Run `DbSeeder` after migrating |
 | `Stripe__SecretKey`, `Stripe__WebhookSecret`, `Stripe__SuccessUrl`, `Stripe__CancelUrl`, `Stripe__Currency` | Stripe settings |
 | `UseHttpsRedirection` | `false` in the image, TLS is terminated by a reverse proxy |
+| `Loki__Url` | Optional Grafana Loki URL. When empty, logs only go to the console and files |
 
 ### Real deployment (preparation)
 
@@ -159,6 +203,8 @@ Guests pay with [Stripe Checkout](https://docs.stripe.com/payments/checkout) in 
 
 The payment is only marked as paid when Stripe calls our webhook (`POST /api/payments/stripe-webhook`). Stripe can't reach `localhost`, so the Stripe CLI has to forward the webhook. **If `stripe listen` isn't running while you pay, the booking stays "Payment processing" forever.**
 
+The commands below use PowerShell on Windows. On macOS, install the CLI with `brew install stripe/stripe-cli/stripe`; on Linux, follow the [Stripe CLI instructions](https://docs.stripe.com/stripe-cli). Then use `src/Rise.Server` as the project path and pass your key directly instead of `$key`.
+
 ### One-time setup
 
 1. Install the Stripe CLI, then open a **new** PowerShell window (restart Visual Studio / Rider if it was open). You don't need `stripe login`, because the CLI uses the test secret key from User Secrets.
@@ -168,7 +214,7 @@ The payment is only marked as paid when Stripe calls our webhook (`POST /api/pay
    stripe --version
    ```
 
-2. Add the Stripe settings to User Secrets. Ask the team for the test secret key, and **never commit or share `sk_test_...` / `whsec_...` values**.
+2. Add the Stripe settings to User Secrets. Create a free [Stripe account](https://dashboard.stripe.com/register) if you don't have one and copy your own test secret key from the [API keys page](https://docs.stripe.com/keys). It replaces the placeholder from the Quick Start. **Never commit or share `sk_test_...` / `whsec_...` values**.
 
    ```powershell
    cd "<repo root>"
@@ -216,7 +262,7 @@ Wait for `Now listening on: https://localhost:5001`. The server reads User Secre
 2. On the Stripe page, pay with card `4242 4242 4242 4242`, any future date, any CVC and any name. Other test cards (declined, 3D Secure, …) are listed in the [Stripe docs](https://docs.stripe.com/testing).
 3. You land on `/booking/confirmation?session_id=cs_test_...`. The page shows "We're confirming your payment…" for a moment, then **Confirmed**.
 4. Window 1 shows `--> checkout.session.completed` followed by `<-- [200] POST https://localhost:5001/api/payments/stripe-webhook`.
-5. Optional: log in as `admin@example.com` / `A1b2C3!` and open `/invoice-list`. The booking shows **Paid**, via Stripe, with "Visa •••• 4242 · Stripe receipt ↗".
+5. Optional: log in as `admin@example.com` / `A1b2C3!` and open `/admin/invoice-list`. The booking shows **Paid**, via Stripe, with "Visa •••• 4242 · Stripe receipt ↗".
 
 **Cancel flow:** click the back arrow on the Stripe page. You land on `/payment/cancel`, and the booking stays unpaid.
 
@@ -234,7 +280,8 @@ Press Ctrl+C in both windows to stop. `docker compose down` stops the database.
 | `stripe` not found | Open a new terminal, or reload PATH: `$env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User")` |
 | `$key = ...` doesn't work | You're in cmd. Type `powershell` first. |
 | "You have not configured API keys" | `--api-key $key` is missing or `$key` is empty. Run the `$key = ...` line again in the same window. |
-| "Stripe:SecretKey is not configured" | That secret is missing from User Secrets. |
+| "Stripe:SecretKey is not configured" | That secret is missing from User Secrets. Booking features fail until it is set. |
+| **Pay now** fails, everything else works | You're still using the placeholder key. Set your own test key (one-time setup, step 2) and restart the server. |
 | Database or connection error at startup | Docker isn't running, or the password in the connection string doesn't match `.env`. |
 | Migration error | Old database state. Run `docker compose down -v` (this deletes all local data), then `docker compose up -d`. |
 | Paid booking shows no card details | Only payments made after the Stripe details were added store them. Make a new test payment. |
@@ -273,7 +320,17 @@ Then update the database using:
 dotnet ef database update --startup-project Rise.Server --project Rise.Persistence
 ```
 
-Alternatively, simply run `Rise.Server` if the application automatically applies migrations during startup.
+In Development you don't need `database update`: `Rise.Server` deletes the database on every start, applies all migrations and seeds it again. Other environments only apply migrations on startup when `Database__MigrateOnStartup` is `true`, see [Configuration](#configuration).
+
+## Build, Test and Format
+
+Run these from the repository root before you push. CI fails on unformatted code, build warnings and failing tests.
+
+```bash
+dotnet format Rise.sln
+dotnet build Rise.sln --configuration Release --warnaserror
+dotnet test Rise.sln
+```
 
 ## Useful Commands
 
@@ -313,6 +370,8 @@ Authentication and authorization are included.
 
 User accounts are hosted and maintained in the application's own database without requiring an external identity provider.
 
+Guests don't need an account. Administrators log in at `/login` and find the admin pages under `/admin`.
+
 You can log in as the seeded administrator with the password:
 
 ```text
@@ -329,7 +388,7 @@ There is one built-in role:
 
 - Administrator
 
-### Use Cases
+### Account Use Cases
 
 - Login
 - Logout
@@ -337,7 +396,7 @@ There is one built-in role:
 
 ## Solution Structure Overview
 
-The template is designed as a boilerplate for .NET 10 solutions and follows established practices for structuring projects, separation of concerns, and maintainability.
+The solution is built on a .NET 10 template and follows established practices for structuring projects, separation of concerns, and maintainability.
 
 The architecture combines concepts from **Clean Architecture**, **Domain-Driven Design (DDD)** and **Vertical Slicing**.
 
@@ -357,7 +416,7 @@ The main projects are:
 
 ### 1. Domain Project
 
-**Folder:** `Domain`
+**Folder:** `src/Rise.Domain`
 
 **Purpose:** The **Domain** project contains the core business logic of the application.
 
@@ -378,7 +437,7 @@ Keeping domain logic separate ensures that business rules remain consistent even
 
 ### 2. Services Project
 
-**Folder:** `Services`
+**Folder:** `src/Rise.Services`
 
 **Purpose:** The **Services** project contains application-specific logic.
 
@@ -402,7 +461,7 @@ The project uses PostgreSQL (`Npgsql.EntityFrameworkCore.PostgreSQL`). For devel
 
 ### 3. Persistence Project
 
-**Folder:** `Persistence`
+**Folder:** `src/Rise.Persistence`
 
 **Purpose:** The **Persistence** project contains database mappings, migrations and persistence-related configuration.
 
@@ -422,7 +481,7 @@ Domain entities should not need to know how or where they are stored.
 
 ### 4. Server Project
 
-**Folder:** `Server`
+**Folder:** `src/Rise.Server`
 
 **Purpose:** The **Server** project is the entry point of the backend application.
 
@@ -471,7 +530,7 @@ External clients such as mobile applications, web applications or other services
 
 ### 5. Client Project
 
-**Folder:** `Client`
+**Folder:** `src/Rise.Client`
 
 The **Client** project is a standalone Blazor WebAssembly application.
 
@@ -481,7 +540,7 @@ It serves the same architectural role as frontend applications written with fram
 
 ### 6. Shared Project
 
-**Folder:** `Shared`
+**Folder:** `src/Rise.Shared`
 
 The **Shared** project contains the contracts shared between the **Client** and **Server**.
 
@@ -500,9 +559,9 @@ As long as existing API contracts remain compatible, internal implementation det
 
 **Folders:**
 
-- `Client.Tests`
-- `Services.Tests`
-- `Domain.Tests`
+- `tests/Rise.Client.Tests`
+- `tests/Rise.Services.Tests`
+- `tests/Rise.Domain.Tests`
 
 Testing is separated into dedicated projects to keep tests modular and focused on the components they verify.
 

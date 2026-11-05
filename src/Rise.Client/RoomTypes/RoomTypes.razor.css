@@ -1,0 +1,116 @@
+.room-type-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.room-type-heading .title {
+    margin-bottom: 0;
+}
+
+.room-type-list {
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.room-type-muted {
+    padding: var(--space-md);
+    color: var(--color-text-muted);
+}
+
+.room-type-table-scroll {
+    overflow-x: auto;
+}
+
+.room-type-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.room-type-table th {
+    padding: 0.7rem 1rem;
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.room-type-table td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+.room-type-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.room-type-name {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.room-type-description {
+    min-width: 14rem;
+    color: var(--color-text-muted);
+}
+
+.room-type-actions {
+    display: flex;
+    gap: var(--space-xs);
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+.room-type-panel {
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.room-type-panel h3 {
+    margin-bottom: var(--space-md);
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+}
+
+.room-type-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
+.room-type-field span {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.room-type-field ::deep input,
+.room-type-field ::deep textarea {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font: inherit;
+}
+
+.room-type-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}

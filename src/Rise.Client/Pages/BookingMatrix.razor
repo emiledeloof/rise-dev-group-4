@@ -85,12 +85,13 @@
                                 };
                                 @if (cellItem.Booking is not null)
                                 {
-                                    <div class="@cssClass"
-                                         style="grid-column: span @cellItem.ColSpan;"
-                                         @onmouseenter="e => ShowPopup(cellItem.Booking.Id, e.ClientX, e.ClientY)"
-                                         @onmouseleave="HidePopup">
+                                    <a class="@cssClass"
+                                       href="admin/bookings/@cellItem.Booking.Id"
+                                       style="grid-column: span @cellItem.ColSpan;"
+                                       @onmouseenter="e => ShowPopup(cellItem.Booking.Id, e.ClientX, e.ClientY)"
+                                       @onmouseleave="HidePopup">
                                         <span class="cell-guest-name">@cellItem.Booking.GuestName</span>
-                                    </div>
+                                    </a>
                                 }
                                 else
                                 {

@@ -220,4 +220,28 @@ public class BookingMatrixShould : BunitContext
         // Popup is hidden again
         cut.FindAll(".booking-popup").Count.ShouldBe(0);
     }
+
+    [Fact]
+    public void BookingCellLinksToAdminBookingDetails()
+    {
+        _bookingService.MatrixAnswer = Result.Success(SingleRoomMatrix("Suite",
+            bookings:
+            [
+                new BookingDto.MatrixBooking
+                {
+                    Id = 42,
+                    BookingNumber = "20261001-SVM-000042",
+                    GuestName = "Anna Paid",
+                    CheckIn = WindowStart.AddDays(1),
+                    CheckOut = WindowStart.AddDays(4),
+                    Status = CellStatus.Occupied,
+                },
+            ]));
+
+        var cut = Render<BookingMatrix>();
+
+        var bookingCell = cut.Find(".matrix-cell-occupied");
+        bookingCell.TagName.ShouldBe("A", StringCompareShould.IgnoreCase);
+        bookingCell.GetAttribute("href").ShouldBe("admin/bookings/42");
+    }
 }

@@ -1,0 +1,104 @@
+@page "/admin/room-types"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Shared.Identity
+@using Rise.Shared.RoomTypes
+
+<PageTitle>Room types</PageTitle>
+<div class="page">
+    <div class="room-type-heading">
+        <h1 class="title">Room types</h1>
+        <Button OnClick="OpenCreateForm">New room type</Button>
+    </div>
+
+    @if (_roomTypes is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        @if (_message is not null)
+        {
+            <p class="notification @(_messageIsError ? "is-danger" : "is-success") is-light">@_message</p>
+        }
+
+        <div class="box room-type-list">
+            @* ! no empty state after a failed load, the list is not really empty *@
+            @if (_roomTypes.Count == 0 && !_loadFailed)
+            {
+                <p class="room-type-muted">No room types yet.</p>
+            }
+            else
+            {
+                <div class="room-type-table-scroll">
+                    <table class="room-type-table">
+                        <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Rooms</th>
+                            <th scope="col"><span class="is-sr-only">Actions</span></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var roomType in _roomTypes)
+                        {
+                            <tr @key="roomType.Id">
+                                <td class="room-type-name">@roomType.Name</td>
+                                <td class="room-type-description">@(roomType.Description ?? "—")</td>
+                                <td class="room-type-rooms">@(roomType.RoomNumbers.Count == 0 ? "—" : string.Join(", ", roomType.RoomNumbers))</td>
+                                <td class="room-type-actions">
+                                    @* ! second click needed to delete, no browser dialog *@
+                                    @if (_pendingDeleteId == roomType.Id)
+                                    {
+                                        <Button Variant="ButtonVariant.Danger" OnClick="() => DeleteAsync(roomType)">Confirm delete</Button>
+                                        <Button Variant="ButtonVariant.Secondary" OnClick="CancelDelete">Cancel</Button>
+                                    }
+                                    else
+                                    {
+                                        <Button Variant="ButtonVariant.Secondary" OnClick="() => OpenEditForm(roomType)">Edit</Button>
+                                        <Button Variant="ButtonVariant.Danger" OnClick="() => AskDelete(roomType)">Delete</Button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        @* one form for create and edit, the type of the model decides which api is called *@
+        @if (_formModel is not null)
+        {
+            <section class="room-type-panel" aria-labelledby="room-type-form-heading">
+                <h3 id="room-type-form-heading">@(_formModel is RoomTypeRequest.Edit ? "Edit room type" : "New room type")</h3>
+
+                <EditForm Model="_formModel" OnValidSubmit="SaveAsync">
+                    <FluentValidationValidator />
+                    <label class="room-type-field">
+                        <span>Name</span>
+                        <InputText @bind-Value="_formModel.Name" id="room-type-name" />
+                        <ValidationMessage For="() => _formModel.Name" class="help is-danger" />
+                    </label>
+
+                    <label class="room-type-field">
+                        <span>Description</span>
+                        <InputTextArea @bind-Value="_formModel.Description" id="room-type-description" rows="3" />
+                        <ValidationMessage For="() => _formModel.Description" class="help is-danger" />
+                    </label>
+
+                    @if (_formError is not null)
+                    {
+                        <p class="notification is-danger is-light">@_formError</p>
+                    }
+
+                    <div class="room-type-form-actions">
+                        <Button Type="submit" IsDisabled="_isSaving">Save</Button>
+                        <Button Variant="ButtonVariant.Secondary" OnClick="CloseForm">Cancel</Button>
+                    </div>
+                </EditForm>
+            </section>
+        }
+    }
+</div>
