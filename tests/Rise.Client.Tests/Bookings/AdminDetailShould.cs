@@ -157,41 +157,356 @@ public class AdminDetailShould : BunitContext
         cut.Find(".booking-detail-back").GetAttribute("href").ShouldBe("admin/booking-list");
     }
 
-    private static BookingDto.AdminDetail Cancelled(decimal refund)
+    private static BookingDto.AdminDetail Cancelled(decimal refund) => TestAdminDetails.Cancelled(refund);
+
+    // opens the dialog of the booking set on the fake service
+    private IRenderedComponent<AdminDetail> RenderOpenDialog()
     {
-        var booking = TestAdminDetails.Full();
-        booking.Status = "Cancelled";
-        booking.Cancellation = new BookingDto.AdminCancellationDto
-        {
-            CancelledAt = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc),
-            Reason = "Guest is ill",
-            RefundAmount = refund,
-        };
-        return booking;
+        var cut = RenderPage();
+        cut.Find(".booking-detail-cancel-open").Click();
+        return cut;
+    }
+
+    private static void ToggleRoom(IRenderedComponent<AdminDetail> cut, int index)
+        => cut.FindAll(".booking-cancel-room-toggle input")[index].Change(true);
+
+    private static void SelectAllRooms(IRenderedComponent<AdminDetail> cut)
+        => cut.Find(".booking-cancel-select-all input").Change(true);
+
+    [Fact]
+    public void SelectNothingWhenOpeningTheDialogOfSeveralRooms()
+    {
+        var cut = RenderOpenDialog();
+
+        cut.FindAll(".booking-cancel-room").Count.ShouldBe(2);
+        cut.FindAll(".booking-cancel-room.is-selected").ShouldBeEmpty();
+        cut.FindAll(".booking-cancel-room-refund").ShouldBeEmpty();
+        cut.Find(".booking-detail-cancel-open").TextContent.Trim().ShouldBe("Cancel rooms");
+        cut.Find(".booking-cancel-dialog .booking-detail-refund-note").TextContent.ShouldContain("does not pay it back");
     }
 
     [Fact]
-    public void PrefillTheRefundOfThePolicyInTheCancelDialog()
+    public void PreselectTheOnlyRoomOfABooking()
     {
-        var cut = RenderPage();
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.NonRefundable());
 
-        cut.Find(".booking-detail-cancel-open").Click();
+        var cut = RenderOpenDialog();
 
-        cut.Find("#booking-cancel-refund").GetAttribute("value").ShouldBe("360");
-        cut.Find(".booking-cancel-refund-hint").TextContent.ShouldContain("€360.00 of €720.00 paid");
-        cut.Find(".booking-cancel-dialog .booking-detail-refund-note").TextContent.ShouldContain("does not pay it back");
+        cut.FindAll(".booking-cancel-room.is-selected").Count.ShouldBe(1);
+        cut.FindAll(".booking-cancel-select-all").ShouldBeEmpty();
+        cut.Find(".booking-detail-cancel-open").TextContent.Trim().ShouldBe("Cancel booking");
+        cut.Find(".booking-cancel-title").TextContent.ShouldBe("Cancel this booking?");
+    }
+
+    /// <summary>
+    /// the first room is refundable, the second not, each is prefilled from its own policy
+    /// </summary>
+    [Fact]
+    public void PrefillTheRefundOfTheOwnPolicyOfEachRoom()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.MixedPolicies());
+        var cut = RenderOpenDialog();
+
+        cut.FindAll(".booking-cancel-room-due")[0].TextContent.ShouldBe("Policy: 50% · €150.00");
+        cut.FindAll(".booking-cancel-room-due")[1].TextContent.ShouldBe("Policy: 0% · €0.00");
+        SelectAllRooms(cut);
+
+        cut.Find("#booking-cancel-refund-21").GetAttribute("value").ShouldBe("150");
+        cut.Find("#booking-cancel-refund-23").GetAttribute("value").ShouldBe("0");
+        cut.Find(".booking-cancel-summary-total").TextContent.ShouldBe("Total refund €150.00 of €720.00 refundable");
+    }
+
+    /// <summary>
+    /// only 200 is left to refund, the 1st room takes 150 so the 2nd is prefilled with the 50 left instead of its 210
+    /// </summary>
+    [Fact]
+    public void LimitThePrefilledRefundToWhatCanStillBeRefunded()
+    {
+        var booking = TestAdminDetails.Full();
+        booking.PaidAmount = 200m;
+        booking.RefundableAmount = 200m;
+        _bookingService.AdminDetailAnswer = Result.Success(booking);
+        var cut = RenderOpenDialog();
+
+        SelectAllRooms(cut);
+
+        cut.Find("#booking-cancel-refund-21").GetAttribute("value").ShouldBe("150");
+        cut.Find("#booking-cancel-refund-23").GetAttribute("value").ShouldBe("50");
+        cut.FindAll(".booking-cancel-refund-limit").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void DisableTheRefundWhenNothingWasPaid()
+    {
+        var booking = TestAdminDetails.Full();
+        booking.PaidAmount = 0m;
+        booking.RefundableAmount = 0m;
+        _bookingService.AdminDetailAnswer = Result.Success(booking);
+        var cut = RenderOpenDialog();
+
+        ToggleRoom(cut, 0);
+
+        cut.Find("#booking-cancel-refund-21").GetAttribute("value").ShouldBe("0");
+        cut.Find("#booking-cancel-refund-21").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find(".booking-cancel-refund-hint").TextContent.ShouldContain("nothing to refund");
+    }
+
+    [Fact]
+    public void UpdateTheTotalWhenARefundChanges()
+    {
+        var cut = RenderOpenDialog();
+        SelectAllRooms(cut);
+
+        cut.Find("#booking-cancel-refund-23").Change("100");
+
+        cut.Find(".booking-cancel-summary-total").TextContent.ShouldBe("Total refund €250.00 of €720.00 refundable");
+    }
+
+    [Fact]
+    public void RefuseRefundsAboveWhatCanStillBeRefunded()
+    {
+        var cut = RenderOpenDialog();
+        SelectAllRooms(cut);
+        cut.Find("#booking-cancel-reason").Change("Guest is ill");
+
+        cut.Find("#booking-cancel-refund-23").Change("600");
+        cut.Find(".booking-cancel-dialog form").Submit();
+
+        cut.Find(".booking-cancel-refund-limit").TextContent.ShouldContain("€720.00");
+        cut.Find(".booking-cancel-confirm").HasAttribute("disabled").ShouldBeTrue();
+        _bookingService.CancelRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void RemoveARoomFromTheSelectionWhenClickedAgain()
+    {
+        var cut = RenderOpenDialog();
+
+        ToggleRoom(cut, 0);
+        cut.FindAll(".booking-cancel-room.is-selected").Count.ShouldBe(1);
+        ToggleRoom(cut, 0);
+
+        cut.FindAll(".booking-cancel-room.is-selected").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SelectAndDeselectAllRooms()
+    {
+        var cut = RenderOpenDialog();
+
+        SelectAllRooms(cut);
+        cut.FindAll(".booking-cancel-room.is-selected").Count.ShouldBe(2);
+        cut.Find(".booking-cancel-whole-note").TextContent.ShouldContain("cancels the whole booking");
+        cut.Find(".booking-cancel-confirm").TextContent.Trim().ShouldBe("Cancel booking");
+
+        SelectAllRooms(cut);
+        cut.FindAll(".booking-cancel-room.is-selected").ShouldBeEmpty();
+        cut.FindAll(".booking-cancel-whole-note").ShouldBeEmpty();
     }
 
     [Fact]
     public void NotCancelWithoutReason()
     {
-        var cut = RenderPage();
-        cut.Find(".booking-detail-cancel-open").Click();
+        var cut = RenderOpenDialog();
+        ToggleRoom(cut, 0);
 
         cut.Find(".booking-cancel-dialog form").Submit();
 
         _bookingService.CancelRequests.ShouldBeEmpty();
         cut.Find(".booking-cancel-dialog .help.is-danger").TextContent.ShouldBe("Please enter a reason for the cancellation.");
+    }
+
+    [Fact]
+    public void NotCancelWithoutARoom()
+    {
+        var cut = RenderOpenDialog();
+        cut.Find("#booking-cancel-reason").Change("Guest is ill");
+
+        cut.Find(".booking-cancel-dialog form").Submit();
+
+        _bookingService.CancelRequests.ShouldBeEmpty();
+        cut.Find(".booking-cancel-dialog .help.is-danger").TextContent.ShouldBe("Please select at least one room to cancel.");
+    }
+
+    [Fact]
+    public void SendOnlyTheSelectedRoomWithItsRefund()
+    {
+        // the 2 rooms fit 2 guests each, so the 2 guests still fit when 1 room stays
+        var booking = TestAdminDetails.Full();
+        booking.Adults = 2;
+        _bookingService.AdminDetailAnswer = Result.Success(booking);
+        _bookingService.CancelAnswer = Result.Success(new BookingResponse.Cancel
+        {
+            BookingId = 7,
+            BookingNumber = booking.BookingNumber,
+            CancelledAt = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc),
+            RefundAmount = 100m,
+            CancelledRoomCount = 1,
+            RemainingRoomCount = 1,
+        });
+        var cut = RenderOpenDialog();
+        ToggleRoom(cut, 1);
+        cut.Find("#booking-cancel-refund-23").Change("100");
+        cut.Find("#booking-cancel-reason").Change("Guest is ill");
+        cut.Find(".booking-cancel-confirm").TextContent.Trim().ShouldBe("Cancel 1 room");
+
+        cut.Find(".booking-cancel-dialog form").Submit();
+
+        var request = _bookingService.CancelRequests.ShouldHaveSingleItem();
+        var room = request.Rooms.ShouldHaveSingleItem();
+        room.BookingRoomId.ShouldBe(23);
+        room.RefundAmount.ShouldBe(100m);
+        request.Adults.ShouldBeNull();
+        var success = cut.Find(".booking-detail-cancel-success").TextContent;
+        success.ShouldContain("1 room of booking 20261004-SVM-000007 cancelled, 1 still booked");
+        success.ShouldContain("A refund of €100.00 is recorded");
+    }
+
+    /// <summary>
+    /// 3 guests, cancelling 1 of the 2 rooms leaves a room for 2, so the new nb is needed
+    /// </summary>
+    [Fact]
+    public void AskForTheNewNbOfGuestsWhenTheyNoLongerFit()
+    {
+        var cut = RenderOpenDialog();
+        cut.FindAll(".booking-cancel-guests").ShouldBeEmpty();
+
+        ToggleRoom(cut, 0);
+
+        cut.Find(".booking-cancel-guests-hint").TextContent.ShouldContain("has 3 guests");
+        cut.Find(".booking-cancel-guests-hint").TextContent.ShouldContain("fit at most 2");
+    }
+
+    [Fact]
+    public void NotCancelWithoutTheNewNbOfGuests()
+    {
+        var cut = RenderOpenDialog();
+        ToggleRoom(cut, 0);
+        cut.Find("#booking-cancel-reason").Change("Guest is ill");
+
+        cut.Find(".booking-cancel-dialog form").Submit();
+
+        _bookingService.CancelRequests.ShouldBeEmpty();
+        cut.Find(".booking-cancel-error").TextContent.ShouldContain("remaining rooms fit at most 2");
+    }
+
+    [Fact]
+    public void NotCancelWithTooManyGuestsForTheRemainingRooms()
+    {
+        var cut = RenderOpenDialog();
+        ToggleRoom(cut, 0);
+        cut.Find("#booking-cancel-reason").Change("Guest is ill");
+        cut.Find("#booking-cancel-adults").Change("3");
+
+        cut.Find(".booking-cancel-dialog form").Submit();
+
+        _bookingService.CancelRequests.ShouldBeEmpty();
+        cut.Find(".booking-cancel-error").TextContent.ShouldContain("remaining rooms fit at most 2");
+    }
+
+    [Fact]
+    public void SendTheNewNbOfGuests()
+    {
+        var cut = RenderOpenDialog();
+        ToggleRoom(cut, 0);
+        cut.Find("#booking-cancel-reason").Change("Guest is ill");
+        cut.Find("#booking-cancel-adults").Change("2");
+
+        cut.Find(".booking-cancel-dialog form").Submit();
+
+        _bookingService.CancelRequests.ShouldHaveSingleItem().Adults.ShouldBe(2);
+    }
+
+    /// <summary>
+    /// the nb entered for 1 room must not be sent when the admin then selects all rooms, nobody stays
+    /// </summary>
+    [Fact]
+    public void ForgetTheNewNbOfGuestsWhenNoRoomsRemain()
+    {
+        var cut = RenderOpenDialog();
+        ToggleRoom(cut, 0);
+        cut.Find("#booking-cancel-adults").Change("2");
+        ToggleRoom(cut, 1);
+        cut.FindAll(".booking-cancel-guests").ShouldBeEmpty();
+        cut.Find("#booking-cancel-reason").Change("Guest is ill");
+
+        cut.Find(".booking-cancel-dialog form").Submit();
+
+        _bookingService.CancelRequests.ShouldHaveSingleItem().Adults.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ListOnlyTheActiveRoomsInTheDialog()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+
+        var cut = RenderOpenDialog();
+
+        var room = cut.FindAll(".booking-cancel-room").ShouldHaveSingleItem();
+        room.TextContent.ShouldContain("Room 101");
+        cut.FindAll(".booking-cancel-room.is-selected").Count.ShouldBe(1);
+        cut.Find(".booking-cancel-summary-total").TextContent.ShouldContain("of €510.00 refundable");
+    }
+
+    [Fact]
+    public void ShowThePartlyCancelledBooking()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+
+        var cut = RenderPage();
+
+        // the payment status stays visible next to the partial tag
+        cut.Find(".booking-detail-status").TextContent.ShouldContain("Paid");
+        cut.Find(".booking-detail-partial-tag").TextContent.ShouldBe("1 of 2 rooms cancelled");
+        // only the cancelled room is listed in the cancellation card and marked in the stay
+        var cancelled = cut.FindAll(".booking-detail-cancelled-room").ShouldHaveSingleItem();
+        cancelled.TextContent.ShouldContain("Room 103");
+        cancelled.QuerySelector(".booking-detail-refund")!.TextContent.ShouldBe("€210.00");
+        cut.Find(".booking-detail-room.is-cancelled").TextContent.ShouldContain("103");
+        cut.FindAll(".booking-detail-room-tag").Count.ShouldBe(1);
+        cut.Find(".booking-detail-refunded-amount").TextContent.ShouldBe("€210.00");
+        // the last room can still be cancelled
+        cut.Find(".booking-detail-cancel-open").TextContent.Trim().ShouldBe("Cancel booking");
+    }
+
+    [Fact]
+    public void ShowTheRemainingTotalOfAPartlyCancelledBooking()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-price-row.is-cancelled").TextContent.ShouldContain("Room 103");
+        cut.Find(".booking-detail-original-total").TextContent.ShouldBe("€720.00");
+        cut.Find(".booking-detail-price-refunds").TextContent.ShouldBe("€210.00");
+        cut.Find(".booking-detail-total").TextContent.ShouldContain("Remaining total");
+        cut.Find(".booking-detail-total-amount").TextContent.ShouldBe("€300.00");
+    }
+
+    /// <summary>
+    /// the cancelled room shows the entitlement of its own date, the active room the one of today
+    /// </summary>
+    [Fact]
+    public void ShowTheRefundOfTheOwnDateOfEachRoom()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+
+        var cut = RenderPage();
+
+        var entitlements = cut.FindAll(".booking-detail-entitlement");
+        entitlements[0].TextContent.ShouldContain("Refund if cancelled today");
+        entitlements[1].TextContent.ShouldContain("Entitlement on 05 Oct 2026");
+    }
+
+    [Fact]
+    public void ShowNoPartialTagOrCancellationForAnActiveBooking()
+    {
+        var cut = RenderPage();
+
+        cut.FindAll(".booking-detail-partial-tag").ShouldBeEmpty();
+        cut.FindAll(".booking-detail-cancellation").ShouldBeEmpty();
+        cut.FindAll(".booking-detail-original-total").ShouldBeEmpty();
+        cut.Find(".booking-detail-total").TextContent.ShouldNotContain("Remaining");
     }
 
     [Fact]
@@ -209,8 +524,8 @@ public class AdminDetailShould : BunitContext
     [Fact]
     public void CancelTheBookingAndAcknowledgeIt()
     {
-        var cut = RenderPage();
-        cut.Find(".booking-detail-cancel-open").Click();
+        var cut = RenderOpenDialog();
+        SelectAllRooms(cut);
         cut.Find("#booking-cancel-reason").Change("Guest is ill");
         // the page reloads the booking after cancelling
         _bookingService.AdminDetailAnswer = Result.Success(Cancelled(360m));
@@ -220,9 +535,12 @@ public class AdminDetailShould : BunitContext
         var request = _bookingService.CancelRequests.ShouldHaveSingleItem();
         request.BookingId.ShouldBe(7);
         request.Reason.ShouldBe("Guest is ill");
-        request.RefundAmount.ShouldBe(360m);
+        request.Rooms.Select(x => (x.BookingRoomId, x.RefundAmount)).ShouldBe([(21, 150m), (23, 210m)]);
+        request.Adults.ShouldBeNull();
         cut.FindAll(".booking-cancel-dialog").ShouldBeEmpty();
-        cut.Find(".booking-detail-cancel-success").TextContent.ShouldContain("A refund of €360.00 is recorded");
+        var success = cut.Find(".booking-detail-cancel-success").TextContent;
+        success.ShouldContain("Booking 20261004-SVM-000007 is cancelled");
+        success.ShouldContain("A refund of €360.00 is recorded");
         cut.Find(".booking-detail-status .tag.is-danger").TextContent.Trim().ShouldBe("Cancelled");
     }
 
@@ -230,8 +548,8 @@ public class AdminDetailShould : BunitContext
     public void ShowWhyTheServerRefusedTheCancellation()
     {
         _bookingService.CancelAnswer = Result.Conflict("Booking 20261004-SVM-000007 is already cancelled.");
-        var cut = RenderPage();
-        cut.Find(".booking-detail-cancel-open").Click();
+        var cut = RenderOpenDialog();
+        SelectAllRooms(cut);
         cut.Find("#booking-cancel-reason").Change("Guest is ill");
 
         cut.Find(".booking-cancel-dialog form").Submit();
@@ -251,7 +569,9 @@ public class AdminDetailShould : BunitContext
         cut.Find(".booking-detail-cancel-reason").TextContent.ShouldBe("Guest is ill");
         cut.Find(".booking-detail-refund").TextContent.ShouldBe("€360.00");
         cut.Find(".booking-detail-cancellation .booking-detail-refund-note").TextContent.ShouldContain("does not refund automatically");
-        cut.Find(".booking-detail-total-amount").TextContent.ShouldBe("€720.00");
+        cut.Find(".booking-detail-original-total").TextContent.ShouldBe("€720.00");
+        cut.Find(".booking-detail-total-amount").TextContent.ShouldBe("€0.00");
+        cut.FindAll(".booking-detail-partial-tag").ShouldBeEmpty();
         cut.FindAll(".booking-detail-room").Count.ShouldBe(2);
         cut.FindAll(".booking-detail-payment").Count.ShouldBe(1);
         cut.FindAll(".booking-detail-cancel-open").ShouldBeEmpty();
@@ -360,12 +680,27 @@ public class AdminDetailShould : BunitContext
     public void WarnAboutAPaymentAfterTheCancellation()
     {
         var booking = Cancelled(0m);
-        booking.Payments.Single().PaidAt = booking.Cancellation!.CancelledAt.AddHours(1);
+        booking.Payments.Single().PaidAt = booking.Rooms[0].Cancellation!.CancelledAt.AddHours(1);
         _bookingService.AdminDetailAnswer = Result.Success(booking);
 
         var cut = RenderPage();
 
-        cut.Find(".booking-detail-paid-after-cancel").TextContent.ShouldContain("A payment came in after the cancellation");
+        cut.Find(".booking-detail-paid-after-cancel").TextContent.ShouldContain("A payment came in after a cancellation");
+    }
+
+    /// <summary>
+    /// an open checkout for the old amount can be paid after 1 room is cancelled, the admin has to check the amount
+    /// </summary>
+    [Fact]
+    public void WarnAboutAPaymentAfterTheCancellationOfOneRoom()
+    {
+        var booking = TestAdminDetails.PartlyCancelled();
+        booking.Payments.Single().PaidAt = booking.Rooms[1].Cancellation!.CancelledAt.AddHours(1);
+        _bookingService.AdminDetailAnswer = Result.Success(booking);
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-paid-after-cancel").TextContent.ShouldContain("check the amount");
     }
 
     [Fact]
