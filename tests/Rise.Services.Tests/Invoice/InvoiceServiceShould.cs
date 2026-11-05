@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
+using Rise.Domain.Rooms;
 using Rise.Persistence;
 using Rise.Services.Invoice;
 using Rise.Shared.Common;
@@ -77,6 +78,42 @@ public class InvoiceServiceShould
         var open = invoices.Single(x => !x.IsPaid);
         open.StripePaymentIntent.ShouldBeNull();
         open.StripeReceiptUrl.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ReturnTheCancelledRoomsAndRefundOfTheBooking()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(ReturnTheCancelledRoomsAndRefundOfTheBooking))
+            .Options;
+        await using var dbContext = new ApplicationDbContext(options);
+
+        var guest = new Guest("Jan Janssens", "jan.janssens@example.com", "+32 470 12 34 56",
+            new GuestAddress("Koningstraat 12", null, "Belgium"));
+        var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
+        var kept = new Room("101", "Twin Room", 2);
+        var cancelled = new Room("102", "Twin Room", 2);
+        var removed = new Room("103", "Twin Room", 2);
+        booking.AddRoom(kept, kept.AddRate("Flexible", 100m));
+        var cancelledRoom = booking.AddRoom(cancelled, cancelled.AddRate("Flexible", 100m));
+        booking.AddRoom(removed, removed.AddRate("Flexible", 100m)).IsDeleted = true;
+        booking.AddPayment(400m).MarkAsPaid(new DateTime(2026, 10, 1, 14, 30, 0, DateTimeKind.Utc));
+        booking.CancelRooms([new RoomCancellation(cancelledRoom, 150m)], DateTime.UtcNow, "Guest is ill");
+        dbContext.Bookings.Add(booking);
+        await dbContext.SaveChangesAsync();
+        var service = new InvoiceService(dbContext);
+
+        // Act
+        var result = await service.GetIndexAsync(new QueryRequest.SkipTake());
+
+        // Assert
+        var invoice = result.Value.Invoices.ShouldHaveSingleItem();
+        invoice.RoomCount.ShouldBe(2);
+        invoice.CancelledRoomCount.ShouldBe(1);
+        invoice.RefundedAmount.ShouldBe(150m);
+        invoice.IsBookingCancelled.ShouldBeFalse();
+        invoice.Amount.ShouldBe(400m);
     }
 
     [Fact]
