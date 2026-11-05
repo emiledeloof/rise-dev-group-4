@@ -6,82 +6,87 @@
 
 <PageTitle>Extra Services</PageTitle>
 <div class="page">
-    <div class="service-heading service-page-heading">
-        <div>
-            <h1 class="title service-title">Extra Services</h1>
-            <p class="service-subtitle">Manage additional services offered across the estate</p>
-        </div>
-        <div class="service-page-actions">
+    <div class="rate-page-heading service-heading">
+        <h1 class="title">Extra Services</h1>
+        <div class="rate-page-actions">
             <Button OnClick="OpenCreateForm">New extra service</Button>
         </div>
     </div>
 
     @if (_services is null)
     {
-        <p class="service-loading"><em>Loading...</em></p>
+        <p><em>Loading...</em></p>
     }
     else
     {
         @if (_message is not null)
         {
-            <p class="notification @(_messageIsError ? "is-danger" : "is-success") is-light service-alert">@_message</p>
+            <p class="notification @(_messageIsError ? "is-danger" : "is-success") is-light">@_message</p>
         }
 
-        <div class="box service-list">
+        <div class="box rate-list">
             @if (_services.Count == 0 && !_loadFailed)
             {
-                <p class="service-muted">No extra services yet. Click "New extra service" to add one.</p>
+                <p class="rate-muted">No extra services yet.</p>
             }
             else
             {
-                <div class="service-table-scroll">
-                    <table class="service-table">
+                <div class="rate-table-scroll">
+                    <table class="rate-table service-table">
                         <thead>
                         <tr>
-                            <th scope="col">Service Name</th>
+                            <th scope="col">Name</th>
                             <th scope="col">Description</th>
-                            <th scope="col">Price & Pricing Model</th>
+                            <th scope="col">Price</th>
+                            <th scope="col">Cadence</th>
+                            <th scope="col">Charging basis</th>
                             <th scope="col">Status</th>
-                            <th scope="col" class="has-text-right"><span class="is-sr-only">Actions</span></th>
+                            <th scope="col"><span class="is-sr-only">Actions</span></th>
                         </tr>
                         </thead>
                         <tbody>
                         @foreach (var service in _services)
                         {
-                            <tr @key="service.Id" class="@(service.IsActive ? "" : "service-row-inactive")">
-                                <td class="service-name-cell">
-                                    <span class="service-name-text">@service.Name</span>
+                            <tr @key="service.Id" class="@(service.IsActive ? null : "rate-inactive-row")">
+                                <td class="rate-name">
+                                    <strong>@service.Name</strong>
                                 </td>
-                                <td class="service-description-cell">
-                                    <span class="service-description-text">@(service.Description ?? "—")</span>
-                                </td>
-                                <td class="service-pricing-cell">
-                                    <span class="service-price-amount">@FormatPrice(service.Price)</span>
-                                    <span class="service-price-meta">@FormatPricingModel(service.Cadence, service.IsPerPerson)</span>
-                                </td>
-                                <td class="service-status-cell">
+                                <td class="service-description">@(service.Description ?? "—")</td>
+                                <td class="rate-price">@FormatPrice(service.Price)</td>
+                                <td>@(service.Cadence == ChargeCadence.PerNight ? "Per night" : "Once")</td>
+                                <td>@(service.IsPerPerson ? "Per person" : "Per booking")</td>
+                                <td>
                                     @if (service.IsActive)
                                     {
-                                        <span class="service-badge service-badge-active">Active</span>
+                                        <span class="rate-policy-fully">Active</span>
                                     }
                                     else
                                     {
-                                        <span class="service-badge service-badge-inactive">Inactive</span>
+                                        <span class="rate-policy-inactive">Inactive</span>
                                     }
                                 </td>
-                                <td class="service-actions-cell">
-                                    <div class="service-actions">
+                                <td class="rate-actions service-actions">
+                                    <Button Variant="ButtonVariant.Secondary"
+                                            OnClick="() => OpenEditForm(service)"
+                                            Class="rate-edit-btn">
+                                        Edit
+                                    </Button>
+                                    @if (service.IsActive)
+                                    {
                                         <Button Variant="ButtonVariant.Secondary"
-                                                Class="service-btn-action"
-                                                OnClick="() => OpenEditForm(service)">
-                                            Edit
+                                                OnClick="() => ToggleActiveAsync(service)"
+                                                Class="rate-edit-btn">
+                                            Deactivate
                                         </Button>
-                                        <Button Variant="@(service.IsActive ? ButtonVariant.Secondary : ButtonVariant.Primary)"
-                                                Class="@(service.IsActive ? "service-btn-action service-deactivate-btn" : "service-btn-action service-activate-btn")"
-                                                OnClick="() => ToggleActiveAsync(service)">
-                                            @(service.IsActive ? "Deactivate" : "Activate")
+                                    }
+                                    else
+                                    {
+                                        <Button Variant="ButtonVariant.Primary"
+                                                OnClick="() => ToggleActiveAsync(service)"
+                                                Class="rate-edit-btn service-btn-activate">
+                                            Activate
                                         </Button>
-                                    </div>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -93,88 +98,71 @@
 
         @if (_formModel is not null)
         {
-            <section class="service-panel" aria-labelledby="service-form-heading">
-                <div class="service-panel-header">
-                    <h2 id="service-form-heading">@(_formModel is ExtraServiceRequest.Edit ? "Edit extra service" : "New extra service")</h2>
-                    <p class="service-panel-sub">Configure service details, pricing cadence, and whether it applies per person or booking.</p>
-                </div>
+            <section class="rate-create-panel service-panel" aria-labelledby="service-form-heading">
+                <h3 id="service-form-heading">@(_formModel is ExtraServiceRequest.Edit ? "Edit extra service" : "New extra service")</h3>
 
                 <EditForm Model="_formModel" OnValidSubmit="SaveAsync">
                     <FluentValidationValidator />
 
-                    <div class="service-form-grid">
-                        <label class="service-field service-field-full">
-                            <span class="service-label">Service Name</span>
-                            <InputText @bind-Value="_formModel.Name" id="service-name" placeholder="e.g. Breakfast, Extra Cleaning, Bicycle Rental" />
+                    <div class="rate-create-fields">
+                        <label class="rate-create-field">
+                            <span>Name</span>
+                            <InputText @bind-Value="_formModel.Name" id="service-name" placeholder="e.g. Breakfast" />
                             <ValidationMessage For="() => _formModel.Name" class="help is-danger" />
                         </label>
 
-                        <label class="service-field service-field-full">
-                            <span class="service-label">Description (Optional)</span>
-                            <InputTextArea @bind-Value="_formModel.Description" id="service-description" rows="2" placeholder="Details about what the service includes..." />
-                            <ValidationMessage For="() => _formModel.Description" class="help is-danger" />
-                        </label>
-
-                        <label class="service-field">
-                            <span class="service-label">Price (EUR)</span>
+                        <label class="rate-create-field">
+                            <span>Price (€)</span>
                             <InputNumber @bind-Value="_formModel.Price" id="service-price" step="0.50" min="0" />
                             <ValidationMessage For="() => _formModel.Price" class="help is-danger" />
                         </label>
 
-                        <label class="service-field">
-                            <span class="service-label">Billing Cadence</span>
-                            <div class="service-select-wrap">
+                        <label class="rate-create-field">
+                            <span>Billing cadence</span>
+                            <div class="rate-select-wrap">
                                 <InputSelect @bind-Value="_formModel.Cadence" id="service-cadence">
-                                    <option value="@ChargeCadence.PerNight">Per Night</option>
-                                    <option value="@ChargeCadence.Once">Once (Per Stay / Booking)</option>
+                                    <option value="@ChargeCadence.PerNight">Per night</option>
+                                    <option value="@ChargeCadence.Once">Once (per booking)</option>
                                 </InputSelect>
-                                <span class="service-select-arrow" aria-hidden="true"></span>
+                                <span class="rate-select-arrow" aria-hidden="true"></span>
                             </div>
+                            <ValidationMessage For="() => _formModel.Cadence" class="help is-danger" />
                         </label>
 
-                        <label class="service-field">
-                            <span class="service-label">Charging Scope</span>
-                            <div class="service-select-wrap">
+                        <label class="rate-create-field">
+                            <span>Charging basis</span>
+                            <div class="rate-select-wrap">
                                 <InputSelect @bind-Value="_formModel.IsPerPerson" id="service-target">
-                                    <option value="true">Per Person (multiplied by guests)</option>
-                                    <option value="false">Per Booking (fixed amount)</option>
+                                    <option value="true">Per person (multiplied by guests)</option>
+                                    <option value="false">Per booking (flat rate)</option>
                                 </InputSelect>
-                                <span class="service-select-arrow" aria-hidden="true"></span>
+                                <span class="rate-select-arrow" aria-hidden="true"></span>
                             </div>
+                            <ValidationMessage For="() => _formModel.IsPerPerson" class="help is-danger" />
                         </label>
-                    </div>
 
-                    <div class="service-summary-card">
-                        <div class="service-summary-icon">
-                            <i class="fas fa-calculator" aria-hidden="true"></i>
-                        </div>
-                        <div class="service-summary-content">
-                            <span class="service-summary-label">Price Preview</span>
-                            <span class="service-summary-text">
-                                <strong>@FormatPrice(_formModel.Price)</strong> @FormatPricingModel(_formModel.Cadence, _formModel.IsPerPerson)
-                            </span>
-                        </div>
+                        <label class="rate-create-field rate-field-full">
+                            <span>Description</span>
+                            <InputText @bind-Value="_formModel.Description" id="service-description" placeholder="Optional details..." />
+                            <ValidationMessage For="() => _formModel.Description" class="help is-danger" />
+                        </label>
                     </div>
 
                     @if (_formModel is ExtraServiceRequest.Edit editModel)
                     {
-                        <div class="service-status-toggle">
-                            <label class="service-checkbox-label">
-                                <InputCheckbox @bind-Value="editModel.IsActive" id="service-active" />
-                                <span>Active and offered for rates &amp; bookings</span>
-                            </label>
-                        </div>
+                        <label class="checkbox rate-refundable">
+                            <InputCheckbox @bind-Value="editModel.IsActive" id="service-active" />
+                            Active (available for bookings and rates)
+                        </label>
                     }
 
                     @if (_formError is not null)
                     {
-                        <p class="notification is-danger is-light service-form-error">@_formError</p>
+                        <p class="notification is-danger is-light mt-3">@_formError</p>
                     }
 
-                    <div class="service-form-actions">
-                        <Button Type="submit" Variant="ButtonVariant.Primary" IsDisabled="_isSaving">
-                            @(_isSaving ? "Saving..." : "Save Service")
-                        </Button>
+                    <div class="rate-create-actions">
+                        <Button Type="submit" IsDisabled="_isSaving">Save</Button>
                         <Button Variant="ButtonVariant.Secondary" OnClick="CloseForm">Cancel</Button>
                     </div>
                 </EditForm>
