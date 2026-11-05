@@ -30,6 +30,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> opts) :
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BookingRoom> BookingRooms => Set<BookingRoom>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<BillLine> BillLines => Set<BillLine>();
     public DbSet<GeneralSettings> GeneralSettings => Set<GeneralSettings>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
