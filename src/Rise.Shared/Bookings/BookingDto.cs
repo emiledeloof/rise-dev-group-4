@@ -29,13 +29,21 @@ public static class BookingDto
         public required string GuestEmail { get; set; }
         public required decimal TotalAmount { get; set; }
         /// <summary>
-        /// Room numbers of all rooms in this booking, e.g. ["101", "102"].
+        /// Room numbers of the rooms still booked, or of all rooms when the whole booking is cancelled, e.g. ["101", "102"].
         /// </summary>
         public required List<string> RoomNumbers { get; set; }
         /// <summary>
-        /// "Cancelled" for a cancelled booking, else "Paid" when at least one payment is settled, otherwise "Pending".
+        /// "Cancelled" when all rooms are cancelled, else "Paid" when at least one payment is settled, otherwise "Pending".
         /// </summary>
         public required string Status { get; set; }
+        /// <summary>
+        /// Nb of rooms in the booking, cancelled ones included.
+        /// </summary>
+        public required int RoomCount { get; set; }
+        /// <summary>
+        /// Nb of cancelled rooms.
+        /// </summary>
+        public required int CancelledRoomCount { get; set; }
     }
 
     public class Detail
@@ -83,7 +91,7 @@ public static class BookingDto
         public required string BookingNumber { get; set; }
         public required DateTime CreatedAt { get; set; }
         /// <summary>
-        /// "Cancelled" for a cancelled booking, else "Paid" when at least one payment is settled, otherwise "Pending".
+        /// "Cancelled" when all rooms are cancelled, else "Paid" when at least one payment is settled, otherwise "Pending".
         /// </summary>
         public required string Status { get; set; }
         public required DateOnly CheckIn { get; set; }
@@ -94,26 +102,25 @@ public static class BookingDto
         /// </summary>
         public required int Adults { get; set; }
         /// <summary>
-        /// Total of all rooms for the whole stay.
+        /// Original total of all rooms for the whole stay, cancelled rooms included.
         /// </summary>
         public required decimal TotalAmount { get; set; }
         /// <summary>
-        /// Sum of the settled payments, the most that can be refunded.
+        /// Total of the rooms still booked.
+        /// </summary>
+        public required decimal ActiveAmount { get; set; }
+        /// <summary>
+        /// Sum of the settled payments.
         /// </summary>
         public required decimal PaidAmount { get; set; }
         /// <summary>
-        /// Refund due when cancelled today according to the cancellation policy copied at booking time,
-        /// prefills the cancel form, never more than <see cref="PaidAmount"/>.
+        /// Sum of the refunds recorded on the cancelled rooms.
         /// </summary>
-        public required decimal SuggestedRefundAmount { get; set; }
+        public required decimal RefundedAmount { get; set; }
         /// <summary>
-        /// Date the room refunds are calculated for: the cancellation date of a cancelled booking, otherwise today.
+        /// What can still be refunded: paid minus already refunded, never below 0.
         /// </summary>
-        public required DateOnly RefundReferenceDate { get; set; }
-        /// <summary>
-        /// Null while the booking is not cancelled.
-        /// </summary>
-        public AdminCancellationDto? Cancellation { get; set; }
+        public required decimal RefundableAmount { get; set; }
 
         public required AdminGuestDto Guest { get; set; }
         public required List<AdminRoomDto> Rooms { get; set; } = [];
@@ -143,9 +150,17 @@ public static class BookingDto
     /// </summary>
     public class AdminRoomDto
     {
+        /// <summary>
+        /// Id of the room within this booking, identifies the room when cancelling it.
+        /// </summary>
+        public required int BookingRoomId { get; set; }
         public required int RoomId { get; set; }
         public required string RoomNumber { get; set; }
         public required string RoomName { get; set; }
+        /// <summary>
+        /// Most guests the room fits, to check if the guests still fit after a cancellation.
+        /// </summary>
+        public required int MaxGuests { get; set; }
         /// <summary>
         /// Name of the rate at booking time, a later rename doesn't change it.
         /// </summary>
@@ -172,19 +187,27 @@ public static class BookingDto
         /// </summary>
         public DateOnly? PartialRefundUntil { get; set; }
         /// <summary>
-        /// Pct refunded on <see cref="AdminDetail.RefundReferenceDate"/>, eg 100, 50 or 0.
+        /// Date the refund of this room is calculated for: its cancellation date when cancelled, otherwise today.
+        /// </summary>
+        public required DateOnly RefundReferenceDate { get; set; }
+        /// <summary>
+        /// Pct the policy gives back on <see cref="RefundReferenceDate"/>, eg 100, 50 or 0.
         /// </summary>
         public required int RefundPercent { get; set; }
         /// <summary>
-        /// Refund of this room on <see cref="AdminDetail.RefundReferenceDate"/>.
+        /// Refund the policy gives for this room on <see cref="RefundReferenceDate"/>, prefills the cancel form.
         /// </summary>
         public required decimal RefundAmount { get; set; }
+        /// <summary>
+        /// Null while the room is not cancelled.
+        /// </summary>
+        public AdminRoomCancellationDto? Cancellation { get; set; }
     }
 
     /// <summary>
-    /// When and why the booking was cancelled and the refund the admin decided on.
+    /// When and why the room was cancelled and the refund that was recorded.
     /// </summary>
-    public class AdminCancellationDto
+    public class AdminRoomCancellationDto
     {
         public required DateTime CancelledAt { get; set; }
         public required string Reason { get; set; }
