@@ -167,8 +167,7 @@
     font-size: 0.8rem;
 }
 
-.rate-create-field ::deep input,
-.rate-create-field ::deep select {
+.rate-create-field ::deep input {
     appearance: none;
     width: 100%;
     height: 2.5rem;

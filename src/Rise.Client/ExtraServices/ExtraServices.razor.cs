@@ -141,12 +141,4 @@ public partial class ExtraServices : ComponentBase
 
     private static string FormatPrice(decimal price)
         => price.ToString("C2", CultureInfo.GetCultureInfo("nl-BE"));
-
-    private static string FormatPricingModel(ChargeCadence cadence, bool isPerPerson)
-    {
-        var targetText = isPerPerson ? "per person" : "per booking";
-        var cadenceText = cadence == ChargeCadence.PerNight ? "per night" : "once";
-
-        return $"· {targetText} · {cadenceText}";
-    }
 }
