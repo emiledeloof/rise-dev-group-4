@@ -47,6 +47,11 @@ public class BookingDraft
     public decimal Total => Rooms.Sum(r => r.TotalPrice);
 
     /// <summary>
+    /// true when the prices include VAT, the server only sends a VAT-exclusive amount when VAT is enabled and above 0
+    /// </summary>
+    public bool IncludesVat => Rooms.Any(r => r.TotalPriceExclVat is not null);
+
+    /// <summary>
     /// true when the dates and at least one room are picked
     /// </summary>
     public bool HasRooms => CheckIn.HasValue && CheckOut.HasValue && Rooms.Count > 0;
@@ -108,6 +113,8 @@ public class BookingDraft
 
 /// <summary>
 /// one picked room of the draft with the rate the guest chose
+/// TotalPrice is what the guest pays (incl. VAT when enabled)
+/// TotalPriceExclVat comes from the server for information only, null when VAT is disabled or 0
 /// </summary>
 public record DraftRoom(
     int RoomId,
@@ -117,4 +124,5 @@ public record DraftRoom(
     string? RateDescription,
     decimal PricePerNight,
     decimal TotalPrice,
-    string CancellationText);
+    string CancellationText,
+    decimal? TotalPriceExclVat = null);

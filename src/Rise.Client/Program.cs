@@ -112,6 +112,12 @@ try
         client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();
 
+    // the admin room endpoints need the admin role, so send the auth cookie along
+    builder.Services.AddHttpClient<IRoomAdminService, RoomAdminService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
     await builder.Build().RunAsync();
 }
 catch (Exception ex)

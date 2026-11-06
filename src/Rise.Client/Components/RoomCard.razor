@@ -1,4 +1,5 @@
-﻿@using Rise.Client.Common
+﻿@inherits LocalizedComponentBase
+@using Rise.Client.Common
 @* one room in the search results, styles in RoomCard.razor.css *@
 <article class="room-card">
     @* photo of the room, a beige block is shown when there is no photo yet *@
@@ -43,7 +44,12 @@
         @* rates of the room for the stay, cheapest first, styles in RoomCard.razor.css *@
         <div class="room-card-prices">
             @* nb of nights once for all the rates, night or nights like on the results page *@
-            <p class="room-card-price-detail">@Nights @(Nights == 1 ? "night" : "nights") · prices include VAT when enabled</p>
+            <p class="room-card-price-detail">
+                @Nights @(Nights == 1 ? Text["Night"] : Text["Nights"])@if (Rates.Any(rate => rate.TotalPriceExclVat is not null))
+                {
+                    <text> · @Text["PricesIncludeVat"]</text>
+                }
+            </p>
 
             @* one line per rate, a radio btn to pick it, the price per night next to it and the total on the right *@
             <ul class="room-card-rates">

@@ -69,6 +69,40 @@ public class OverviewShould : BunitContext
         cut.Find(".overview-total").TextContent.ShouldContain("€327.00");
     }
 
+    /// <summary>
+    /// with VAT the room shows the price paid labelled incl. VAT and the excl. VAT amount as info only
+    /// </summary>
+    [Fact]
+    public void ShowTheVatInclusivePriceAndTheVatExclusiveAmountAsInfo()
+    {
+        // arrange and act
+        var cut = RenderWith(TestDrafts.WithRooms(withGuest: true, withVat: true));
+
+        // assert
+        cut.Find(".overview-room-price").TextContent.ShouldBe("€392.40");
+        cut.Find(".overview-room-price-label").TextContent.ShouldBe("incl. VAT");
+        cut.Find(".overview-total-label").TextContent.ShouldBe("Total (incl. VAT)");
+        cut.Find(".overview-total-amount").TextContent.ShouldBe("€392.40");
+    }
+
+    /// <summary>
+    /// without VAT (disabled or 0) there is no excl. VAT amount, no VAT label and no VAT notice
+    /// </summary>
+    [Fact]
+    public void ShowNoVatInfoWhenVatDoesNotApply()
+    {
+        // arrange and act
+        var cut = RenderWith(TestDrafts.WithRooms(withGuest: true));
+
+        // assert
+        cut.Find(".overview-room-price").TextContent.ShouldBe("€327.00");
+        cut.FindAll(".overview-room-price-label").ShouldBeEmpty();
+        cut.FindAll(".overview-room-excl-vat").ShouldBeEmpty();
+        cut.Find(".overview-total-label").TextContent.ShouldBe("Total");
+        cut.Find(".overview-total-amount").TextContent.ShouldBe("€327.00");
+        cut.Markup.ShouldNotContain("VAT");
+    }
+
     [Fact]
     public void LinkTheRoomsEditBackToTheResultsOfTheSameDates()
     {

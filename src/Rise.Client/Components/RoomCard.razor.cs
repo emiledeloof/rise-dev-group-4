@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
 using Rise.Shared.Rooms;
 
 namespace Rise.Client.Components;
@@ -6,7 +7,7 @@ namespace Rise.Client.Components;
 /// <summary>
 /// card showing one room in the search results, photo, name, description, capacity, price and a select btn
 /// </summary>
-public partial class RoomCard
+public partial class RoomCard : LocalizedComponentBase
 {
     /// <summary>
     /// name of the room, eg vigna suite
@@ -80,4 +81,9 @@ public partial class RoomCard
     private Task PickRateAsync(RateDto.Available rate)
         => MinStayText.IsBookable(rate, Nights) ? OnRateSelected.InvokeAsync(rate.Id) : Task.CompletedTask;
 
+    // the VAT notice and the nights are translated
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTextAsync();
+    }
 }

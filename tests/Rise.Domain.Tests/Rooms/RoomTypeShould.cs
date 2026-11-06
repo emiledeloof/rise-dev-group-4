@@ -36,9 +36,7 @@ public class RoomTypeShould
     public void BeLinkedToARoom()
     {
         var roomType = new RoomType("Deluxe Room");
-        var room = new Room("102", "Deluxe Room", 2);
-
-        room.ChangeType(roomType);
+        var room = new Room("102", "Deluxe Room", 2, roomType);
 
         room.RoomType.ShouldBe(roomType);
     }
