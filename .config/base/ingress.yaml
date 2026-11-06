@@ -6,7 +6,7 @@ metadata:
     kubernetes.io/ingress.class: "traefik"
 spec:
   rules:
-  - host: kubernetes.bnb1-gent01.vichogent.be
+  - host: placeholder.local
     http:
       paths:
       - path: /
