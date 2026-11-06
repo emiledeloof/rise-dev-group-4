@@ -40,6 +40,14 @@ public partial class AdminDetail
 
     private List<BookingDto.AdminRoomDto> CancelledRooms => _booking!.Rooms.Where(x => x.Cancellation is not null).ToList();
 
+    // ! an open checkout created before a cancellation still charges the old amount, a new one only the remaining rooms,
+    // so compare each payment with the rooms not yet cancelled when it was paid, rooms cancelled later were rightly charged
+    private decimal OverpaidAmount => _booking!.Payments
+        .Where(x => x.PaidAt is not null)
+        .Sum(payment => Math.Max(payment.Amount - _booking.Rooms
+            .Where(room => room.Cancellation is null || room.Cancellation.CancelledAt >= payment.PaidAt)
+            .Sum(room => room.Total), 0m));
+
     private bool AllActiveRoomsSelected => _cancelForm!.Rooms.Count == ActiveRooms.Count;
 
     private decimal SelectedRefundTotal => _cancelForm!.Rooms.Sum(x => x.RefundAmount);

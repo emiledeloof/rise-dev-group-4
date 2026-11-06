@@ -95,12 +95,12 @@
                             </p>
                         }
 
-                        @* the guest can still finish an open Stripe checkout after a cancellation, possibly for the old amount *@
-                        @if (_booking.Payments.Any(x => x.PaidAt > CancelledRooms.Min(room => room.Cancellation!.CancelledAt)))
+                        @* the guest can still finish an open Stripe checkout after a cancellation, for the old amount *@
+                        @if (OverpaidAmount > 0)
                         {
                             <p class="booking-detail-refund-note booking-detail-paid-after-cancel" role="alert">
                                 <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-                                A payment came in after a cancellation, check the amount and refund any difference to the guest yourself, e.g. in the Stripe dashboard.
+                                A payment came in after a cancellation for @Format.Amount(OverpaidAmount) more than the remaining rooms cost, refund the difference to the guest yourself, e.g. in the Stripe dashboard.
                             </p>
                         }
                     </section>

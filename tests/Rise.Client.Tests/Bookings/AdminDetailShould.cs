@@ -693,7 +693,7 @@ public class AdminDetailShould : BunitContext
 
         var cut = RenderPage();
 
-        cut.Find(".booking-detail-paid-after-cancel").TextContent.ShouldContain("A payment came in after a cancellation");
+        cut.Find(".booking-detail-paid-after-cancel").TextContent.ShouldContain("for €720.00 more than the remaining rooms cost");
     }
 
     /// <summary>
@@ -708,7 +708,41 @@ public class AdminDetailShould : BunitContext
 
         var cut = RenderPage();
 
-        cut.Find(".booking-detail-paid-after-cancel").TextContent.ShouldContain("check the amount");
+        // 720 paid, only room 101 of 300 is left
+        cut.Find(".booking-detail-paid-after-cancel").TextContent.ShouldContain("€420.00 more");
+    }
+
+    /// <summary>
+    /// a checkout created after the cancellation only charges the remaining rooms, that payment is correct
+    /// </summary>
+    [Fact]
+    public void NotWarnAboutTheRightAmountPaidAfterTheCancellation()
+    {
+        var booking = TestAdminDetails.PartlyCancelled();
+        var payment = booking.Payments.Single();
+        payment.PaidAt = booking.Rooms[1].Cancellation!.CancelledAt.AddHours(1);
+        payment.Amount = 300m;
+        booking.PaidAmount = 300m;
+        _bookingService.AdminDetailAnswer = Result.Success(booking);
+
+        var cut = RenderPage();
+
+        cut.FindAll(".booking-detail-paid-after-cancel").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// paid in full and cancelled later without a full refund, the guest paid for rooms that were still booked
+    /// </summary>
+    [Fact]
+    public void NotWarnWhenARoomIsCancelledAfterThePayment()
+    {
+        var booking = TestAdminDetails.PartlyCancelled();
+        booking.Payments.Single().PaidAt = booking.Rooms[1].Cancellation!.CancelledAt.AddHours(-1);
+        _bookingService.AdminDetailAnswer = Result.Success(booking);
+
+        var cut = RenderPage();
+
+        cut.FindAll(".booking-detail-paid-after-cancel").ShouldBeEmpty();
     }
 
     [Fact]
