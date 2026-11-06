@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: placeholder
+  name: rise-logs-pvc
 spec:
   accessModes:
     - ReadWriteOnce
