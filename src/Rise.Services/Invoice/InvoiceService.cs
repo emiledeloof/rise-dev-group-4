@@ -41,7 +41,10 @@ public class InvoiceService(ApplicationDbContext dbContext) : IInvoiceService
                 StripePaymentIntent = p.StripePaymentIntent,
                 StripeReceiptUrl = p.StripeReceiptUrl,
                 CardBrand = p.CardBrand,
-                CardLast4 = p.CardLast4
+                CardLast4 = p.CardLast4,
+                RoomCount = p.Booking.Rooms.Count(r => !r.IsDeleted),
+                CancelledRoomCount = p.Booking.Rooms.Count(r => !r.IsDeleted && r.CancelledAt != null),
+                RefundedAmount = p.Booking.Rooms.Where(r => !r.IsDeleted).Sum(r => r.RefundAmount ?? 0m),
             })
             .ToListAsync(ctx);
 

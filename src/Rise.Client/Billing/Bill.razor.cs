@@ -42,6 +42,11 @@ public partial class Bill
 
     private bool IsNewLine => _lineForm is { LineId: 0 };
 
+    private List<BillingDto.AccommodationLine> CancelledRooms => _bill!.Accommodation.Where(x => x.IsCancelled).ToList();
+
+    // rooms can be cancelled on different days, the booking is only fully cancelled from the last one on
+    private DateTime LastCancelledAt => CancelledRooms.Max(x => x.Cancellation!.CancelledAt);
+
     /// <summary>
     /// runs when the page opens and each time the id in the url changes, loads the bill
     /// </summary>

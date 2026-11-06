@@ -38,6 +38,14 @@ public static partial class BookingRequest
 public static class BookingCancellationFilters
 {
     public const string All = "All";
+
+    /// <summary>
+    /// Bookings that still have booked rooms, including partly cancelled bookings.
+    /// </summary>
     public const string NotCancelled = "NotCancelled";
+
+    /// <summary>
+    /// Bookings of which all rooms are cancelled.
+    /// </summary>
     public const string OnlyCancelled = "OnlyCancelled";
 }

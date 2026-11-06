@@ -116,6 +116,75 @@ public class BillShould : BunitContext
     }
 
     [Fact]
+    public void ShowAPartlyCancelledBookingWithItsControls()
+    {
+        _billingService.BillAnswer = Result.Success(TestBills.PartlyCancelled());
+
+        var cut = RenderPage();
+
+        cut.Find(".bill-cancelled-banner.is-partial").TextContent.ShouldContain("1 of 2 rooms cancelled");
+        cut.Find(".bill-cancelled-banner").TextContent.ShouldNotContain("nothing due");
+        cut.FindAll(".bill-add-line").Count.ShouldBe(1);
+        cut.FindAll(".bill-edit-line").Count.ShouldBe(1);
+        cut.FindAll(".bill-delete-line").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void MarkTheCancelledRoomAndShowItsFee()
+    {
+        _billingService.BillAnswer = Result.Success(TestBills.PartlyCancelled());
+
+        var cut = RenderPage();
+
+        var cancelled = cut.Find(".bill-room.is-cancelled");
+        cancelled.TextContent.ShouldContain("Room 102");
+        cancelled.TextContent.ShouldContain("Cancelled");
+        cancelled.QuerySelector(".bill-room-cancellation")!.TextContent.ShouldContain("Guest is ill");
+        cancelled.QuerySelector(".bill-line-amount")!.TextContent.ShouldBe("€150.00");
+        cut.FindAll(".bill-room").Count.ShouldBe(2);
+        cut.Find(".bill-fee-amount").TextContent.ShouldBe("€50.00");
+    }
+
+    [Fact]
+    public void ShowTheFeesAndRefundsInTheSummary()
+    {
+        _billingService.BillAnswer = Result.Success(TestBills.PartlyCancelled());
+
+        var cut = RenderPage();
+
+        cut.Find(".bill-accommodation-total").TextContent.ShouldBe("€330.00");
+        cut.Find(".bill-fees-total").TextContent.ShouldBe("€50.00");
+        cut.Find(".bill-total-amount").TextContent.ShouldBe("€396.00");
+        cut.Find(".bill-refunded-amount").TextContent.ShouldBe("+ €100.00");
+        cut.Find(".bill-balance.is-settled .bill-balance-label").TextContent.ShouldBe("Settled");
+    }
+
+    [Fact]
+    public void ShowARefundRowPerCancelledRoom()
+    {
+        _billingService.BillAnswer = Result.Success(TestBills.PartlyCancelled());
+
+        var cut = RenderPage();
+
+        var refund = cut.FindAll(".bill-refund").ShouldHaveSingleItem();
+        refund.TextContent.ShouldContain("Room 102");
+        refund.QuerySelector(".bill-refund-amount")!.TextContent.ShouldBe("+ €100.00");
+    }
+
+    [Fact]
+    public void HideTheFeeAndRefundRowsWithoutACancellation()
+    {
+        var cut = RenderPage();
+
+        cut.FindAll(".bill-cancelled-banner").ShouldBeEmpty();
+        cut.FindAll(".bill-room.is-cancelled").ShouldBeEmpty();
+        cut.FindAll(".bill-fee").ShouldBeEmpty();
+        cut.FindAll(".bill-fees-row").ShouldBeEmpty();
+        cut.FindAll(".bill-refund").ShouldBeEmpty();
+        cut.FindAll(".bill-refunded-row").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void ShowAMessageForAnUnknownBooking()
     {
         _billingService.BillAnswer = Result.NotFound();

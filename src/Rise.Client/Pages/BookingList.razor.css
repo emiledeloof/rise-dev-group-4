@@ -49,6 +49,15 @@
     white-space: nowrap;
 }
 
+/* the status and the nb of cancelled rooms wrap instead of pushing the row wider on phones */
+.booking-list-status {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-xs);
+    white-space: normal;
+}
+
 .booking-count {
     text-align: center;
     margin-top: var(--space-sm);

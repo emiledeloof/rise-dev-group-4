@@ -162,6 +162,33 @@ public class RoomServiceShould
     }
 
     /// <summary>
+    /// 2 rooms in 1 booking and only the double one is cancelled, it can be found again and the other stays taken
+    /// </summary>
+    [Fact]
+    public async Task OnlyFreeTheCancelledRoomOfABooking()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(OnlyFreeTheCancelledRoomOfABooking));
+        var booking = await dbContext.Bookings.Include(x => x.Rooms).SingleAsync();
+        var single = await dbContext.Rooms.Include(x => x.Rates).SingleAsync(x => x.Name == SingleRoom);
+        booking.AddRoom(single, single.Rates.Single());
+        await dbContext.SaveChangesAsync();
+        (await FreeRoomNamesAsync(dbContext, Stay(10, 12))).ShouldBeEmpty();
+
+        // act
+        booking.CancelRooms(
+            [new RoomCancellation(booking.Rooms.Single(x => x.Room.Name == DoubleRoom), 0m)],
+            DateTime.UtcNow,
+            "Guest is ill",
+            adults: 1);
+        await dbContext.SaveChangesAsync();
+        var names = await FreeRoomNamesAsync(dbContext, Stay(10, 12));
+
+        // assert
+        names.ShouldBe(new[] { DoubleRoom });
+    }
+
+    /// <summary>
     /// a cancelled booking does not block the room anymore
     /// </summary>
     [Fact]
@@ -169,7 +196,7 @@ public class RoomServiceShould
     {
         // arrange, same data but the booking is cancelled
         await using var dbContext = await CreateSeededDbContextAsync(nameof(IgnoreCancelledBookings),
-            (_, booking) => booking.Cancel(DateTime.UtcNow, "Guest is ill", 0m));
+            (_, booking) => booking.CancelRooms(booking.Rooms.Select(x => new RoomCancellation(x, 0m)).ToList(), DateTime.UtcNow, "Guest is ill"));
 
         // act
         var names = await FreeRoomNamesAsync(dbContext, Stay(10, 12));
