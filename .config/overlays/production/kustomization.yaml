@@ -4,8 +4,8 @@ namespace: production
 
 resources:
 - ../../base
+- namespace.yaml
 
-# Override just the image tag for production
 patches:
-- patch-image.yaml
-- patch-ingress.yaml
+- path: patch-image.yaml
+- path: patch-ingress.yaml
