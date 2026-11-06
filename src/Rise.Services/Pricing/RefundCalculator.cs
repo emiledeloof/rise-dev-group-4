@@ -42,7 +42,6 @@ public static class RefundCalculator
     /// <param name="nights">nb of nights of the stay</param>
     /// <param name="cancelledOn">date the room is cancelled</param>
     public static decimal RefundAmount(BookingRoom bookingRoom, DateOnly checkIn, int nights, DateOnly cancelledOn)
-        => Math.Round(
-            PriceCalculator.Total(bookingRoom.PricePerNight, nights) * RefundPercent(bookingRoom, checkIn, cancelledOn) / 100m,
-            2);
+        => PriceCalculator.RoundToCents(
+            PriceCalculator.Total(bookingRoom.PricePerNight, nights) * RefundPercent(bookingRoom, checkIn, cancelledOn) / 100m);
 }

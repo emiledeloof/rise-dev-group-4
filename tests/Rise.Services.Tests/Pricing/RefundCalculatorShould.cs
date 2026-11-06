@@ -91,6 +91,9 @@ public class RefundCalculatorShould
     /// <summary>
     /// 33.33 a night at 50 pct for 1 night gives 16.665, the refund is rounded to cents
     /// </summary>
+    /// <summary>
+    /// 50 % of 33.33 is 16.665, half a cent goes up like the prices and VAT
+    /// </summary>
     [Fact]
     public void RoundTheAmountToCents()
     {
@@ -99,6 +102,6 @@ public class RefundCalculatorShould
         var booking = new Booking("20261006-0042", guest, CheckIn, CheckIn.AddDays(1), 1);
         var bookingRoom = booking.AddRoom(room, room.AddRate("Flexible", 33.33m));
 
-        RefundCalculator.RefundAmount(bookingRoom, CheckIn, 1, CheckIn.AddDays(-7)).ShouldBe(16.66m);
+        RefundCalculator.RefundAmount(bookingRoom, CheckIn, 1, CheckIn.AddDays(-7)).ShouldBe(16.67m);
     }
 }
