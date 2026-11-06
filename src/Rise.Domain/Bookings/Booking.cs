@@ -117,6 +117,7 @@ public class Booking : Entity
     /// Cancels one or more rooms and records the refund of each, cancelling all rooms cancels the booking.
     /// Everything is checked first, so a refused cancellation changes nothing.
     /// The rooms with their <see cref="Room"/> and the payments must be loaded.
+    /// BookingService.CancelAsync checks the same rules first to return a Result, keep both in sync.
     /// </summary>
     /// <param name="rooms">rooms to cancel with their refund</param>
     /// <param name="cancelledAt">moment of the cancellation</param>

@@ -353,6 +353,9 @@ public sealed class BookingService(
             return Result.Conflict($"Booking {booking.BookingNumber} is already cancelled.");
         }
 
+        // ! the validator checks the request, these checks repeat the rules of Booking.CancelRooms that need the loaded booking,
+        // so the admin gets a Result with a clear msg, the domain checks everything again and throws, it stays the backstop
+        // change a rule in both places
         var cancellations = new List<RoomCancellation>();
         foreach (var selection in request.Rooms)
         {
