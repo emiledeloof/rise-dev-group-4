@@ -36,8 +36,12 @@ public partial class Confirmation : LocalizedComponentBase, IDisposable
     // true while the page is still waiting for the webhook
     private bool isPolling;
 
-    private decimal paymentAmount => booking?.Payments.FirstOrDefault()?.Amount ?? 0;
+    // sum of the rooms, the payment can differ after a refund or a 2nd payment
+    private decimal Total => booking?.Rooms.Sum(x => x.Total) ?? 0;
     private bool IsPaid => booking?.Payments.Any(x => x.PaidAt is not null) == true;
+
+    // the server only sends a VAT-exclusive amount when VAT applied at booking time, so then the prices include VAT
+    private bool IncludesVat => booking?.Rooms.Any(x => x.TotalExclVat is not null) == true;
     private int numberOfNights => booking is null
         ? 0
         : booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;

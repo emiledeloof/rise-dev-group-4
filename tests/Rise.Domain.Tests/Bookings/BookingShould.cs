@@ -39,7 +39,7 @@ public class BookingShould
     [Fact]
     public void CopyTheRateNameWhenAddingARoom()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
 
@@ -75,7 +75,7 @@ public class BookingShould
     [Fact]
     public void CopyThePriceOfTheRateWhenAddingARoom()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
 
@@ -91,7 +91,7 @@ public class BookingShould
     [Fact]
     public void KeepThePricePassedWhenAddingARoom()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
 
@@ -104,8 +104,8 @@ public class BookingShould
     [Fact]
     public void NotAddARoomWithARateOfAnotherRoom()
     {
-        var room = new Room("101", "Single Room", 1);
-        var otherRoom = new Room("102", "Double Room", 2);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
+        var otherRoom = new Room("102", "Double Room", 2, new RoomType("Standard"));
         var otherRate = otherRoom.AddRate("Standard", 109m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
 
@@ -118,7 +118,7 @@ public class BookingShould
     [Fact]
     public void NotAddTheSameRoomTwice()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
         booking.AddRoom(room, rate);
@@ -135,7 +135,7 @@ public class BookingShould
     [Fact]
     public void CopyTheCancellationPolicyOfTheRateWhenAddingARoom()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Flexible", 79m);
         rate.FullRefundDays = 45;
         rate.PartialRefundDays = 10;
@@ -183,7 +183,7 @@ public class BookingShould
     [Fact]
     public void KeepItsTermsWhenCancelled()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var booking = CreatePaidBooking();
         booking.AddRoom(room, room.AddRate("Flexible", 79m));
 
@@ -244,5 +244,55 @@ public class BookingShould
 
         booking.PaidAmount.ShouldBe(0m);
         act.ShouldThrow<ArgumentException>();
+    }
+
+    [Fact]
+    public void KeepTheVatPercentageOfARoom()
+    {
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
+        var rate = room.AddRate("Standard", 79m);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
+
+        var bookingRoom = booking.AddRoom(room, rate, 86.90m, vatPercentage: 10m);
+
+        bookingRoom.VatPercentage.ShouldBe(10m);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(100.01)]
+    public void NotAddARoomWithAVatPercentageOutOfRange(decimal vatPercentage)
+    {
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
+        var rate = room.AddRate("Standard", 79m);
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
+
+        Action act = () => booking.AddRoom(room, rate, vatPercentage: vatPercentage);
+
+        act.ShouldThrow<ArgumentException>();
+    }
+
+    [Fact]
+    public void AddABillLine()
+    {
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
+
+        var line = booking.AddBillLine("  Minibar ", 3, 6.50m, 22m);
+
+        booking.BillLines.ShouldHaveSingleItem().ShouldBe(line);
+        line.Description.ShouldBe("Minibar");
+        line.Total.ShouldBe(19.50m);
+    }
+
+    [Fact]
+    public void NotAddABillLineToACancelledBooking()
+    {
+        var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
+        booking.Cancel(DateTime.UtcNow, "Guest is ill", 0m);
+
+        Action act = () => booking.AddBillLine("Minibar", 1, 5m, 22m);
+
+        act.ShouldThrow<InvalidOperationException>();
+        booking.BillLines.ShouldBeEmpty();
     }
 }

@@ -12,25 +12,30 @@
     else
     {
         @* one line per picked room, room and rate on the left, price on the right *@
+        @* the price paid (incl. VAT) is the prominent one, the excl. VAT amount from the server is only informational *@
         <ul class="selection-summary-list">
             @foreach (var room in Rooms)
             {
                 <li class="selection-summary-room">
                     <span class="selection-summary-room-name">@room.RoomName</span>
                     <span class="selection-summary-rate-name">@room.RateName</span>
-                    <span class="selection-summary-price">@Format.Amount(room.TotalPrice)</span>
+                    <span class="selection-summary-pricing">
+                        <span class="selection-summary-price">@Format.Amount(room.TotalPrice)</span>
+                        @if (room.TotalPriceExclVat is not null)
+                        {
+                            <span class="selection-summary-price-label">@Text["InclVat"]</span>
+                        }
+                    </span>
                 </li>
             }
         </ul>
 
         @* total of all the rooms *@
         <p class="selection-summary-total">
-            <span>@Text["Total"]</span>
-            <span>@Format.Amount(Total)</span>
+            <span class="selection-summary-total-label">@(IncludesVat ? Text["TotalInclVat"] : Text["Total"])</span>
+            <span class="selection-summary-total-amount">@Format.Amount(Total)</span>
         </p>
     }
-
-    <p class="selection-summary-vat">@Text["PricesIncludeVat"]</p>
 
     @* next step of the booking, the page stores the selection and goes to the guest details *@
     <Button IsFullWidth="true" IsDisabled="Rooms.Count == 0" OnClick="() => OnContinue.InvokeAsync()">@Text["Continue"]</Button>

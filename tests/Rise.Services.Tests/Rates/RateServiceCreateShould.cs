@@ -16,7 +16,7 @@ public class RateServiceCreateShould
             .UseInMemoryDatabase(nameof(CreateRateForAnExistingRoom))
             .Options;
         await using var dbContext = new ApplicationDbContext(options);
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         dbContext.Rooms.Add(room);
         await dbContext.SaveChangesAsync();
 
@@ -73,7 +73,7 @@ public class RateServiceCreateShould
             .UseInMemoryDatabase(databaseName)
             .Options;
         var dbContext = new ApplicationDbContext(options);
-        dbContext.Rooms.Add(new Room("101", "Single Room", 1));
+        dbContext.Rooms.Add(new Room("101", "Single Room", 1, new RoomType("Standard")));
         await dbContext.SaveChangesAsync();
         return dbContext;
     }

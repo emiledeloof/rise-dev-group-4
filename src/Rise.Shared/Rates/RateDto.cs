@@ -25,6 +25,10 @@ public static class RateDto
         // price for the whole stay with this rate, from PriceCalculator
         public required decimal TotalPrice { get; set; }
 
+        // price for the whole stay without VAT, for information only, TotalPrice already includes the VAT
+        // null when VAT is disabled or 0, so the client never shows a misleading comparison
+        public decimal? TotalPriceExclVat { get; set; }
+
         // true for a refundable rate, shared cant see the domain enum
         public required bool IsRefundable { get; set; }
 

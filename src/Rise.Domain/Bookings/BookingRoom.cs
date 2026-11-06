@@ -42,18 +42,25 @@ public class BookingRoom : Entity
     public int PartialRefundPercent { get; private set; }
 
     /// <summary>
+    /// VAT pct included in <see cref="PricePerNight"/> at booking time, 0 when VAT was off.
+    /// Kept per room so the bill can show the VAT even after the VAT setting changes.
+    /// </summary>
+    public decimal VatPercentage { get; private set; }
+
+    /// <summary>
     /// Entity Framework Core Constructor
     /// </summary>
     private BookingRoom()
     {
     }
 
-    internal BookingRoom(Booking booking, Room room, Rate rate, decimal pricePerNight)
+    internal BookingRoom(Booking booking, Room room, Rate rate, decimal pricePerNight, decimal vatPercentage)
     {
         Booking = Guard.Against.Null(booking);
         Room = Guard.Against.Null(room);
         Rate = Guard.Against.Null(rate);
         PricePerNight = Guard.Against.NegativeOrZero(pricePerNight);
+        VatPercentage = Guard.Against.OutOfRange(vatPercentage, nameof(vatPercentage), 0m, 100m);
         RateName = rate.Name;
         // * snapshot of the cancellation policy, later changes on the rate dont touch this booking
         CancellationPolicy = rate.CancellationPolicy;

@@ -35,11 +35,11 @@ public class BookingServiceShould
         var dbContext = new ApplicationDbContext(options);
         dbContext.GeneralSettings.Add(new GeneralSettings(false, 0m));
 
-        var doubleRoom = new Room("102", "Double Room", 2);
+        var doubleRoom = new Room("102", "Double Room", 2, new RoomType("Standard"));
         var doubleRate = doubleRoom.AddRate("Non-refundable", 109m);
         doubleRoom.AddRate("Fully refundable", 139m);
 
-        var singleRoom = new Room("101", "Single Room", 1);
+        var singleRoom = new Room("101", "Single Room", 1, new RoomType("Standard"));
         singleRoom.AddRate("Standard", 79m);
         singleRoom.AddRate("Flexible", 99m);
 
@@ -165,6 +165,68 @@ public class BookingServiceShould
             .SingleAsync(room => room.Booking.Id == result.Value.BookingId);
         bookingRoom.PricePerNight.ShouldBe(94.80m);
         bookingRoom.Rate.PricePerNight.ShouldBe(79m);
+        bookingRoom.VatPercentage.ShouldBe(20m);
+    }
+
+    /// <summary>
+    /// zero VAT is stored when VAT is disabled or 0, the price paid is the rate price
+    /// </summary>
+    [Theory]
+    [InlineData(false, 20)]
+    [InlineData(true, 0)]
+    public async Task StoreZeroVatWhenVatDoesNotApply(bool isVatEnabled, int vatPercentage)
+    {
+        await using var dbContext = await CreateSeededDbContextAsync($"{nameof(StoreZeroVatWhenVatDoesNotApply)}{isVatEnabled}{vatPercentage}");
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(isVatEnabled, vatPercentage);
+        await dbContext.SaveChangesAsync();
+        var standard = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+
+        var result = await CreateService(dbContext).CreateAsync(Request(20, 23, "marie@example.com", standard));
+
+        result.Value.TotalAmount.ShouldBe(237m);
+        var bookingRoom = await dbContext.BookingRooms
+            .SingleAsync(room => room.Booking.Id == result.Value.BookingId);
+        bookingRoom.PricePerNight.ShouldBe(79m);
+        bookingRoom.VatPercentage.ShouldBe(0m);
+    }
+
+    /// <summary>
+    /// the confirmation page gets the total paid per room and, when VAT applied at booking time, the total without VAT
+    /// </summary>
+    [Theory]
+    [InlineData(true, 20, 284.40, 237.0)]
+    [InlineData(false, 20, 237.0, null)]
+    [InlineData(true, 0, 237.0, null)]
+    public async Task ReturnTheVatBreakdownStoredAtBookingTimeInTheConfirmationDetail(
+        bool isVatEnabled, int vatPercentage, double expectedTotal, double? expectedTotalExclVat)
+    {
+        // arrange, book 3 nights in the single room at 79 per night, then the checkout session is linked
+        await using var dbContext = await CreateSeededDbContextAsync(
+            $"{nameof(ReturnTheVatBreakdownStoredAtBookingTimeInTheConfirmationDetail)}{isVatEnabled}{vatPercentage}");
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(isVatEnabled, vatPercentage);
+        await dbContext.SaveChangesAsync();
+        var standard = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        var created = await CreateService(dbContext).CreateAsync(Request(20, 23, "marie@example.com", standard));
+        var booking = await dbContext.Bookings.SingleAsync(x => x.Id == created.Value.BookingId);
+        booking.AddPayment(created.Value.TotalAmount, "cs_test_vat");
+        await dbContext.SaveChangesAsync();
+
+        // a later change of the VAT settings doesn't change the breakdown of the booking
+        settings.Update(true, 6m);
+        await dbContext.SaveChangesAsync();
+
+        // act
+        var result = await CreateService(dbContext).GetDetailByCheckoutSessionAsync("cs_test_vat");
+
+        // assert
+        result.IsSuccess.ShouldBeTrue();
+        var room = result.Value.Rooms.ShouldHaveSingleItem();
+        room.RoomName.ShouldBe("Single Room");
+        room.Total.ShouldBe((decimal)expectedTotal);
+        room.TotalExclVat.ShouldBe((decimal?)expectedTotalExclVat);
+        result.Value.Payments.Single().Amount.ShouldBe((decimal)expectedTotal);
     }
 
     [Fact]
@@ -280,6 +342,27 @@ public class BookingServiceShould
 
         // assert
         result.Value.Bookings.Single().Status.ShouldBe("Paid");
+    }
+
+    [Fact]
+    public async Task GetIndexIgnoresDeletedPaymentsForTheStatus()
+    {
+        // arrange — the only settled payment is deleted
+        await using var dbContext = await CreateSeededDbContextAsync(
+            nameof(GetIndexIgnoresDeletedPaymentsForTheStatus),
+            booking =>
+            {
+                var payment = booking.AddPayment(327m);
+                payment.MarkAsPaid(DateTime.UtcNow);
+                payment.IsDeleted = true;
+            });
+        var request = new BookingRequest.Index { Skip = 0, Take = 50 };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.Bookings.Single().Status.ShouldBe("Pending");
     }
 
     [Fact]

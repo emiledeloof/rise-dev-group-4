@@ -35,7 +35,7 @@ public class RoomServiceShould
         dbContext.GeneralSettings.Add(new GeneralSettings(false, 0m));
 
         // the expensive rate is added first on purpose, the service must still sort them cheapest first
-        var doubleRoom = new Room("102", DoubleRoom, 2, "Spacious room with a double bed.");
+        var doubleRoom = new Room("102", DoubleRoom, 2, new RoomType("Standard"), "Spacious room with a double bed.");
         doubleRoom.AddRate("Fully refundable", 139m, "100% refund until 7 days before");
         var doubleRate = doubleRoom.AddRate("Non-refundable", 109m, "No refund after booking");
         doubleRoom.AddPhoto("https://example.com/double-1.jpg");
@@ -49,7 +49,7 @@ public class RoomServiceShould
         doubleRoom.AddAmenity(new Amenity("Hairdryer", "fa-wind"));
 
         // no photo, characteristics or amenities on purpose, to check the dto gets empty values
-        var singleRoom = new Room("101", SingleRoom, 1, "Cosy room with a single bed.");
+        var singleRoom = new Room("101", SingleRoom, 1, new RoomType("Standard"), "Cosy room with a single bed.");
         singleRoom.AddRate("Standard", 79m);
 
         var guest = new Guest("Jan Janssens", "jan.janssens@example.com", "+32 470 12 34 56",
@@ -256,6 +256,29 @@ public class RoomServiceShould
         cheapestRate.TotalPrice.ShouldBe(261.60m);
         doubleRoom.PricePerNight.ShouldBe(130.80m);
         doubleRoom.TotalPrice.ShouldBe(261.60m);
+        // 109 x 2 nights without VAT, only informational
+        cheapestRate.TotalPriceExclVat.ShouldBe(218m);
+    }
+
+    /// <summary>
+    /// no VAT-exclusive amount is sent when VAT is disabled or 0, the prices are the stored ones
+    /// </summary>
+    [Theory]
+    [InlineData(false, 20)]
+    [InlineData(true, 0)]
+    public async Task NotSendAVatExclusiveTotalWhenVatDoesNotApply(bool isVatEnabled, int vatPercentage)
+    {
+        await using var dbContext = await CreateSeededDbContextAsync($"{nameof(NotSendAVatExclusiveTotalWhenVatDoesNotApply)}{isVatEnabled}{vatPercentage}");
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(isVatEnabled, vatPercentage);
+        await dbContext.SaveChangesAsync();
+
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+
+        result.IsSuccess.ShouldBeTrue();
+        var rates = result.Value.Rooms.SelectMany(room => room.Rates).ToList();
+        rates.ShouldAllBe(rate => rate.TotalPriceExclVat == null);
+        rates.First().TotalPrice.ShouldBe(218m);
     }
 
     /// <summary>

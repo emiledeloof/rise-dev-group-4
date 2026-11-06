@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
+using Rise.Client.Billing;
 using Rise.Client.Common;
 using Rise.Client.Bookings;
 using Rise.Client.Guests;
@@ -9,6 +10,7 @@ using Rise.Client.Identity;
 using Rise.Client.Invoice;
 using Rise.Shared.Invoice;
 using Rise.Client.Rooms;
+using Rise.Shared.Billing;
 using Rise.Shared.Bookings;
 using Rise.Shared.Guests;
 using Rise.Shared.Rooms;
@@ -75,6 +77,12 @@ try
         client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();
 
+    // the final bill is admin only, so send the auth cookie along
+    builder.Services.AddHttpClient<IBillingService, BillingService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
     // the booking the guest is putting together, kept until "Pay now"
     builder.Services.AddScoped<BookingDraft>();
 
@@ -107,6 +115,8 @@ try
     }).AddHttpMessageHandler<CookieHandler>();
 
     builder.Services.AddHttpClient<IPromotionCodeService, PromotionCodeService>(client =>
+    // the admin room endpoints need the admin role, so send the auth cookie along
+    builder.Services.AddHttpClient<IRoomAdminService, RoomAdminService>(client =>
     {
         client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();

@@ -1,0 +1,323 @@
+/* Estate overview, following the mobile-first rooms page layout. */
+
+.estate-hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: clamp(30rem, 76vh, 43rem);
+    overflow: hidden;
+    background-color: var(--color-primary-dark);
+    color: var(--color-surface);
+}
+
+.estate-hero-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: estate-hero-zoom 1.8s ease-out;
+}
+
+.estate-hero::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-footer) 25%, transparent) 0%,
+        color-mix(in srgb, var(--color-footer) 12%, transparent) 35%,
+        color-mix(in srgb, var(--color-footer) 78%, transparent) 100%);
+}
+
+.estate-hero-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-md) var(--space-lg);
+}
+
+.estate-hero-eyebrow,
+.estate-closing-eyebrow {
+    color: color-mix(in srgb, var(--color-surface) 82%, transparent);
+}
+
+.estate-hero h1 {
+    max-width: 48rem;
+    margin-bottom: var(--space-md);
+    color: var(--color-surface);
+    font-size: clamp(2.4rem, 7vw, 4.5rem);
+    line-height: 1.05;
+    text-shadow: 0 2px 14px color-mix(in srgb, var(--color-footer) 40%, transparent);
+}
+
+.estate-hero-content > p {
+    max-width: 38rem;
+    margin-bottom: var(--space-lg);
+    color: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    font-family: var(--font-title);
+    font-size: clamp(1.1rem, 2.2vw, 1.45rem);
+    font-style: italic;
+    line-height: 1.5;
+}
+
+.estate-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md) var(--space-lg);
+}
+
+.estate-hero-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-bottom: 2px;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-surface) 60%, transparent);
+    color: var(--color-surface);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.estate-hero-link:hover {
+    border-bottom-color: var(--color-surface);
+    color: var(--color-surface);
+}
+
+@keyframes estate-hero-zoom {
+    from {
+        transform: scale(1.08);
+        opacity: 0.6;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@media (min-width: 768px) {
+    .estate-hero-content {
+        padding: var(--space-xl) var(--space-lg) calc(var(--space-xl) + var(--space-md));
+    }
+}
+
+.estate-section {
+    padding: var(--space-xl) var(--space-md);
+}
+
+.estate-section-alt {
+    background-color: var(--color-primary-dark);
+}
+
+.estate-section-alt .estate-heading .eyebrow,
+.estate-section-alt .estate-heading h2,
+.estate-section-alt .estate-heading > p,
+.estate-section-alt .estate-highlight h3 {
+    color: var(--color-surface);
+}
+
+.estate-section-alt .estate-heading h2::after {
+    background-color: color-mix(in srgb, var(--color-surface) 60%, transparent);
+}
+
+.estate-section-alt .estate-highlight {
+    border-color: color-mix(in srgb, var(--color-surface) 18%, transparent);
+    background-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-primary-dark));
+}
+
+.estate-section-alt .estate-highlight-icon {
+    border-color: color-mix(in srgb, var(--color-surface) 45%, transparent);
+    color: var(--color-surface);
+}
+
+.estate-section-alt .estate-highlight p {
+    color: color-mix(in srgb, var(--color-surface) 82%, transparent);
+}
+
+.estate-inner {
+    max-width: 72rem;
+    margin: 0 auto;
+}
+
+.estate-story {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-lg);
+    align-items: center;
+}
+
+.estate-story-copy h2,
+.estate-heading h2 {
+    margin-bottom: var(--space-md);
+    font-size: clamp(1.9rem, 4vw, 2.75rem);
+}
+
+.estate-story-copy p,
+.estate-heading > p {
+    max-width: 40rem;
+    color: var(--color-text-muted);
+    line-height: 1.7;
+}
+
+.estate-story-photo {
+    height: 19rem;
+    overflow: hidden;
+    border-radius: var(--radius-card);
+    box-shadow: 0 18px 40px color-mix(in srgb, var(--color-footer) 14%, transparent);
+}
+
+.estate-story-photo ::deep .carousel {
+    height: 100%;
+    aspect-ratio: auto;
+}
+
+.estate-heading {
+    max-width: 44rem;
+    margin: 0 auto var(--space-lg);
+    text-align: center;
+}
+
+.estate-heading .eyebrow {
+    display: inline-block;
+    margin-bottom: var(--space-xs);
+}
+
+.estate-heading h2::after {
+    display: block;
+    width: 3rem;
+    height: 1px;
+    margin: var(--space-md) auto 0;
+    background-color: var(--color-gold);
+    content: "";
+}
+
+.estate-highlights,
+.estate-places {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.estate-highlight,
+.estate-place {
+    padding: var(--space-lg) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface);
+}
+
+.estate-highlight {
+    text-align: center;
+}
+
+.estate-highlight-icon,
+.estate-place-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    margin-bottom: var(--space-md);
+    border: 1px solid color-mix(in srgb, var(--color-gold) 50%, transparent);
+    border-radius: 50%;
+    color: var(--color-primary);
+    font-size: 1.15rem;
+}
+
+.estate-highlight h3,
+.estate-place h3 {
+    margin-bottom: var(--space-sm);
+    font-size: 1.25rem;
+}
+
+.estate-highlight p,
+.estate-place p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.65;
+}
+
+.estate-place {
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--color-footer) 6%, transparent);
+}
+
+.estate-place-icon {
+    margin-bottom: var(--space-sm);
+    border: 0;
+    color: var(--color-gold);
+}
+
+.estate-closing {
+    padding: var(--space-xl) var(--space-md);
+    background-color: var(--color-primary-dark);
+    color: var(--color-surface);
+    text-align: center;
+}
+
+.estate-closing h2 {
+    margin-bottom: var(--space-sm);
+    color: var(--color-surface);
+    font-size: clamp(1.9rem, 4vw, 2.75rem);
+}
+
+.estate-closing p {
+    margin-bottom: var(--space-lg);
+    color: color-mix(in srgb, var(--color-surface) 82%, transparent);
+}
+
+.estate-closing ::deep .estate-closing-cta {
+    border-color: var(--color-surface);
+    background-color: var(--color-surface);
+    color: var(--color-primary-dark);
+}
+
+.estate-closing ::deep .estate-closing-cta:hover {
+    background-color: var(--color-bg);
+    color: var(--color-primary-dark);
+}
+
+@media (min-width: 600px) {
+    .estate-highlights {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .estate-places {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 900px) {
+    .estate-section {
+        padding: calc(var(--space-xl) + var(--space-lg)) var(--space-lg);
+    }
+
+    .estate-story {
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        gap: var(--space-xl);
+    }
+
+    .estate-story-photo {
+        height: 26rem;
+    }
+
+    .estate-highlights {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: var(--space-lg);
+    }
+
+    .estate-closing {
+        padding: calc(var(--space-xl) + var(--space-lg)) var(--space-lg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .estate-hero-photo {
+        animation: none;
+    }
+}
