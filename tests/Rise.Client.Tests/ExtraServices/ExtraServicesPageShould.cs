@@ -54,10 +54,8 @@ public class ExtraServicesPageShould : BunitContext
     {
         var cut = Render<Rise.Client.ExtraServices.ExtraServices>();
 
-        var toggleBtn = cut.FindAll(".service-actions button")
-            .First(b => b.TextContent.Trim() == "Deactivate");
-
-        await cut.InvokeAsync(() => toggleBtn.Click());
+        var toggle = cut.Find("input[role='switch'][aria-label='Deactivate Breakfast']");
+        await cut.InvokeAsync(() => toggle.Change(false));
 
         _service.Services.First(s => s.Name == "Breakfast").IsActive.ShouldBeFalse();
     }

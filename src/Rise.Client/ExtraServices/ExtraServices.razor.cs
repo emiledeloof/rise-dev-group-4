@@ -18,6 +18,7 @@ public partial class ExtraServices : ComponentBase
     private ExtraServiceRequest.Form? _formModel;
     private string? _formError;
     private bool _isSaving;
+    private readonly HashSet<int> _pendingActivations = [];
 
     [Inject] public required IExtraServiceService ExtraServiceService { get; set; }
 
@@ -108,18 +109,37 @@ public partial class ExtraServices : ComponentBase
 
     private async Task ToggleActiveAsync(ExtraServiceDto.Index service)
     {
-        var result = await ExtraServiceService.ToggleActiveAsync(service.Id);
-
-        if (!result.IsSuccess)
-        {
-            ShowMessage(FirstError(result, "Could not update service status."), isError: true);
+        if (!_pendingActivations.Add(service.Id))
             return;
-        }
 
-        await LoadAsync();
-        ShowMessage(service.IsActive
-            ? $"Service '{service.Name}' was deactivated."
-            : $"Service '{service.Name}' was activated.");
+        try
+        {
+            var result = await ExtraServiceService.ToggleActiveAsync(service.Id);
+
+            if (!result.IsSuccess)
+            {
+                ShowMessage(FirstError(result, "Could not update service status."), isError: true);
+                return;
+            }
+
+            var wasActive = service.IsActive;
+            await LoadAsync();
+            ShowMessage(wasActive
+                ? $"Service '{service.Name}' was deactivated."
+                : $"Service '{service.Name}' was activated.");
+        }
+        finally
+        {
+            _pendingActivations.Remove(service.Id);
+        }
+    }
+
+    private Task SetServiceActiveAsync(ExtraServiceDto.Index service, ChangeEventArgs args)
+    {
+        if (args.Value is not bool isActive || isActive == service.IsActive)
+            return Task.CompletedTask;
+
+        return ToggleActiveAsync(service);
     }
 
     private void ShowMessage(string message, bool isError = false)

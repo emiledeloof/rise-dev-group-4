@@ -41,7 +41,7 @@
                             <th scope="col">Price</th>
                             <th scope="col">Cadence</th>
                             <th scope="col">Charging basis</th>
-                            <th scope="col">Status</th>
+                            <th scope="col">Active</th>
                             <th scope="col"><span class="is-sr-only">Actions</span></th>
                         </tr>
                         </thead>
@@ -57,37 +57,23 @@
                                 <td>@(service.Cadence == ChargeCadence.PerNight ? "Per night" : "Once")</td>
                                 <td>@(service.IsPerPerson ? "Per person" : "Per booking")</td>
                                 <td>
-                                    @if (service.IsActive)
-                                    {
-                                        <span class="rate-policy-fully">Active</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="rate-policy-inactive">Inactive</span>
-                                    }
+                                    <label class="rate-switch">
+                                        <input type="checkbox"
+                                               role="switch"
+                                               aria-label="@(service.IsActive ? $"Deactivate {service.Name}" : $"Activate {service.Name}")"
+                                               checked="@service.IsActive"
+                                               disabled="@_pendingActivations.Contains(service.Id)"
+                                               @onchange="args => SetServiceActiveAsync(service, args)" />
+                                        <span aria-hidden="true"></span>
+                                        <span class="is-sr-only">@(service.IsActive ? "Active" : "Inactive")</span>
+                                    </label>
                                 </td>
-                                <td class="rate-actions service-actions">
+                                <td>
                                     <Button Variant="ButtonVariant.Secondary"
                                             OnClick="() => OpenEditForm(service)"
                                             Class="rate-edit-btn">
                                         Edit
                                     </Button>
-                                    @if (service.IsActive)
-                                    {
-                                        <Button Variant="ButtonVariant.Secondary"
-                                                OnClick="() => ToggleActiveAsync(service)"
-                                                Class="rate-edit-btn">
-                                            Deactivate
-                                        </Button>
-                                    }
-                                    else
-                                    {
-                                        <Button Variant="ButtonVariant.Primary"
-                                                OnClick="() => ToggleActiveAsync(service)"
-                                                Class="rate-edit-btn service-btn-activate">
-                                            Activate
-                                        </Button>
-                                    }
                                 </td>
                             </tr>
                         }
