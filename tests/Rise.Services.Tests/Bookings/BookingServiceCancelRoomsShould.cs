@@ -39,9 +39,9 @@ public class BookingServiceCancelRoomsShould
         {
             seedContext.GeneralSettings.Add(new GeneralSettings(false, 0m));
 
-            var flexible = new Room("201", "Flexible Room", 2);
+            var flexible = new Room("201", "Flexible Room", 2, new RoomType("Standard"));
             var flexibleRate = flexible.AddRate("Flexible", 100m);
-            var saver = new Room("202", "Saver Room", 1);
+            var saver = new Room("202", "Saver Room", 1, new RoomType("Standard"));
             var saverRate = saver.AddRate("Saver", 50m);
             saverRate.CancellationPolicy = CancellationPolicy.NonRefundable;
 

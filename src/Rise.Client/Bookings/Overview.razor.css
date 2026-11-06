@@ -80,7 +80,31 @@
     font-weight: 500;
 }
 
+/* price paid on top, its VAT label and the informational excl. VAT amount under it, muted */
+.overview-room-pricing {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    max-width: 50%;
+    text-align: right;
+}
+
 .overview-room-price {
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.overview-room-price-label,
+.overview-room-excl-vat {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.overview-room-excl-vat {
+    margin-top: var(--space-xs);
+}
+
+.overview-room-excl-vat-amount {
     white-space: nowrap;
 }
 
@@ -106,6 +130,7 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+    gap: var(--space-sm);
     font-family: var(--font-title);
     font-size: 1.5rem;
 }

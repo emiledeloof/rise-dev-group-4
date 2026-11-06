@@ -39,7 +39,7 @@ public class BookingShould
     [Fact]
     public void CopyTheRateNameWhenAddingARoom()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
 
@@ -75,7 +75,7 @@ public class BookingShould
     [Fact]
     public void CopyThePriceOfTheRateWhenAddingARoom()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
 
@@ -91,7 +91,7 @@ public class BookingShould
     [Fact]
     public void KeepThePricePassedWhenAddingARoom()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
 
@@ -104,8 +104,8 @@ public class BookingShould
     [Fact]
     public void NotAddARoomWithARateOfAnotherRoom()
     {
-        var room = new Room("101", "Single Room", 1);
-        var otherRoom = new Room("102", "Double Room", 2);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
+        var otherRoom = new Room("102", "Double Room", 2, new RoomType("Standard"));
         var otherRate = otherRoom.AddRate("Standard", 109m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
 
@@ -118,7 +118,7 @@ public class BookingShould
     [Fact]
     public void NotAddTheSameRoomTwice()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
         booking.AddRoom(room, rate);
@@ -135,7 +135,7 @@ public class BookingShould
     [Fact]
     public void CopyTheCancellationPolicyOfTheRateWhenAddingARoom()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Flexible", 79m);
         rate.FullRefundDays = 45;
         rate.PartialRefundDays = 10;
@@ -167,8 +167,8 @@ public class BookingShould
     private static (Booking Booking, BookingRoom A, BookingRoom B) CreatePaidBookingWithTwoRooms(decimal paid = 200m, int adults = 2)
     {
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, adults);
-        var roomA = new Room("101", "Double Room", 2);
-        var roomB = new Room("102", "Single Room", 1);
+        var roomA = new Room("101", "Double Room", 2, new RoomType("Standard"));
+        var roomB = new Room("102", "Single Room", 1, new RoomType("Standard"));
         var a = booking.AddRoom(roomA, roomA.AddRate("Flexible", 60m));
         var b = booking.AddRoom(roomB, roomB.AddRate("Flexible", 40m));
         booking.AddPayment(paid).MarkAsPaid(new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc));
@@ -371,7 +371,7 @@ public class BookingShould
     public void NotRefundAnUnpaidPayment()
     {
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 2);
-        var room = new Room("101", "Double Room", 2);
+        var room = new Room("101", "Double Room", 2, new RoomType("Standard"));
         var bookingRoom = booking.AddRoom(room, room.AddRate("Flexible", 60m));
         booking.AddPayment(120m);
 
@@ -523,11 +523,11 @@ public class BookingShould
     [Fact]
     public void KeepTheVatPercentageOfARoom()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
 
-        var bookingRoom = booking.AddRoom(room, rate, 86.90m, 10m);
+        var bookingRoom = booking.AddRoom(room, rate, 86.90m, vatPercentage: 10m);
 
         bookingRoom.VatPercentage.ShouldBe(10m);
     }
@@ -537,7 +537,7 @@ public class BookingShould
     [InlineData(100.01)]
     public void NotAddARoomWithAVatPercentageOutOfRange(decimal vatPercentage)
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
 

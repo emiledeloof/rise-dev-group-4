@@ -16,7 +16,7 @@ public class RefundCalculatorShould
     // a booked room with a copy of the policy of its rate
     private static BookingRoom CreateBookingRoom(CancellationPolicy policy = CancellationPolicy.Refundable)
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Flexible", 79m);
         rate.CancellationPolicy = policy;
 
@@ -94,7 +94,7 @@ public class RefundCalculatorShould
     [Fact]
     public void RoundTheAmountToCents()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var guest = new Guest("Jan Janssens", "jan@example.com", "+32 470 12 34 56", new GuestAddress("Koningstraat 12", null, "Belgium"));
         var booking = new Booking("20261006-0042", guest, CheckIn, CheckIn.AddDays(1), 1);
         var bookingRoom = booking.AddRoom(room, room.AddRate("Flexible", 33.33m));

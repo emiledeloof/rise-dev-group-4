@@ -29,8 +29,8 @@ public class StripeWebhookServiceShould
         var guest = new Guest("Jan Janssens", "jan.janssens@example.com", "+32 470 12 34 56",
             new GuestAddress("Koningstraat 12", null, "Belgium"));
         var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
-        var doubleRoom = new Room("102", "Double Room", 2);
-        var singleRoom = new Room("101", "Single Room", 1);
+        var doubleRoom = new Room("102", "Double Room", 2, new RoomType("Standard"));
+        var singleRoom = new Room("101", "Single Room", 1, new RoomType("Standard"));
         booking.AddRoom(doubleRoom, doubleRoom.AddRate("Flexible", 30m));
         booking.AddRoom(singleRoom, singleRoom.AddRate("Flexible", 20m));
         var payment = booking.AddPayment(100m, SessionId);

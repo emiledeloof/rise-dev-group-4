@@ -1,0 +1,119 @@
+@page "/admin/rooms"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Shared.Identity
+@using Rise.Shared.Rooms
+
+<PageTitle>Manage rooms</PageTitle>
+<div class="page">
+    <div class="room-heading">
+        <h1 class="title">Manage rooms</h1>
+        @* no form without the room types, the dropdown would be empty *@
+        @if (_loadError is null)
+        {
+            <Button OnClick="OpenForm">New room</Button>
+        }
+    </div>
+
+    @if (_rooms is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        @if (_successMessage is not null)
+        {
+            <p class="room-success">@_successMessage</p>
+        }
+
+        @if (_loadError is not null)
+        {
+            <p class="room-form-error">@_loadError</p>
+        }
+
+        <div class="box room-list">
+            @* ! no empty state after a failed load, the list is not really empty *@
+            @if (_rooms.Count == 0)
+            {
+                @if (_loadError is null)
+                {
+                    <p class="room-muted">No rooms yet.</p>
+                }
+            }
+            else
+            {
+                <div class="room-table-scroll">
+                    <table class="room-table">
+                        <thead>
+                        <tr>
+                            <th scope="col">Room number</th>
+                            <th scope="col">Room type</th>
+                            <th scope="col">Max guests</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var room in _rooms)
+                        {
+                            <tr @key="room.Id" class="@RowClass(room)">
+                                <td>@room.RoomNumber</td>
+                                <td>@(room.RoomTypeName ?? "—")</td>
+                                <td>@room.MaxGuests</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        @if (_isFormOpen)
+        {
+            <section class="room-panel" aria-labelledby="create-room-heading">
+                <h3 id="create-room-heading">New room</h3>
+
+                @* same validator as the server, CreateAsync only runs when every rule passes *@
+                <EditForm EditContext="_editContext" OnValidSubmit="CreateAsync">
+                    <FluentValidationValidator />
+
+                    <div class="room-fields">
+                        <label class="room-field">
+                            <span>Room number</span>
+                            <InputText @bind-Value="_createModel.RoomNumber" id="room-number" />
+                            <ValidationMessage For="() => _createModel.RoomNumber" class="help is-danger" />
+                        </label>
+
+                        <label class="room-field">
+                            <span>Room type</span>
+                            <InputSelect @bind-Value="_createModel.RoomTypeId" id="room-type">
+                                @* placeholder shown while nothing is chosen, hidden from the list *@
+                                <option value="0" disabled hidden>Select a room type</option>
+                                @foreach (var roomType in _roomTypes)
+                                {
+                                    <option value="@roomType.Id">@roomType.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => _createModel.RoomTypeId" class="help is-danger" />
+                        </label>
+
+                        <label class="room-field">
+                            <span>Max guests</span>
+                            <InputNumber @bind-Value="_createModel.MaxGuests" id="max-guests" />
+                            <ValidationMessage For="() => _createModel.MaxGuests" class="help is-danger" />
+                        </label>
+                    </div>
+
+                    @* the api refused, for example a room number that already exists *@
+                    @if (_formError is not null)
+                    {
+                        <p class="room-form-error">@_formError</p>
+                    }
+
+                    <div class="room-form-actions">
+                        <Button Type="submit" IsDisabled="_isSaving">Save room</Button>
+                        <Button Variant="ButtonVariant.Secondary" OnClick="CloseForm">Cancel</Button>
+                    </div>
+                </EditForm>
+            </section>
+        }
+    }
+</div>

@@ -92,9 +92,9 @@ public class InvoiceServiceShould
         var guest = new Guest("Jan Janssens", "jan.janssens@example.com", "+32 470 12 34 56",
             new GuestAddress("Koningstraat 12", null, "Belgium"));
         var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
-        var kept = new Room("101", "Twin Room", 2);
-        var cancelled = new Room("102", "Twin Room", 2);
-        var removed = new Room("103", "Twin Room", 2);
+        var kept = new Room("101", "Twin Room", 2, new RoomType("Standard"));
+        var cancelled = new Room("102", "Twin Room", 2, new RoomType("Standard"));
+        var removed = new Room("103", "Twin Room", 2, new RoomType("Standard"));
         booking.AddRoom(kept, kept.AddRate("Flexible", 100m));
         var cancelledRoom = booking.AddRoom(cancelled, cancelled.AddRate("Flexible", 100m));
         booking.AddRoom(removed, removed.AddRate("Flexible", 100m)).IsDeleted = true;

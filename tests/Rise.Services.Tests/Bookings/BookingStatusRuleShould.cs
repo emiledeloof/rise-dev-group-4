@@ -81,7 +81,7 @@ public class BookingStatusRuleShould
 
     private static BookingRoom AddRoom(Booking booking, string roomNumber)
     {
-        var room = new Room(roomNumber, "Twin Room", 2);
+        var room = new Room(roomNumber, "Twin Room", 2, new RoomType("Standard"));
         return booking.AddRoom(room, room.AddRate("Standard", 100m));
     }
 }

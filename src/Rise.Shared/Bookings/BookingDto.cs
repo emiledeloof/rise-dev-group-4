@@ -71,7 +71,17 @@ public static class BookingDto
         public required int Id { get; set; }
         public required int RoomId { get; set; }
         public required string RoomNumber { get; set; }
+        public required string RoomName { get; set; }
         public required decimal PricePerNight { get; set; }
+        /// <summary>
+        /// Price of this room for all nights, VAT included when VAT applied at booking time.
+        /// </summary>
+        public required decimal Total { get; set; }
+        /// <summary>
+        /// Price of this room for all nights without VAT, for information only, already included in <see cref="Total"/>.
+        /// Null when no VAT applied at booking time.
+        /// </summary>
+        public decimal? TotalExclVat { get; set; }
     }
 
     public class PaymentDto

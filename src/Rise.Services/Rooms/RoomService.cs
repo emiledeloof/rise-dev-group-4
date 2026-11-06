@@ -95,6 +95,8 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
             })
             .ToListAsync(ctx);
 
+        var appliesVat = settings.IsVatEnabled && settings.VatPercentage > 0m;
+
         foreach (var rate in rows.SelectMany(row => row.Rates))
         {
             rate.PricePerNight = PriceCalculator.InclusiveOfVat(
@@ -102,6 +104,8 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                 settings.IsVatEnabled,
                 settings.VatPercentage);
             rate.TotalPrice = PriceCalculator.Total(rate.PricePerNight, nights);
+            // from the total paid like the confirmation and the bill, the rounded VAT per night would make them differ
+            rate.TotalPriceExclVat = appliesVat ? PriceCalculator.ExclusiveOfVat(rate.TotalPrice, settings.VatPercentage) : null;
         }
 
         // a room without a rate valid on the stay dates cant be booked, so it is left out

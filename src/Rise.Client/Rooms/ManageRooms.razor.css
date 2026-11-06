@@ -1,0 +1,153 @@
+.room-list {
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.room-muted {
+    padding: var(--space-md);
+    color: var(--color-text-muted);
+}
+
+.room-table-scroll {
+    overflow-x: auto;
+}
+
+.room-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.room-table th {
+    padding: 0.7rem 1rem;
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.room-table td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-size: 0.875rem;
+}
+
+.room-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.room-panel {
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.room-panel h3 {
+    margin-bottom: var(--space-md);
+    font-family: var(--font-title);
+    font-size: 1.4rem;
+}
+
+.room-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
+.room-field span {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.room-field ::deep input,
+.room-field ::deep select {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font: inherit;
+}
+
+.room-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.room-heading .title {
+    margin-bottom: 0;
+}
+
+/* the room that already has the number */
+.room-table tbody tr.room-row-conflict td {
+    background: var(--color-warning-bg);
+    font-weight: 600;
+}
+
+/* the room just created, soft green like the refundable pill of the rates page */
+.room-table tbody tr.room-row-created td {
+    background: #e3f2d0;
+    font-weight: 600;
+}
+
+/* confirmation above the table, same green as the new row */
+.room-success {
+    margin-bottom: var(--space-sm);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    background: #e3f2d0;
+    color: #3d5a1e;
+    font-size: 0.85rem;
+}
+
+/* error of the api under the form, smaller than a bulma notification */
+.room-form-error {
+    margin-top: var(--space-sm);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    background: #f8e1df;
+    color: #7a2620;
+    font-size: 0.85rem;
+}
+
+/* one field per line on a phone, all three on one line from a tablet */
+.room-fields {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .room-fields {
+        grid-template-columns: 1fr 2fr 1fr;
+    }
+}
+
+.room-fields .room-field {
+    margin-bottom: 0;
+}
+
+.room-field ::deep input,
+.room-field ::deep select {
+    font-size: 0.875rem;
+}
+
+.room-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+}

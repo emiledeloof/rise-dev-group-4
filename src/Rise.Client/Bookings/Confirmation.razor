@@ -60,9 +60,23 @@ else if (booking is not null)
                 <dt>@Text["Room"]</dt>
                 <dd>@roomName · @guestCount @(guestCount == 1 ? Text["Guest"] : Text["Guests"])</dd>
             </div>
-            <div class="booking-detail-row">
-                <dt>@Text["Rate"]</dt>
-                <dd>@FormatAmount(paymentAmount)</dd>
+            @* one price line per room, the price paid is the prominent one, the excl. VAT amount stored at booking time is only informational *@
+            @foreach (var room in booking.Rooms)
+            {
+                <div class="booking-detail-row booking-room-row">
+                    <dt class="booking-room-name">@room.RoomName</dt>
+                    <dd class="booking-room-pricing">
+                        <span class="booking-room-price">@FormatAmount(room.Total)</span>
+                        @if (room.TotalExclVat is { } exclVat)
+                        {
+                            <span class="booking-room-price-label">@Text["InclVat"]</span>
+                        }
+                    </dd>
+                </div>
+            }
+            <div class="booking-detail-row booking-total-row">
+                <dt class="booking-total-label">@(IncludesVat ? Text["TotalInclVat"] : Text["Total"])</dt>
+                <dd class="booking-total-amount">@FormatAmount(Total)</dd>
             </div>
             <div class="booking-detail-row">
                 <dt>@Text["Payment"]</dt>
