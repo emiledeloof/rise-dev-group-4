@@ -56,6 +56,15 @@
     gap: var(--space-sm);
 }
 
+/* a phone wraps the refund under the tag */
+.invoice-cancellation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs) var(--space-sm);
+    margin-top: var(--space-xs);
+}
+
 .invoice-amount {
     display: flex;
     align-items: center;

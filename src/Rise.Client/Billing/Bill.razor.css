@@ -79,6 +79,17 @@
     font-weight: 600;
 }
 
+/* some rooms are cancelled but the stay goes on, so quieter than a fully cancelled booking */
+.bill-cancelled-banner.is-partial {
+    border-color: var(--color-border);
+    border-left-color: var(--color-gold);
+    background-color: var(--color-surface);
+}
+
+.bill-cancelled-banner.is-partial i {
+    color: var(--color-gold);
+}
+
 /* ---------- cards ---------- */
 
 .bill-layout {
@@ -244,6 +255,28 @@
 
 .bill-refund-amount {
     color: var(--color-accent);
+}
+
+/* a cancelled room stays for the records, its price doesn't count anymore */
+.bill-room.is-cancelled .bill-line-title {
+    color: var(--color-text-muted);
+}
+
+.bill-room.is-cancelled .bill-line-amount {
+    color: var(--color-text-muted);
+    font-weight: 500;
+    text-decoration: line-through;
+}
+
+/* the fee belongs to the room above, so no line between them */
+.bill-room.is-cancelled:has(+ .bill-fee) {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.bill-fee {
+    padding-top: var(--space-xs);
+    font-size: 0.875rem;
 }
 
 /* ---------- summary ---------- */
