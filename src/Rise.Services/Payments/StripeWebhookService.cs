@@ -38,11 +38,14 @@ public sealed class StripeWebhookService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // ! the guest finished an open checkout after the admin cancelled some or all rooms, the amount can be too high
+        // ! the guest can finish an open checkout created before the admin cancelled rooms, then it charges the old amount
+        // a checkout created after the cancellation only charges the remaining rooms, so compare the amount instead of the cancellation
         // the money is real so it stays paid, the admin detail page shows a warning, the refund is done by hand
-        if (localPayment.Booking.IsCancelled || localPayment.Booking.IsPartiallyCancelled)
-            Log.Warning("Payment {PaymentId} was paid after rooms of booking {BookingNumber} were cancelled, refund the difference by hand.",
-                localPayment.Id, localPayment.Booking.BookingNumber);
+        var booking = localPayment.Booking;
+        var overpaid = localPayment.Amount - booking.ActiveAmount;
+        if (overpaid > 0)
+            Log.Warning("Payment {PaymentId} of booking {BookingNumber} is {Overpaid} more than the remaining rooms cost, refund the difference by hand.",
+                localPayment.Id, booking.BookingNumber, overpaid);
 
         return Result.Success();
     }
