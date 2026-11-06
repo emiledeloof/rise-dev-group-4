@@ -11,7 +11,9 @@
 }
 
 /* pill with a light tint and a thin line so it reads as a stamp and not as a btn */
-.status-tag-paid {
+/* settled uses the same pill, only the icon and the text change */
+.status-tag-paid,
+.status-tag-settled {
     border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
     border-radius: 999px;
     background-color: var(--color-primary-tint);
@@ -20,10 +22,4 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     cursor: default;
-}
-
-/* solid green badge, a closed bill is the final step of a booking */
-.status-tag-settled {
-    background-color: var(--color-primary);
-    color: var(--color-surface);
 }

@@ -144,6 +144,16 @@ public class BookingListShould : BunitContext
     }
 
     [Fact]
+    public void ShowSettledTagForSettledBooking()
+    {
+        _bookingService.IndexAnswer = Result.Success(AnswerWith(Booking(1, BookingStatus.Settled)));
+
+        var cut = Render<BookingList>();
+
+        cut.Find("li.booking-row .tag.is-primary").TextContent.Trim().ShouldBe("Settled");
+    }
+
+    [Fact]
     public void AskForAllBookingsByDefault()
     {
         var cut = Render<BookingList>();

@@ -474,13 +474,3 @@
     justify-content: flex-end;
     gap: var(--space-sm);
 }
-
-/* paper version, only the bill itself, no buttons or links */
-@media print {
-    .bill-back,
-    .bill-actions,
-    .bill-line-actions,
-    .bill-card-header ::deep .bill-add-line {
-        display: none;
-    }
-}

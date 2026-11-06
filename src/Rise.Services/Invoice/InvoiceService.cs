@@ -41,7 +41,8 @@ public class InvoiceService(ApplicationDbContext dbContext) : IInvoiceService
                 StripePaymentIntent = p.StripePaymentIntent,
                 StripeReceiptUrl = p.StripeReceiptUrl,
                 CardBrand = p.CardBrand,
-                CardLast4 = p.CardLast4
+                CardLast4 = p.CardLast4,
+                IsBillSettled = p.Booking.SettledAt != null,
             })
             .ToListAsync(ctx);
 

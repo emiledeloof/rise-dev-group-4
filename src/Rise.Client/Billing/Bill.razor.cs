@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
 using Rise.Client.Common;
 using Rise.Shared.Billing;
 
@@ -16,9 +15,16 @@ public partial class Bill
     /// </summary>
     [Parameter] public int BookingId { get; set; }
 
-    [Inject] public required IBillingService BillingService { get; set; }
+    /// <summary>where the admin came from, "invoices" when opened from the invoice list</summary>
+    [SupplyParameterFromQuery(Name = "from")] public string? From { get; set; }
 
-    [Inject] public required IJSRuntime JsRuntime { get; set; }
+    private bool CameFromInvoices => From == "invoices";
+
+    private string BackUrl => CameFromInvoices ? "admin/invoice-list" : $"admin/bookings/{BookingId}";
+
+    private string BackLabel => CameFromInvoices ? "Invoices" : "Booking";
+
+    [Inject] public required IBillingService BillingService { get; set; }
 
     // bill from the api, null while loading or when it could not be loaded
     private BillingDto.Bill? _bill;
@@ -161,8 +167,10 @@ public partial class Bill
         _confirmDeleteId = null;
     }
 
-    // * the bill can be settled with an open balance, payments are recorded separately
-    private const string SettleQuestion = "Close this bill? It can't be changed or cancelled afterwards.";
+    // tells the admin how much will be collected, a credit or a paid bill collects nothing
+    private string SettleQuestion => _bill!.OutstandingBalance > 0
+        ? $"Collect {Format.Amount(_bill.OutstandingBalance)} on site and close this bill? It can't be changed afterwards."
+        : "Close this bill? It can't be changed afterwards.";
 
     private void AskSettle()
     {
@@ -194,9 +202,6 @@ public partial class Bill
 
         _bill = result.Value;
     }
-
-    // * the browser print dialog, the print css hides the buttons and keeps only the bill
-    private async Task PrintAsync() => await JsRuntime.InvokeVoidAsync("print");
 
     // the server checks again, eg the booking was cancelled in another tab
     private static string ErrorOf(Result<BillingDto.Bill> result, string fallback)

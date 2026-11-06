@@ -68,6 +68,21 @@ public class BookingPopupShould : BunitContext
     }
 
     [Fact]
+    public void RenderSettledStatusWhenTheBillIsSettled()
+    {
+        var booking = TestAdminDetails.Full();
+        booking.Status = BookingStatus.Settled;
+        _bookingService.AdminDetailAnswer = Result.Success(booking);
+
+        var cut = Render<BookingPopup>(p => p
+            .Add(x => x.BookingId, 7)
+            .Add(x => x.X, 100)
+            .Add(x => x.Y, 100));
+
+        cut.Find(".popup-status .tag.is-primary").TextContent.Trim().ShouldBe("Settled");
+    }
+
+    [Fact]
     public void RenderEmptyStateWhenFetchFails()
     {
         _bookingService.AdminDetailAnswer = Result.NotFound();

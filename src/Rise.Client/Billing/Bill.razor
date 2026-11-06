@@ -11,8 +11,9 @@
 <PageTitle>@(_bill is null ? "Final bill" : $"Bill {_bill.BookingNumber}")</PageTitle>
 
 <div class="page bill">
-    <a class="bill-back" href="admin/bookings/@BookingId">
-        <i class="fas fa-arrow-left" aria-hidden="true"></i><span>Booking</span>
+    @* back to the page the admin came from, the invoice list or the booking *@
+    <a class="bill-back" href="@BackUrl">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i><span>@BackLabel</span>
     </a>
 
     @if (_isLoading)
@@ -305,8 +306,9 @@
                                 <Button Variant="ButtonVariant.Primary" OnClick="AskSettle" Class="bill-settle">Settle bill</Button>
                             }
 
-                            <Button Variant="ButtonVariant.Secondary" OnClick="PrintAsync" Class="bill-print">
-                                <i class="fas fa-print" aria-hidden="true"></i> Print bill
+                            @* the pdf opens in a new tab, the admin prints or saves it from there *@
+                            <Button Variant="ButtonVariant.Secondary" Href="@($"/api/bookings/{BookingId}/bill/pdf")" target="_blank" Class="bill-print">
+                                <i class="fas fa-file-pdf" aria-hidden="true"></i> Print bill
                             </Button>
 
                             @if (_settleError is not null)

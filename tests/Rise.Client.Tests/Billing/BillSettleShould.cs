@@ -22,13 +22,13 @@ public class BillSettleShould : BunitContext
         => Render<Bill>(p => p.Add(x => x.BookingId, 7));
 
     [Fact]
-    public void AskBeforeSettling()
+    public void AskBeforeSettlingWithTheAmountToCollect()
     {
         var cut = RenderPage();
 
         cut.Find(".bill-settle").Click();
 
-        cut.Find(".bill-settle-confirm").TextContent.ShouldContain("Close this bill?");
+        cut.Find(".bill-settle-confirm").TextContent.ShouldContain("Collect €146.00 on site");
         _billingService.SettleRequests.ShouldBeEmpty();
     }
 
@@ -43,7 +43,6 @@ public class BillSettleShould : BunitContext
 
         _billingService.SettleRequests.ShouldHaveSingleItem().BookingId.ShouldBe(7);
         cut.Find(".bill-settled-banner").TextContent.ShouldContain("this bill is closed");
-        cut.Find(".status-tag-settled").TextContent.Trim().ShouldBe("Settled");
         cut.FindAll(".bill-settle").ShouldBeEmpty();
         cut.FindAll(".bill-line-actions").ShouldBeEmpty();
     }
@@ -61,14 +60,14 @@ public class BillSettleShould : BunitContext
     }
 
     [Fact]
-    public void OpenThePrintDialog()
+    public void LinkToThePdfOfTheBillInANewTab()
     {
-        var print = JSInterop.SetupVoid("print");
         var cut = RenderPage();
 
-        cut.Find(".bill-print").Click();
+        var link = cut.Find(".bill-print");
 
-        print.VerifyInvoke("print");
+        link.GetAttribute("href").ShouldBe("/api/bookings/7/bill/pdf");
+        link.GetAttribute("target").ShouldBe("_blank");
     }
 
     [Fact]

@@ -25,6 +25,7 @@ public class FakeInvoiceService : IInvoiceService
                 StripeReceiptUrl = i == 1 ? "https://pay.stripe.com/receipts/test_1" : null,
                 CardBrand = i == 1 ? "visa" : null,
                 CardLast4 = i == 1 ? "4242" : null,
+                IsBillSettled = i == 1,
             });
 
         var wrapper = new InvoiceResponse.Index

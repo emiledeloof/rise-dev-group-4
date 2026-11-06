@@ -83,3 +83,18 @@
     color: var(--color-primary);
     text-decoration-color: currentColor;
 }
+
+/* tells the admin the row opens the bill, same green as the links of the admin */
+.invoice-view-bill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--color-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.invoice-row:hover .invoice-view-bill {
+    text-decoration: underline;
+}

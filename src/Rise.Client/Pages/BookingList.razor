@@ -65,6 +65,10 @@
                                     {
                                         <span class="tag is-danger is-light">Cancelled</span>
                                     }
+                                    else if (booking.Status == BookingStatus.Settled)
+                                    {
+                                        <span class="tag is-primary is-light">Settled</span>
+                                    }
                                     else if (booking.Status == BookingStatus.Paid)
                                     {
                                         <span class="tag is-primary is-light">Paid</span>

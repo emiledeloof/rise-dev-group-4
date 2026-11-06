@@ -10,6 +10,6 @@ public static class BookingStatus
     public const string Paid = "Paid";
     public const string Cancelled = "Cancelled";
 
-    /// <summary>the final bill is closed, see US-B11.6</summary>
+    /// <summary>the final bill is closed</summary>
     public const string Settled = "Settled";
 }

@@ -32,6 +32,9 @@ public static class InvoiceDto
         public string? CardBrand { get; set; }
         public string? CardLast4 { get; set; }
 
+        /// <summary>the final bill of the booking is closed</summary>
+        public bool IsBillSettled { get; set; }
+
         public bool IsPaid => PaidAt is not null;
     }
 }

@@ -58,6 +58,24 @@ public class InvoiceListShould : BunitContext
     {
         var cut = Render<InvoiceList>();
 
-        cut.FindAll("a.invoice-booking-link")[1].GetAttribute("href").ShouldBe("admin/bookings/2/bill");
+        cut.FindAll("a.invoice-booking-link")[1].GetAttribute("href").ShouldBe("admin/bookings/2/bill?from=invoices");
+    }
+
+    [Fact]
+    public void ShowWhenTheBillIsSettled()
+    {
+        var cut = Render<InvoiceList>();
+
+        var rows = cut.FindAll("ul li");
+        rows[0].QuerySelector(".invoice-settled")!.TextContent.ShouldBe("Bill settled");
+        rows[1].QuerySelector(".invoice-settled").ShouldBeNull();
+    }
+
+    [Fact]
+    public void ShowAViewBillCueOnEveryRow()
+    {
+        var cut = Render<InvoiceList>();
+
+        cut.FindAll(".invoice-view-bill").Count.ShouldBe(3);
     }
 }
