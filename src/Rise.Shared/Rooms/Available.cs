@@ -18,6 +18,20 @@ public static partial class RoomResponse
 
         // total number of active rooms in the estate
         public int TotalRooms { get; set; }
+
+        // alternative available stay periods when the requested dates have no suitable availability
+        public IEnumerable<AlternativeStayPeriodDto> AlternativePeriods { get; set; } = [];
+    }
+
+    /// <summary>
+    /// an alternative stay period suggested when selected dates have no suitable availability
+    /// </summary>
+    public class AlternativeStayPeriodDto
+    {
+        public required DateOnly CheckIn { get; set; }
+        public required DateOnly CheckOut { get; set; }
+        public required int Nights { get; set; }
+        public required decimal PriceFrom { get; set; }
     }
 
     /// <summary>
