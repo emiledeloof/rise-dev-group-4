@@ -217,6 +217,49 @@ public class ResultsPageShould : BunitContext
     }
 
     /// <summary>
+    /// the excl. VAT amount the server sends with the rate is shown in the summary as info, the total stays incl. VAT
+    /// </summary>
+    [Fact]
+    public void PassTheVatExclusiveTotalOfTheServerToTheSummary()
+    {
+        // arrange, the server says 327 incl. VAT and 272.50 excl. VAT for the cheapest rate
+        _roomService.Answer.Value.Rooms.First().Rates.First().TotalPriceExclVat = 272.50m;
+        var cut = RenderWithDates(2, 5);
+
+        // act
+        cut.Find(".select-btn").Click();
+
+        // assert
+        var line = cut.Find(".selection-summary-room");
+        line.QuerySelector(".selection-summary-price")!.TextContent.ShouldBe("€327.00");
+        line.QuerySelector(".selection-summary-price-label")!.TextContent.ShouldBe("incl. VAT");
+        cut.Find(".selection-summary-total-label").TextContent.ShouldBe("Total (incl. VAT)");
+        cut.Find(".selection-summary-total-amount").TextContent.ShouldBe("€327.00");
+    }
+
+    /// <summary>
+    /// continue keeps the excl. VAT amount of the server in the draft so the overview can show it
+    /// </summary>
+    [Fact]
+    public void KeepTheVatExclusiveTotalOfTheServerInTheDraftOnContinue()
+    {
+        // arrange, the server says 327 incl. VAT and 272.50 excl. VAT for the cheapest rate
+        _roomService.Answer.Value.Rooms.First().Rates.First().TotalPriceExclVat = 272.50m;
+        var cut = RenderWithDates(2, 5);
+        cut.Find(".select-btn").Click();
+
+        // act
+        cut.Find(".selection-summary button").Click();
+
+        // assert, the price paid is unchanged
+        var room = _draft.Rooms.Single();
+        room.TotalPrice.ShouldBe(327m);
+        room.TotalPriceExclVat.ShouldBe(272.50m);
+        _draft.Total.ShouldBe(327m);
+        _draft.IncludesVat.ShouldBeTrue();
+    }
+
+    /// <summary>
     /// picking another rate changes the line and the total, the room is not added twice
     /// </summary>
     [Fact]
@@ -291,6 +334,8 @@ public class ResultsPageShould : BunitContext
         room.RoomId.ShouldBe(1);
         room.RateId.ShouldBe(2);
         room.TotalPrice.ShouldBe(417m);
+        // no VAT in the fake answer, so no excl. VAT amount
+        room.TotalPriceExclVat.ShouldBeNull();
         // * the policy text is kept for the overview
         room.CancellationText.ShouldBe("Free cancellation up to 30 days before arrival, 50% refund up to 7 days before");
         Navigation.Uri.ShouldEndWith("/guests/create");

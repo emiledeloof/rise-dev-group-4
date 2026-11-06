@@ -396,6 +396,8 @@ public sealed class BookingService(
 
     private static BookingDto.Detail ToDetailDto(Booking booking)
     {
+        var nights = booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
+
         return new BookingDto.Detail
         {
             Id = booking.Id,
@@ -409,12 +411,20 @@ public sealed class BookingService(
                 Email = booking.Guest.Email,
                 Phone = booking.Guest.Phone,
             },
-            Rooms = booking.Rooms.Select(x => new BookingDto.BookingRoomDto
+            Rooms = booking.Rooms.Select(x =>
             {
-                Id = x.Id,
-                RoomId = x.Room.Id,
-                RoomNumber = x.Room.RoomNumber,
-                PricePerNight = x.PricePerNight,
+                var total = PriceCalculator.Total(x.PricePerNight, nights);
+                return new BookingDto.BookingRoomDto
+                {
+                    Id = x.Id,
+                    RoomId = x.Room.Id,
+                    RoomNumber = x.Room.RoomNumber,
+                    RoomName = x.Room.Name,
+                    PricePerNight = x.PricePerNight,
+                    Total = total,
+                    // from the VAT pct stored at booking time, so a later VAT change doesn't alter the breakdown
+                    TotalExclVat = x.VatPercentage > 0m ? PriceCalculator.ExclusiveOfVat(total, x.VatPercentage) : null,
+                };
             }).ToList(),
             Payments = booking.Payments.Select(x => new BookingDto.PaymentDto
             {

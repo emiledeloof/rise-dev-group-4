@@ -253,7 +253,7 @@ public class BookingShould
         var rate = room.AddRate("Standard", 79m);
         var booking = new Booking("20261006-0042", CreateGuest(), CheckIn, CheckOut, 1);
 
-        var bookingRoom = booking.AddRoom(room, rate, 86.90m, 10m);
+        var bookingRoom = booking.AddRoom(room, rate, 86.90m, vatPercentage: 10m);
 
         bookingRoom.VatPercentage.ShouldBe(10m);
     }
