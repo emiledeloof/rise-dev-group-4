@@ -161,10 +161,8 @@ public partial class Bill
         _confirmDeleteId = null;
     }
 
-    // tells the admin how much will be collected, a credit or a paid bill collects nothing
-    private string SettleQuestion => _bill!.OutstandingBalance > 0
-        ? $"Collect {Format.Amount(_bill.OutstandingBalance)} on site and close this bill? It can't be changed afterwards."
-        : "Close this bill? It can't be changed afterwards.";
+    // * the bill can be settled with an open balance, payments are recorded separately
+    private const string SettleQuestion = "Close this bill? It can't be changed or cancelled afterwards.";
 
     private void AskSettle()
     {

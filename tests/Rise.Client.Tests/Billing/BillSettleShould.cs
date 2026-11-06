@@ -22,13 +22,13 @@ public class BillSettleShould : BunitContext
         => Render<Bill>(p => p.Add(x => x.BookingId, 7));
 
     [Fact]
-    public void AskBeforeSettlingWithTheAmountToCollect()
+    public void AskBeforeSettling()
     {
         var cut = RenderPage();
 
         cut.Find(".bill-settle").Click();
 
-        cut.Find(".bill-settle-confirm").TextContent.ShouldContain("Collect €146.00 on site");
+        cut.Find(".bill-settle-confirm").TextContent.ShouldContain("Close this bill?");
         _billingService.SettleRequests.ShouldBeEmpty();
     }
 
@@ -43,6 +43,7 @@ public class BillSettleShould : BunitContext
 
         _billingService.SettleRequests.ShouldHaveSingleItem().BookingId.ShouldBe(7);
         cut.Find(".bill-settled-banner").TextContent.ShouldContain("this bill is closed");
+        cut.Find(".status-tag-settled").TextContent.Trim().ShouldBe("Settled");
         cut.FindAll(".bill-settle").ShouldBeEmpty();
         cut.FindAll(".bill-line-actions").ShouldBeEmpty();
     }

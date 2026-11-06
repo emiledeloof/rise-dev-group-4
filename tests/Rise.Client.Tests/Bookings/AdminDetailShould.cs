@@ -165,6 +165,20 @@ public class AdminDetailShould : BunitContext
         cut.Find(".booking-detail-back").GetAttribute("href").ShouldBe("admin/booking-list");
     }
 
+    // a settled bill is final, the admin sees the status and can not cancel anymore
+    [Fact]
+    public void ShowTheSettledStatusAndNoCancelButton()
+    {
+        var booking = TestAdminDetails.Full();
+        booking.Status = BookingStatus.Settled;
+        _bookingService.AdminDetailAnswer = Result.Success(booking);
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-status .status-tag-settled").TextContent.Trim().ShouldBe("Settled");
+        cut.FindAll(".booking-detail-cancel-open").ShouldBeEmpty();
+    }
+
     private static BookingDto.AdminDetail Cancelled(decimal refund)
     {
         var booking = TestAdminDetails.Full();

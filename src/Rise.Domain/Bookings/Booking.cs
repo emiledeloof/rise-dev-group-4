@@ -108,6 +108,10 @@ public class Booking : Entity
         if (IsCancelled)
             throw new InvalidOperationException("The booking is already cancelled.");
 
+        // a settled bill is final, cancelling would make it wrong
+        if (IsSettled)
+            throw new InvalidOperationException("A settled booking can't be cancelled.");
+
         Guard.Against.NullOrWhiteSpace(reason);
         Guard.Against.Negative(refundAmount);
 
@@ -119,23 +123,15 @@ public class Booking : Entity
         RefundAmount = refundAmount;
     }
 
-    /// <summary>closes the bill, what the guest still owes is recorded as a payment received on site</summary>
-    public void Settle(DateTime settledAt, decimal outstandingBalance)
+    /// <summary>closes the bill, it can be settled before everything is paid and payments stay recorded by the admin</summary>
+    public void Settle(DateTime settledAt)
     {
         if (IsCancelled)
             throw new InvalidOperationException("A cancelled booking can't be settled.");
 
-        // ! a second settlement would record the payment twice
+        // ! a settled bill is final, settling it again would change its date
         if (IsSettled)
             throw new InvalidOperationException("The booking is already settled.");
-
-        // * the balance comes from the service, the booking alone does not know the bill totals
-        // a negative balance is a credit for the guest, there is nothing to collect then
-        if (outstandingBalance > 0)
-        {
-            var payment = AddPayment(outstandingBalance);
-            payment.MarkAsPaid(settledAt);
-        }
 
         SettledAt = settledAt;
     }

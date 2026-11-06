@@ -15,6 +15,9 @@ public enum CellStatus
 
     /// <summary>A booking exists but payment has not yet been settled.</summary>
     Temporary,
+
+    /// <summary>the final bill of the booking is closed</summary>
+    Settled,
 }
 
 public static class BookingDto

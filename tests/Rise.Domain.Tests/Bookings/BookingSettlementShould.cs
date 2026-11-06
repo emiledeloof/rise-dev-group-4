@@ -13,31 +13,24 @@ public class BookingSettlementShould
             new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
 
     [Fact]
-    public void RecordTheOutstandingBalanceAsAPaymentReceivedOnSite()
+    public void BeSettled()
     {
         var booking = CreateBooking();
 
-        booking.Settle(SettledAt, 146m);
+        booking.Settle(SettledAt);
 
         booking.IsSettled.ShouldBeTrue();
         booking.SettledAt.ShouldBe(SettledAt);
-        var payment = booking.Payments.ShouldHaveSingleItem();
-        payment.Amount.ShouldBe(146m);
-        payment.PaidAt.ShouldBe(SettledAt);
-        booking.PaidAmount.ShouldBe(146m);
     }
 
-    // a paid bill or a credit for the guest, nothing to collect
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-20)]
-    public void NotRecordAPaymentWhenNothingIsOwed(decimal outstandingBalance)
+    // payments are recorded by the admin, settling never adds one
+    [Fact]
+    public void NotRecordAPaymentWhenSettled()
     {
         var booking = CreateBooking();
 
-        booking.Settle(SettledAt, outstandingBalance);
+        booking.Settle(SettledAt);
 
-        booking.IsSettled.ShouldBeTrue();
         booking.Payments.ShouldBeEmpty();
     }
 
@@ -45,12 +38,12 @@ public class BookingSettlementShould
     public void NotBeSettledTwice()
     {
         var booking = CreateBooking();
-        booking.Settle(SettledAt, 146m);
+        booking.Settle(SettledAt);
 
-        Action act = () => booking.Settle(SettledAt.AddHours(1), 10m);
+        Action act = () => booking.Settle(SettledAt.AddHours(1));
 
         act.ShouldThrow<InvalidOperationException>();
-        booking.Payments.Count.ShouldBe(1);
+        booking.SettledAt.ShouldBe(SettledAt);
     }
 
     [Fact]
@@ -59,17 +52,29 @@ public class BookingSettlementShould
         var booking = CreateBooking();
         booking.Cancel(SettledAt, "Guest is ill", 0m);
 
-        Action act = () => booking.Settle(SettledAt, 146m);
+        Action act = () => booking.Settle(SettledAt);
 
         act.ShouldThrow<InvalidOperationException>();
         booking.IsSettled.ShouldBeFalse();
     }
 
     [Fact]
+    public void NotBeCancelledOnceSettled()
+    {
+        var booking = CreateBooking();
+        booking.Settle(SettledAt);
+
+        Action act = () => booking.Cancel(SettledAt.AddDays(1), "Guest is ill", 0m);
+
+        act.ShouldThrow<InvalidOperationException>();
+        booking.IsCancelled.ShouldBeFalse();
+    }
+
+    [Fact]
     public void RefuseNewBillLinesOnceSettled()
     {
         var booking = CreateBooking();
-        booking.Settle(SettledAt, 0m);
+        booking.Settle(SettledAt);
 
         Action act = () => booking.AddBillLine("Minibar", 1, 8m, 22m);
 

@@ -349,6 +349,11 @@ public sealed class BookingService(
             return Result.Conflict($"Booking {booking.BookingNumber} is already cancelled.");
         }
 
+        if (booking.IsSettled)
+        {
+            return Result.Conflict($"Booking {booking.BookingNumber} is settled, it can't be cancelled.");
+        }
+
         if (request.RefundAmount > booking.PaidAmount)
         {
             return Result.Invalid(new ValidationError(
@@ -500,6 +505,7 @@ public sealed class BookingService(
                 RoomPrices = b.Rooms.Select(r => r.PricePerNight).ToList(),
                 RoomNumbers = b.Rooms.Select(r => r.Room.RoomNumber).ToList(),
                 IsCancelled = b.CancelledAt != null,
+                IsBillSettled = b.SettledAt != null,
                 HasSettledPayment = b.Payments.AsQueryable().Any(BookingStatusRule.IsSettled),
             })
             .ToListAsync(ctx);
@@ -518,7 +524,7 @@ public sealed class BookingService(
                 GuestEmail = x.GuestEmail,
                 TotalAmount = x.RoomPrices.Sum(p => PriceCalculator.Total(p, nights)),
                 RoomNumbers = x.RoomNumbers,
-                Status = BookingStatusRule.For(x.IsCancelled, x.HasSettledPayment),
+                Status = BookingStatusRule.For(x.IsCancelled, x.IsBillSettled, x.HasSettledPayment),
             };
         }).ToList();
 
@@ -563,6 +569,7 @@ public sealed class BookingService(
                 br.Booking.CheckIn,
                 br.Booking.CheckOut,
                 IsPaid = br.Booking.Payments.Any(p => p.PaidAt != null),
+                IsBillSettled = br.Booking.SettledAt != null,
             })
             .ToListAsync(ctx);
 
@@ -586,7 +593,9 @@ public sealed class BookingService(
                     GuestName = b.GuestName,
                     CheckIn = b.CheckIn,
                     CheckOut = b.CheckOut,
-                    Status = b.IsPaid ? CellStatus.Occupied : CellStatus.Temporary,
+                    Status = b.IsBillSettled ? CellStatus.Settled
+                        : b.IsPaid ? CellStatus.Occupied
+                        : CellStatus.Temporary,
                 }).ToList(),
             };
         }).ToList();

@@ -21,3 +21,9 @@
     text-transform: uppercase;
     cursor: default;
 }
+
+/* solid green badge, a closed bill is the final step of a booking */
+.status-tag-settled {
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+}

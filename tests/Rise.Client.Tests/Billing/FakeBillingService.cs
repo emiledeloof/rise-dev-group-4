@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Rise.Shared.Billing;
+using Rise.Shared.Bookings;
 
 namespace Rise.Client.Billing;
 
@@ -110,12 +111,11 @@ public static class TestBills
         OutstandingBalance = 130m + otherServicesTotal,
     };
 
-    /// <summary>the open bill once settled, the rest was paid on site so nothing is due</summary>
+    /// <summary>the open bill once settled, settling records no payment so the balance stays open</summary>
     public static BillingDto.Bill Settled()
     {
         var bill = Open();
-        bill.PaidAmount = bill.Total;
-        bill.OutstandingBalance = 0m;
+        bill.Status = BookingStatus.Settled;
         bill.SettledAt = new DateTime(2026, 10, 20, 10, 0, 0, DateTimeKind.Utc);
         return bill;
     }

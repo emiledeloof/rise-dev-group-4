@@ -146,7 +146,7 @@ public class BookingMatrixShould : BunitContext
     }
 
     [Fact]
-    public void LegendDisplaysAllThreeStatuses()
+    public void LegendDisplaysAllStatuses()
     {
         _bookingService.MatrixAnswer = Result.Success(SingleRoomMatrix("Standard"));
 
@@ -155,6 +155,30 @@ public class BookingMatrixShould : BunitContext
         cut.Find(".legend-chip.available").TextContent.ShouldBe("Available");
         cut.Find(".legend-chip.occupied").TextContent.ShouldBe("Occupied");
         cut.Find(".legend-chip.temporary").TextContent.ShouldBe("Temporary");
+        cut.Find(".legend-chip.settled").TextContent.ShouldBe("Settled");
+    }
+
+    [Fact]
+    public void ShowSettledCellForASettledBooking()
+    {
+        _bookingService.MatrixAnswer = Result.Success(SingleRoomMatrix("Suite",
+            bookings:
+            [
+                new BookingDto.MatrixBooking
+                {
+                    Id = 1,
+                    BookingNumber = "20261001-SVM-000001",
+                    GuestName = "Anna Settled",
+                    CheckIn = WindowStart.AddDays(1),
+                    CheckOut = WindowStart.AddDays(4),
+                    Status = CellStatus.Settled,
+                },
+            ]));
+
+        var cut = Render<BookingMatrix>();
+
+        cut.Find(".matrix-cell-settled .cell-guest-name").TextContent.ShouldBe("Anna Settled");
+        cut.FindAll(".matrix-cell-occupied").ShouldBeEmpty();
     }
 
     // ──────────────────────────────────────────────

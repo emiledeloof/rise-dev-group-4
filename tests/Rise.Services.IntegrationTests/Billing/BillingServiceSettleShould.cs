@@ -4,8 +4,10 @@ using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
 using Rise.Services.Billing;
+using Rise.Services.Bookings;
 using Rise.Services.IntegrationTests.Infrastructure;
 using Rise.Shared.Billing;
+using Rise.Shared.Bookings;
 
 namespace Rise.Services.IntegrationTests.Billing;
 
@@ -20,7 +22,7 @@ public class BillingServiceSettleShould(PostgresFixture database) : IAsyncLifeti
     private async Task<int> SeedAsync(Action<Booking>? tweak = null)
     {
         await using var dbContext = database.CreateDbContext();
-        var room = new Room("101", "Standard Room", 2);
+        var room = new Room("101", "Standard Room", 2, new RoomType("Standard"));
         var rate = room.AddRate("Flexible", 100m);
         var guest = new Guest("Jan Janssens", "jan@example.com", "+32 470 12 34 56", new GuestAddress("Koningstraat 12", null, "Belgium"));
         var booking = new Booking("20261006-SVM-000042", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
@@ -47,8 +49,9 @@ public class BillingServiceSettleShould(PostgresFixture database) : IAsyncLifeti
         return await dbContext.Bookings.Include(x => x.Payments).SingleAsync(x => x.Id == bookingId);
     }
 
+    // ! settling closes the bill but never adds a payment, the balance stays open
     [Fact]
-    public async Task CollectTheOutstandingBalanceAndCloseTheBill()
+    public async Task CloseTheBillWithoutAddingAPayment()
     {
         var bookingId = await SeedAsync();
 
@@ -56,26 +59,26 @@ public class BillingServiceSettleShould(PostgresFixture database) : IAsyncLifeti
 
         result.IsSuccess.ShouldBeTrue();
         result.Value.IsSettled.ShouldBeTrue();
-        result.Value.PaidAmount.ShouldBe(200m);
-        result.Value.OutstandingBalance.ShouldBe(0m);
+        result.Value.Status.ShouldBe(BookingStatus.Settled);
+        result.Value.PaidAmount.ShouldBe(50m);
+        result.Value.OutstandingBalance.ShouldBe(150m);
 
         var saved = await ReadBookingAsync(bookingId);
         saved.SettledAt.ShouldNotBeNull();
-        saved.Payments.Count.ShouldBe(2);
-        saved.Payments.ShouldContain(x => x.Amount == 150m && x.IsPaid);
+        saved.Payments.Count.ShouldBe(1);
     }
 
-    // ! US-B11.7, the second call must not record a second payment
     [Fact]
     public async Task RefuseASecondSettlement()
     {
         var bookingId = await SeedAsync();
         await SettleAsync(bookingId);
+        var firstSettledAt = (await ReadBookingAsync(bookingId)).SettledAt;
 
         var result = await SettleAsync(bookingId);
 
         result.Status.ShouldBe(ResultStatus.Conflict);
-        (await ReadBookingAsync(bookingId)).Payments.Count.ShouldBe(2);
+        (await ReadBookingAsync(bookingId)).SettledAt.ShouldBe(firstSettledAt);
     }
 
     [Fact]
@@ -113,5 +116,24 @@ public class BillingServiceSettleShould(PostgresFixture database) : IAsyncLifeti
         });
 
         result.Status.ShouldBe(ResultStatus.Conflict);
+    }
+
+    [Fact]
+    public async Task RefuseToCancelASettledBooking()
+    {
+        var bookingId = await SeedAsync();
+        await SettleAsync(bookingId);
+
+        await using var dbContext = database.CreateDbContext();
+        // stripe and the configuration are not used when cancelling
+        var result = await new BookingService(dbContext, null!, null!).CancelAsync(new BookingRequest.Cancel
+        {
+            BookingId = bookingId,
+            Reason = "Guest is ill",
+            RefundAmount = 0m,
+        });
+
+        result.Status.ShouldBe(ResultStatus.Conflict);
+        (await ReadBookingAsync(bookingId)).IsCancelled.ShouldBeFalse();
     }
 }

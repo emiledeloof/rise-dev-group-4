@@ -28,6 +28,7 @@
         <span class="legend-chip available">Available</span>
         <span class="legend-chip occupied">Occupied</span>
         <span class="legend-chip temporary">Temporary</span>
+        <span class="legend-chip settled">Settled</span>
     </div>
 
     @if (_matrix is null && _errorMessage is null)
@@ -81,6 +82,7 @@
                                 {
                                     CellStatus.Occupied  => "matrix-cell-occupied",
                                     CellStatus.Temporary => "matrix-cell-temporary",
+                                    CellStatus.Settled   => "matrix-cell-settled",
                                     _                    => "matrix-cell-available",
                                 };
                                 @if (cellItem.Booking is not null)

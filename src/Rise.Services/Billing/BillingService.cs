@@ -113,8 +113,8 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
     /// <summary>closes the bill, the outstanding balance shown on the bill is recorded as paid on site</summary>
     public async Task<Result<BillingDto.Bill>> SettleAsync(BillingRequest.Settle request, CancellationToken ctx = default)
     {
-        // tracked this time, the booking gets a new payment and its settled date
-        var booking = await BookingsWithBill()
+        // tracked, only the settled date changes so no include is needed
+        var booking = await dbContext.Bookings
             .SingleOrDefaultAsync(x => x.Id == request.BookingId && !x.IsDeleted, ctx);
 
         if (booking is null)
@@ -127,21 +127,19 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
             return Result.Conflict($"Booking {booking.BookingNumber} is cancelled, it can't be settled.");
         }
 
-        // ! US-B11.7, a booking is never settled twice
+        // ! a booking is never settled twice
         if (booking.IsSettled)
         {
             return Result.Conflict($"Booking {booking.BookingNumber} is already settled.");
         }
 
-        // * same balance as the bill on screen, so the admin collects exactly what is displayed
-        var outstandingBalance = ToBill(booking).OutstandingBalance;
-        booking.Settle(DateTime.UtcNow, outstandingBalance);
+        booking.Settle(DateTime.UtcNow);
         await dbContext.SaveChangesAsync(ctx);
 
         return await GetBillAsync(booking.Id, ctx);
     }
 
-    // everything the bill needs, shared by the read and the settlement so both compute the same totals
+    // everything the bill needs to compute its totals
     private IQueryable<Booking> BookingsWithBill()
         => dbContext.Bookings
             .AsSplitQuery()
