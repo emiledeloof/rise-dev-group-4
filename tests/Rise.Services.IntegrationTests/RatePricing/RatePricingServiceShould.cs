@@ -23,10 +23,10 @@ public class RatePricingServiceShould(PostgresFixture database) : IAsyncLifetime
         await using var dbContext = database.CreateDbContext();
         dbContext.GeneralSettings.Add(new GeneralSettings(false, 0m));
 
-        var deluxe = new Room("102", "Deluxe Room", 2);
+        var deluxe = new Room("102", "Deluxe Room", 2, new RoomType("Standard"));
         deluxe.AddRate("Non-refundable", 175m);
 
-        var standard = new Room("101", "Standard Room", 2);
+        var standard = new Room("101", "Standard Room", 2, new RoomType("Standard"));
         var standardRate = standard.AddRate("Non-refundable", 133m);
 
         // lets a test change the rate before saving, for example mark it as deleted

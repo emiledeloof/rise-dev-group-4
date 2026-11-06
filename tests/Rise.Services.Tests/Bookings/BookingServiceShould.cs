@@ -35,11 +35,11 @@ public class BookingServiceShould
         var dbContext = new ApplicationDbContext(options);
         dbContext.GeneralSettings.Add(new GeneralSettings(false, 0m));
 
-        var doubleRoom = new Room("102", "Double Room", 2);
+        var doubleRoom = new Room("102", "Double Room", 2, new RoomType("Standard"));
         var doubleRate = doubleRoom.AddRate("Non-refundable", 109m);
         doubleRoom.AddRate("Fully refundable", 139m);
 
-        var singleRoom = new Room("101", "Single Room", 1);
+        var singleRoom = new Room("101", "Single Room", 1, new RoomType("Standard"));
         singleRoom.AddRate("Standard", 79m);
         singleRoom.AddRate("Flexible", 99m);
 

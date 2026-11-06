@@ -7,7 +7,7 @@ public class RateShould
     [Fact]
     public void BelongToItsRoomAndKeepItsPricingDetails()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         var rate = room.AddRate(
             "  Standard  ",
@@ -32,7 +32,7 @@ public class RateShould
     [InlineData("   ")]
     public void RejectAnEmptyName(string? name)
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         Action act = () => room.AddRate(name!, 79m);
 
@@ -45,7 +45,7 @@ public class RateShould
     [InlineData(-1)]
     public void RejectANonPositivePrice(decimal price)
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         Action act = () => room.AddRate("Standard", price);
 
@@ -59,7 +59,7 @@ public class RateShould
     [Fact]
     public void BeRefundableByDefault()
     {
-        var rate = new Room("101", "Single Room", 1).AddRate("Standard", 79m);
+        var rate = new Room("101", "Single Room", 1, new RoomType("Standard")).AddRate("Standard", 79m);
 
         rate.CancellationPolicy.ShouldBe(CancellationPolicy.Refundable);
         rate.FullRefundDays.ShouldBe(30);
@@ -73,7 +73,7 @@ public class RateShould
     [Fact]
     public void RejectNegativeRefundDays()
     {
-        var rate = new Room("101", "Single Room", 1).AddRate("Standard", 79m);
+        var rate = new Room("101", "Single Room", 1, new RoomType("Standard")).AddRate("Standard", 79m);
 
         Should.Throw<ArgumentException>(() => rate.FullRefundDays = -1);
         Should.Throw<ArgumentException>(() => rate.PartialRefundDays = -1);
@@ -87,7 +87,7 @@ public class RateShould
     [InlineData(101)]
     public void RejectAPartialRefundOutsideZeroToHundred(int percent)
     {
-        var rate = new Room("101", "Single Room", 1).AddRate("Standard", 79m);
+        var rate = new Room("101", "Single Room", 1, new RoomType("Standard")).AddRate("Standard", 79m);
 
         Should.Throw<ArgumentOutOfRangeException>(() => rate.PartialRefundPercent = percent);
     }

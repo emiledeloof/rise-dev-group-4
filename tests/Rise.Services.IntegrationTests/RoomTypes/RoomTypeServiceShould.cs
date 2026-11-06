@@ -64,10 +64,8 @@ public class RoomTypeServiceShould(PostgresFixture database) : IAsyncLifetime
         var standard = new RoomType("Standard Room");
         var deluxe = new RoomType("Deluxe Room");
         // two physical rooms of the same type, added in reverse order to check the sort
-        var room102 = new Room("102", "Standard Room", 2);
-        var room101 = new Room("101", "Standard Room", 2);
-        room102.ChangeType(standard);
-        room101.ChangeType(standard);
+        var room102 = new Room("102", "Standard Room", 2, standard);
+        var room101 = new Room("101", "Standard Room", 2, standard);
         await ArrangeAsync(standard, deluxe, room102, room101);
 
         await using var dbContext = database.CreateDbContext();
@@ -155,8 +153,7 @@ public class RoomTypeServiceShould(PostgresFixture database) : IAsyncLifetime
     public async Task RefuseToDeleteARoomTypeUsedByARoom()
     {
         var roomType = new RoomType("Deluxe Room");
-        var room = new Room("102", "Deluxe Room", 2);
-        room.ChangeType(roomType);
+        var room = new Room("102", "Deluxe Room", 2, roomType);
         await ArrangeAsync(room);
 
         await using (var dbContext = database.CreateDbContext())

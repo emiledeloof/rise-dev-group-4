@@ -94,11 +94,13 @@ public class Room : Entity
     {
     }
 
-    public Room(string roomNumber, string name, int maxGuests, string? description = null)
+    public Room(string roomNumber, string name, int maxGuests, RoomType roomType, string? description = null)
     {
         RoomNumber = roomNumber;
         Name = name;
         MaxGuests = maxGuests;
+        // ! a new room always has a type
+        RoomType = Guard.Against.Null(roomType);
         Description = description;
     }
 

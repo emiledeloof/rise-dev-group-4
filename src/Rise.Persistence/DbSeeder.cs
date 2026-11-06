@@ -77,7 +77,12 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         // deluxe non refundable price = "from" price of the current booking site
         // ! refundable prices are placeholders, a bit above the non refundable one
         // TODO: real standard room price and real refundable prices from the client, asked to the BAs
-        var standard = new Room("101", "Standard Room", 2,
+        // one type per room for now, the estate has 3 different rooms
+        var standardType = new RoomType("Standard Room", "Twin room with shower, breakfast included.");
+        var deluxeType = new RoomType("Deluxe Room", "Bright room with a California king bed and a shower.");
+        var deluxeBathtubType = new RoomType("Deluxe Room with bathtub", "Room with a California king bed and a bathtub.");
+
+        var standard = new Room("101", "Standard Room", 2, standardType,
             "Twin room with a private bathroom with shower, hairdryer and bidet. Air conditioning, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Breakfast included, baby cot available, non-smoking.");
         // non-refundable policy to match the name, the default is refundable
         standard.AddRate("Non-refundable", 133m, "No refund after booking").CancellationPolicy = CancellationPolicy.NonRefundable;
@@ -86,14 +91,14 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         for (var i = 1; i <= 4; i++)
             standard.AddPhoto($"images/rooms/standard-room-{i}.jpg");
 
-        var deluxe = new Room("102", "Deluxe Room", 2,
+        var deluxe = new Room("102", "Deluxe Room", 2, deluxeType,
             "Bright room with a California king bed and a high ceiling. Private bathroom with shower, bathrobes, hairdryer and vanity mirror. Air conditioning, central heating, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Non-smoking.");
         deluxe.AddRate("Non-refundable", 175m, "No refund after booking").CancellationPolicy = CancellationPolicy.NonRefundable;
         deluxe.AddRate("Refundable", 195m);
         for (var i = 1; i <= 5; i++)
             deluxe.AddPhoto($"images/rooms/deluxe-room-{i}.jpg");
 
-        var deluxeBathtub = new Room("103", "Deluxe Room with bathtub", 2,
+        var deluxeBathtub = new Room("103", "Deluxe Room with bathtub", 2, deluxeBathtubType,
             "Room with a California king bed, a high ceiling and sound-proofed windows. Private bathroom with bathtub, bathrobes, hairdryer and vanity mirror. Desk, iron, air conditioning, central heating, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Non-smoking.");
         deluxeBathtub.AddRate("Non-refundable", 175m, "No refund after booking").CancellationPolicy = CancellationPolicy.NonRefundable;
         deluxeBathtub.AddRate("Refundable", 195m);
@@ -133,11 +138,6 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
             deluxe.AddAmenity(amenity);
         foreach (var amenity in new[] { wifi, airConditioning, heating, tv, fridge, coffeeMachine, teaMaker, bathtub, hairdryer, bathrobes, iron, nonSmoking })
             deluxeBathtub.AddAmenity(amenity);
-
-        // one type per room for now, the estate has 3 different rooms
-        standard.ChangeType(new RoomType("Standard Room", "Twin room with shower, breakfast included."));
-        deluxe.ChangeType(new RoomType("Deluxe Room", "Bright room with a California king bed and a shower."));
-        deluxeBathtub.ChangeType(new RoomType("Deluxe Room with bathtub", "Room with a California king bed and a bathtub."));
 
         dbContext.Rooms.AddRange(standard, deluxe, deluxeBathtub);
         await dbContext.SaveChangesAsync();

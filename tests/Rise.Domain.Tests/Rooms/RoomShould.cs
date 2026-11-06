@@ -7,7 +7,7 @@ public class RoomShould
     [Fact]
     public void BeCreated()
     {
-        var room = new Room("101", "Single Room", 1, "Cosy room");
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"), "Cosy room");
 
         room.RoomNumber.ShouldBe("101");
         room.Name.ShouldBe("Single Room");
@@ -21,9 +21,17 @@ public class RoomShould
     [InlineData("")]
     public void NotBeCreatedWithAnInvalidRoomNumber(string? roomNumber)
     {
-        Action act = () => new Room(roomNumber!, "Single Room", 1);
+        Action act = () => new Room(roomNumber!, "Single Room", 1, new RoomType("Standard"));
 
         act.ShouldThrow<ArgumentException>();
+    }
+
+    [Fact]
+    public void NotBeCreatedWithoutARoomType()
+    {
+        Action act = () => new Room("101", "Single Room", 1, null!);
+
+        act.ShouldThrow<ArgumentNullException>();
     }
 
     [Theory]
@@ -32,7 +40,7 @@ public class RoomShould
     [InlineData("")]
     public void NotBeCreatedWithAnInvalidName(string? name)
     {
-        Action act = () => new Room("101", name!, 1);
+        Action act = () => new Room("101", name!, 1, new RoomType("Standard"));
 
         act.ShouldThrow<ArgumentException>();
     }
@@ -42,7 +50,7 @@ public class RoomShould
     [InlineData(-1)]
     public void NotBeCreatedWithInvalidMaxGuests(int maxGuests)
     {
-        Action act = () => new Room("101", "Single Room", maxGuests);
+        Action act = () => new Room("101", "Single Room", maxGuests, new RoomType("Standard"));
 
         act.ShouldThrow<ArgumentException>();
     }
@@ -50,7 +58,7 @@ public class RoomShould
     [Fact]
     public void AddARate()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         var rate = room.AddRate("Standard", 79m);
 
@@ -65,7 +73,7 @@ public class RoomShould
     [Fact]
     public void AddARateWithConditions()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         var rate = room.AddRate("Non-refundable", 79m, "No refund after booking");
 
@@ -78,7 +86,7 @@ public class RoomShould
     [Fact]
     public void AddARateWithoutConditions()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         var rate = room.AddRate("Standard", 79m);
 
@@ -90,7 +98,7 @@ public class RoomShould
     [InlineData(-10)]
     public void NotAddARateWithAnInvalidPrice(decimal pricePerNight)
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         Action act = () => room.AddRate("Standard", pricePerNight);
 
@@ -101,7 +109,7 @@ public class RoomShould
     [Fact]
     public void AddAPhoto()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         var photo = room.AddPhoto("https://example.com/room.jpg");
 
@@ -115,7 +123,7 @@ public class RoomShould
     [InlineData("")]
     public void NotAddAPhotoWithAnInvalidUrl(string? url)
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         Action act = () => room.AddPhoto(url!);
 
@@ -125,7 +133,7 @@ public class RoomShould
     [Fact]
     public void HaveNoCharacteristicsByDefault()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         room.SizeInSquareMeters.ShouldBeNull();
         room.BedType.ShouldBeNull();
@@ -138,7 +146,7 @@ public class RoomShould
     [InlineData(-5)]
     public void NotAcceptAnInvalidSize(int size)
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         Action act = () => room.SizeInSquareMeters = size;
 
@@ -153,7 +161,7 @@ public class RoomShould
     [InlineData("   ")]
     public void StoreAnEmptyBedTypeOrViewAsUnknown(string value)
     {
-        var room = new Room("101", "Single Room", 1)
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"))
         {
             BedType = value,
             View = value,
@@ -166,7 +174,7 @@ public class RoomShould
     [Fact]
     public void HaveNoPoliciesByDefault()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         room.Policies.ShouldBeNull();
     }
@@ -174,7 +182,7 @@ public class RoomShould
     [Fact]
     public void TrimThePolicies()
     {
-        var room = new Room("101", "Single Room", 1)
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"))
         {
             Policies = "  No pets allowed.  ",
         };
@@ -191,7 +199,7 @@ public class RoomShould
     [InlineData(null)]
     public void StoreEmptyPoliciesAsUnknown(string? value)
     {
-        var room = new Room("101", "Single Room", 1)
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"))
         {
             Policies = value,
         };
@@ -202,7 +210,7 @@ public class RoomShould
     [Fact]
     public void AddAnAmenity()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var wifi = new Amenity("Wi-Fi", "fa-wifi");
 
         room.AddAmenity(wifi);
@@ -213,7 +221,7 @@ public class RoomShould
     [Fact]
     public void NotAddTheSameAmenityTwice()
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var wifi = new Amenity("Wi-Fi");
 
         room.AddAmenity(wifi);
