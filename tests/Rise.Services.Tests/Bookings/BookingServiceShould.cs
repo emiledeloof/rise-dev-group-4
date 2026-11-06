@@ -308,7 +308,7 @@ public class BookingServiceShould
                 payment.MarkAsPaid(DateTime.UtcNow);
                 payment.IsDeleted = true;
             });
-        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50 };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);
