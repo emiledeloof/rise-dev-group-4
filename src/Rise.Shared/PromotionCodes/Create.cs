@@ -19,11 +19,19 @@ public static class PromotionCodeRequest
             {
                 RuleFor(x => x.Code)
                     .NotEmpty()
+                    .Must(code => !string.IsNullOrWhiteSpace(code))
+                    .WithMessage("Code cannot contain only whitespace.")
+                    .Matches("^[A-Za-z0-9_-]+$")
+                    .WithMessage("Code may contain only letters, numbers, hyphens and underscores.")
                     .MaximumLength(50);
                 RuleFor(x => x.Value)
                     .GreaterThan(0);
+                RuleFor(x => x.Value)
+                    .LessThanOrEqualTo(100_000);
                 RuleFor(x => x.ValidFrom)
-                    .NotEmpty();
+                    .NotEmpty()
+                    .GreaterThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today))
+                    .WithMessage("Start date cannot be in the past.");
                 RuleFor(x => x.ValidTo)
                     .GreaterThanOrEqualTo(x => x.ValidFrom);
                 RuleFor(x => x.EmailRestriction)
@@ -32,6 +40,10 @@ public static class PromotionCodeRequest
                 RuleFor(x => x)
                     .Must(x => x.DiscountType != PromotionCodeDiscountType.Percentage || x.Value <= 100)
                     .WithMessage("A percentage discount cannot exceed 100.");
+                RuleFor(x => x.DiscountType)
+                    .IsInEnum();
+                RuleFor(x => x.AppliesTo)
+                    .IsInEnum();
             }
 
         }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Rise.Domain.Promotions;
 using Rise.Persistence;
 using Rise.Shared.PromotionCodes;
@@ -43,7 +44,16 @@ public class PromotionCodeService(ApplicationDbContext dbContext) : IPromotionCo
         };
 
         dbContext.PromotionCodes.Add(promotionCode);
-        await dbContext.SaveChangesAsync(ctx);
+        try
+        {
+            await dbContext.SaveChangesAsync(ctx);
+        }
+        catch (DbUpdateException exception) when (
+            exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            Log.Warning(exception, "Promotion code {PromotionCode} was created concurrently", code);
+            return Result.Conflict($"A promotion code named '{code}' already exists.");
+        }
 
         Log.Information("Promotion code {PromotionCodeId} created", promotionCode.Id);
 

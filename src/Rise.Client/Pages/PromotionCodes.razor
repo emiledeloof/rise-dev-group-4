@@ -19,6 +19,7 @@
     {
         <EditForm Model="_model" OnValidSubmit="SavePromotionCode">
             <DataAnnotationsValidator />
+            <ValidationSummary />
             <section class="promotion-code-form box" aria-labelledby="promotion-code-form-title">
                 <h2 id="promotion-code-form-title">@(_model.Code is null ? "New promotion code" : _model.Code)</h2>
 
@@ -59,6 +60,7 @@
                         <InputText id="email-restriction"
                                    @bind-Value="_model.EmailRestriction"
                                    placeholder="Leave empty for anyone" />
+                        <ValidationMessage For="() => _model.EmailRestriction" />
                     </div>
 
                     <div class="promotion-code-field promotion-code-field-full">
@@ -80,7 +82,9 @@
                 </p>
 
                 <div class="promotion-code-actions">
-                    <button class="button is-primary promotion-code-save" type="submit">Save promotion code</button>
+                    <button class="button is-primary promotion-code-save" type="submit" disabled="@_isSaving">
+                        @(_isSaving ? "Saving..." : "Save promotion code")
+                    </button>
                     <button class="button is-light" type="button" @onclick="CloseCreateForm">Cancel</button>
                 </div>
                 @if (_errorMessage is not null)
@@ -99,6 +103,7 @@
     private bool IsCreateFormOpen { get; set; }
     private PromotionCodeFormModel _model = new();
     private string? _errorMessage;
+    private bool _isSaving;
 
     private void ToggleCreateForm()
     {
@@ -122,34 +127,45 @@
 
     private async Task SavePromotionCode()
     {
-        if (_model.ValidFrom is null || _model.ValidTo is null)
+        if (_isSaving || _model.ValidFrom is null || _model.ValidTo is null)
             return;
 
-        var result = await PromotionCodeService.CreateAsync(new PromotionCodeRequest.Create
-        {
-            Code = _model.Code ?? string.Empty,
-            DiscountType = Enum.Parse<PromotionCodeDiscountType>(_model.DiscountType),
-            Value = _model.Value,
-            ValidFrom = DateOnly.FromDateTime(_model.ValidFrom.Value),
-            ValidTo = DateOnly.FromDateTime(_model.ValidTo.Value),
-            EmailRestriction = _model.EmailRestriction,
-            AppliesTo = Enum.Parse<PromotionCodeAppliesTo>(_model.AppliesTo),
-            IsActive = _model.IsActive,
-        });
+        _isSaving = true;
+        _errorMessage = null;
 
-        if (result.IsSuccess)
+        try
         {
-            CloseCreateForm();
-            return;
+            var result = await PromotionCodeService.CreateAsync(new PromotionCodeRequest.Create
+            {
+                Code = _model.Code ?? string.Empty,
+                DiscountType = Enum.Parse<PromotionCodeDiscountType>(_model.DiscountType),
+                Value = _model.Value,
+                ValidFrom = DateOnly.FromDateTime(_model.ValidFrom.Value),
+                ValidTo = DateOnly.FromDateTime(_model.ValidTo.Value),
+                EmailRestriction = _model.EmailRestriction,
+                AppliesTo = Enum.Parse<PromotionCodeAppliesTo>(_model.AppliesTo),
+                IsActive = _model.IsActive,
+            });
+
+            if (result.IsSuccess)
+            {
+                CloseCreateForm();
+                return;
+            }
+
+            _errorMessage = string.Join(" ", result.Errors);
         }
-
-        _errorMessage = string.Join(" ", result.Errors);
+        finally
+        {
+            _isSaving = false;
+        }
     }
 
-    private sealed class PromotionCodeFormModel
+    private sealed class PromotionCodeFormModel : IValidatableObject
     {
         [Required(ErrorMessage = "Code is required.")]
         [StringLength(50, MinimumLength = 2, ErrorMessage = "Code must contain between 2 and 50 characters.")]
+        [RegularExpression("^[A-Za-z0-9_-]+$", ErrorMessage = "Code may contain only letters, numbers, hyphens and underscores.")]
         public string? Code { get; set; }
 
         public string DiscountType { get; set; } = "Percentage";
@@ -168,5 +184,29 @@
 
         public string AppliesTo { get; set; } = "NonRefundable";
         public bool IsActive { get; set; } = true;
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (DiscountType == "Percentage" && Value > 100)
+            {
+                yield return new ValidationResult(
+                    "A percentage discount cannot exceed 100%.",
+                    [nameof(Value)]);
+            }
+
+            if (ValidFrom is not null && ValidFrom.Value.Date < DateTime.Today)
+            {
+                yield return new ValidationResult(
+                    "Start date cannot be in the past.",
+                    [nameof(ValidFrom)]);
+            }
+
+            if (ValidFrom is not null && ValidTo is not null && ValidTo.Value.Date < ValidFrom.Value.Date)
+            {
+                yield return new ValidationResult(
+                    "End date must be on or after the start date.",
+                    [nameof(ValidTo)]);
+            }
+        }
     }
 }
