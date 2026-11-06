@@ -1,6 +1,5 @@
 using Ardalis.Result;
 using Rise.Shared.Bookings;
-using Rise.Shared.Common;
 
 namespace Rise.Client.Bookings;
 
@@ -71,6 +70,8 @@ public class FakeBookingService : IBookingService
             TotalAmount = i * 100m,
             RoomNumbers = [$"10{i}"],
             Status = i == 1 ? "Paid" : "Pending",
+            RoomCount = 1,
+            CancelledRoomCount = 0,
         }).ToList(),
         TotalCount = 3,
     });
@@ -96,11 +97,24 @@ public class FakeBookingService : IBookingService
         return Task.FromResult(answer);
     }
 
-    public Task<Result<BookingResponse.Index>> GetIndexAsync(QueryRequest.SkipTake request, CancellationToken ctx = default)
-        => Task.FromResult(IndexAnswer);
+    /// <summary>
+    /// every list page the page asked for
+    /// </summary>
+    public List<BookingRequest.Index> IndexRequests { get; } = [];
 
     /// <summary>
-    /// what CancelAsync sends back, a cancelled booking with a refund of 360 by default
+    /// answers of GetIndexAsync that a test completes itself, used up first, then <see cref="IndexAnswer"/> is sent back
+    /// </summary>
+    public Queue<Task<Result<BookingResponse.Index>>> PendingIndexAnswers { get; } = new();
+
+    public Task<Result<BookingResponse.Index>> GetIndexAsync(BookingRequest.Index request, CancellationToken ctx = default)
+    {
+        IndexRequests.Add(request);
+        return PendingIndexAnswers.Count > 0 ? PendingIndexAnswers.Dequeue() : Task.FromResult(IndexAnswer);
+    }
+
+    /// <summary>
+    /// what CancelAsync sends back, all rooms cancelled with a refund of 360 by default
     /// </summary>
     public Result<BookingResponse.Cancel> CancelAnswer { get; set; } = Result.Success(new BookingResponse.Cancel
     {
@@ -108,6 +122,8 @@ public class FakeBookingService : IBookingService
         BookingNumber = "20261004-SVM-000007",
         CancelledAt = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc),
         RefundAmount = 360m,
+        CancelledRoomCount = 2,
+        RemainingRoomCount = 0,
     });
 
     /// <summary>

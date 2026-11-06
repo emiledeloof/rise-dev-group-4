@@ -5,11 +5,11 @@ using NSubstitute;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
+using Rise.Domain.Settings;
 using Rise.Persistence;
 using Rise.Services.Bookings;
 using Rise.Services.Payments;
 using Rise.Shared.Bookings;
-using Rise.Shared.Common;
 using Rise.Shared.Guests;
 
 namespace Rise.Services.Tests.Bookings;
@@ -33,18 +33,19 @@ public class BookingServiceShould
             .Options;
 
         var dbContext = new ApplicationDbContext(options);
+        dbContext.GeneralSettings.Add(new GeneralSettings(false, 0m));
 
-        var doubleRoom = new Room("102", "Double Room", 2);
+        var doubleRoom = new Room("102", "Double Room", 2, new RoomType("Standard"));
         var doubleRate = doubleRoom.AddRate("Non-refundable", 109m);
         doubleRoom.AddRate("Fully refundable", 139m);
 
-        var singleRoom = new Room("101", "Single Room", 1);
+        var singleRoom = new Room("101", "Single Room", 1, new RoomType("Standard"));
         singleRoom.AddRate("Standard", 79m);
         singleRoom.AddRate("Flexible", 99m);
 
         var guest = new Guest("Jan Janssens", ExistingEmail, "+32 470 12 34 56",
             new GuestAddress("Koningstraat 12", null, "Belgium"));
-        var booking = new Booking("20261001-SVM-000001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
+        var booking = new Booking("20261001-SVM-000001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
         booking.AddRoom(doubleRoom, doubleRate);
 
         tweak?.Invoke(booking);
@@ -70,6 +71,8 @@ public class BookingServiceShould
     {
         CheckIn = new DateOnly(2026, 10, checkInDay),
         CheckOut = new DateOnly(2026, 10, checkOutDay),
+        // 1 guest fits in every room, the capacity tests set their own nb
+        Adults = 1,
         Guest = new GuestRequest.Create
         {
             FirstName = "Marie",
@@ -146,6 +149,87 @@ public class BookingServiceShould
     }
 
     [Fact]
+    public async Task IncludeVatInTheSavedBookingPriceAndTotal()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(IncludeVatInTheSavedBookingPriceAndTotal));
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(true, 20m);
+        await dbContext.SaveChangesAsync();
+        var standard = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+
+        var result = await CreateService(dbContext).CreateAsync(Request(20, 23, "marie@example.com", standard));
+
+        result.Status.ShouldBe(ResultStatus.Created);
+        result.Value.TotalAmount.ShouldBe(284.40m);
+        var bookingRoom = await dbContext.BookingRooms.Include(x => x.Rate)
+            .SingleAsync(room => room.Booking.Id == result.Value.BookingId);
+        bookingRoom.PricePerNight.ShouldBe(94.80m);
+        bookingRoom.Rate.PricePerNight.ShouldBe(79m);
+        bookingRoom.VatPercentage.ShouldBe(20m);
+    }
+
+    /// <summary>
+    /// zero VAT is stored when VAT is disabled or 0, the price paid is the rate price
+    /// </summary>
+    [Theory]
+    [InlineData(false, 20)]
+    [InlineData(true, 0)]
+    public async Task StoreZeroVatWhenVatDoesNotApply(bool isVatEnabled, int vatPercentage)
+    {
+        await using var dbContext = await CreateSeededDbContextAsync($"{nameof(StoreZeroVatWhenVatDoesNotApply)}{isVatEnabled}{vatPercentage}");
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(isVatEnabled, vatPercentage);
+        await dbContext.SaveChangesAsync();
+        var standard = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+
+        var result = await CreateService(dbContext).CreateAsync(Request(20, 23, "marie@example.com", standard));
+
+        result.Value.TotalAmount.ShouldBe(237m);
+        var bookingRoom = await dbContext.BookingRooms
+            .SingleAsync(room => room.Booking.Id == result.Value.BookingId);
+        bookingRoom.PricePerNight.ShouldBe(79m);
+        bookingRoom.VatPercentage.ShouldBe(0m);
+    }
+
+    /// <summary>
+    /// the confirmation page gets the total paid per room and, when VAT applied at booking time, the total without VAT
+    /// </summary>
+    [Theory]
+    [InlineData(true, 20, 284.40, 237.0)]
+    [InlineData(false, 20, 237.0, null)]
+    [InlineData(true, 0, 237.0, null)]
+    public async Task ReturnTheVatBreakdownStoredAtBookingTimeInTheConfirmationDetail(
+        bool isVatEnabled, int vatPercentage, double expectedTotal, double? expectedTotalExclVat)
+    {
+        // arrange, book 3 nights in the single room at 79 per night, then the checkout session is linked
+        await using var dbContext = await CreateSeededDbContextAsync(
+            $"{nameof(ReturnTheVatBreakdownStoredAtBookingTimeInTheConfirmationDetail)}{isVatEnabled}{vatPercentage}");
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(isVatEnabled, vatPercentage);
+        await dbContext.SaveChangesAsync();
+        var standard = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        var created = await CreateService(dbContext).CreateAsync(Request(20, 23, "marie@example.com", standard));
+        var booking = await dbContext.Bookings.SingleAsync(x => x.Id == created.Value.BookingId);
+        booking.AddPayment(created.Value.TotalAmount, "cs_test_vat");
+        await dbContext.SaveChangesAsync();
+
+        // a later change of the VAT settings doesn't change the breakdown of the booking
+        settings.Update(true, 6m);
+        await dbContext.SaveChangesAsync();
+
+        // act
+        var result = await CreateService(dbContext).GetDetailByCheckoutSessionAsync("cs_test_vat");
+
+        // assert
+        result.IsSuccess.ShouldBeTrue();
+        var room = result.Value.Rooms.ShouldHaveSingleItem();
+        room.RoomName.ShouldBe("Single Room");
+        room.Total.ShouldBe((decimal)expectedTotal);
+        room.TotalExclVat.ShouldBe((decimal?)expectedTotalExclVat);
+        result.Value.Payments.Single().Amount.ShouldBe((decimal)expectedTotal);
+    }
+
+    [Fact]
     public async Task ReturnConflictWhenRoomAlreadyBooked()
     {
         // arrange, the double room is booked from oct 10 to 12
@@ -206,6 +290,21 @@ public class BookingServiceShould
         (await dbContext.Bookings.CountAsync()).ShouldBe(1);
     }
 
+    [Fact]
+    public async Task ReturnInvalidWhenSelectedRateIsInactive()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnInvalidWhenSelectedRateIsInactive));
+        var single = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        var rate = await dbContext.Rates.SingleAsync(rate => rate.Id == single.RateId);
+        rate.IsActive = false;
+
+        var result = await CreateService(dbContext)
+            .CreateAsync(Request(20, 22, "marie@example.com", single));
+
+        result.Status.ShouldBe(ResultStatus.Invalid);
+        (await dbContext.Bookings.CountAsync()).ShouldBe(1);
+    }
+
     // ── GetIndexAsync ──────────────────────────────────────────────────────────
 
     [Fact]
@@ -213,7 +312,7 @@ public class BookingServiceShould
     {
         // arrange — db has 1 seeded booking
         await using var dbContext = await CreateSeededDbContextAsync(nameof(GetIndexReturnsAllBookings));
-        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50 };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);
@@ -236,7 +335,7 @@ public class BookingServiceShould
                 payment.MarkAsPaid(DateTime.UtcNow);
                 payment.SetStripePaymentDetails("pi_test", "https://receipt", "visa", "4242");
             });
-        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50 };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);
@@ -246,11 +345,32 @@ public class BookingServiceShould
     }
 
     [Fact]
+    public async Task GetIndexIgnoresDeletedPaymentsForTheStatus()
+    {
+        // arrange — the only settled payment is deleted
+        await using var dbContext = await CreateSeededDbContextAsync(
+            nameof(GetIndexIgnoresDeletedPaymentsForTheStatus),
+            booking =>
+            {
+                var payment = booking.AddPayment(327m);
+                payment.MarkAsPaid(DateTime.UtcNow);
+                payment.IsDeleted = true;
+            });
+        var request = new BookingRequest.Index { Skip = 0, Take = 50 };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.Bookings.Single().Status.ShouldBe("Pending");
+    }
+
+    [Fact]
     public async Task GetIndexReturnsPendingStatusWhenNoPayment()
     {
         // arrange — seeded booking has no payments
         await using var dbContext = await CreateSeededDbContextAsync(nameof(GetIndexReturnsPendingStatusWhenNoPayment));
-        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50 };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);
@@ -268,7 +388,7 @@ public class BookingServiceShould
         await CreateService(dbContext).CreateAsync(Request(20, 22, "marie@example.com", single));
 
         // act — take only 1
-        var request = new QueryRequest.SkipTake { Skip = 0, Take = 1 };
+        var request = new BookingRequest.Index { Skip = 0, Take = 1 };
         var result = await CreateService(dbContext).GetIndexAsync(request);
 
         // assert
@@ -281,7 +401,7 @@ public class BookingServiceShould
     {
         // arrange
         await using var dbContext = await CreateSeededDbContextAsync(nameof(GetIndexIncludesRoomNumbers));
-        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50 };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);
@@ -295,13 +415,106 @@ public class BookingServiceShould
     {
         // arrange — seeded booking: double room at 109 per night, 10 → 12 Oct = 2 nights
         await using var dbContext = await CreateSeededDbContextAsync(nameof(GetIndexReturnsTotalAmountForAllNights));
-        var request = new QueryRequest.SkipTake { Skip = 0, Take = 50 };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50 };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);
 
         // assert
         result.Value.Bookings.Single().TotalAmount.ShouldBe(218m);
+    }
+
+    // the seeded booking is cancelled, a second booking stays open
+    private static async Task<ApplicationDbContext> CreateCancelledAndOpenBookingAsync(string databaseName)
+    {
+        var dbContext = await CreateSeededDbContextAsync(databaseName,
+            booking => CancelAll(booking, "Guest asked to cancel by phone"));
+        var single = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        await CreateService(dbContext).CreateAsync(Request(20, 22, "marie@example.com", single));
+        return dbContext;
+    }
+
+    [Fact]
+    public async Task ReturnOnlyCancelledBookings()
+    {
+        // arrange
+        await using var dbContext = await CreateCancelledAndOpenBookingAsync(nameof(ReturnOnlyCancelledBookings));
+        var request = new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = BookingCancellationFilters.OnlyCancelled };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.Bookings.Single().Status.ShouldBe("Cancelled");
+    }
+
+    [Fact]
+    public async Task ExcludeCancelledBookingsWhenFilteringNotCancelled()
+    {
+        // arrange
+        await using var dbContext = await CreateCancelledAndOpenBookingAsync(nameof(ExcludeCancelledBookingsWhenFilteringNotCancelled));
+        var request = new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = BookingCancellationFilters.NotCancelled };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.Bookings.Single().Status.ShouldBe("Pending");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(BookingCancellationFilters.All)]
+    public async Task IncludeCancelledBookingsWithoutFilter(string? filter)
+    {
+        // arrange
+        await using var dbContext = await CreateCancelledAndOpenBookingAsync($"{nameof(IncludeCancelledBookingsWithoutFilter)}-{filter ?? "null"}");
+        var request = new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = filter };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.TotalCount.ShouldBe(2);
+        result.Value.Bookings.Select(x => x.Status).ShouldBe(["Pending", "Cancelled"], ignoreOrder: true);
+    }
+
+    [Theory]
+    [InlineData(BookingCancellationFilters.OnlyCancelled)]
+    [InlineData(BookingCancellationFilters.NotCancelled)]
+    public async Task CountOnlyFilteredBookings(string filter)
+    {
+        // arrange
+        await using var dbContext = await CreateCancelledAndOpenBookingAsync($"{nameof(CountOnlyFilteredBookings)}-{filter}");
+        var request = new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = filter };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.TotalCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task IgnoreDeletedBookingsWhenFilteringOnlyCancelled()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(
+            nameof(IgnoreDeletedBookingsWhenFilteringOnlyCancelled),
+            booking =>
+            {
+                CancelAll(booking, "Guest asked to cancel by phone");
+                booking.IsDeleted = true;
+            });
+        var request = new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = BookingCancellationFilters.OnlyCancelled };
+
+        // act
+        var result = await CreateService(dbContext).GetIndexAsync(request);
+
+        // assert
+        result.Value.TotalCount.ShouldBe(0);
+        result.Value.Bookings.ShouldBeEmpty();
     }
 
     // changes the min nb of nights of a rate after the seed
@@ -472,7 +685,7 @@ public class BookingServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(GetMatrixReturnsCorrectCellStatusForPaidAndPendingBookings));
         var single = await dbContext.Rooms.Include(x => x.Rates).SingleAsync(x => x.Name == "Single Room");
         var guest = await dbContext.Guests.FirstAsync();
-        var paidBooking = new Booking("20261001-SVM-000002", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
+        var paidBooking = new Booking("20261001-SVM-000002", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
         paidBooking.AddRoom(single, single.Rates.First());
         var payment = paidBooking.AddPayment(158m);
         payment.MarkAsPaid(DateTime.UtcNow);
@@ -539,23 +752,41 @@ public class BookingServiceShould
     private static void Pay(Booking booking, decimal amount = 218m)
         => booking.AddPayment(amount).MarkAsPaid(new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc));
 
-    private static BookingRequest.Cancel CancelRequest(int bookingId, decimal refund = 0m) => new()
+    // for a booking that doesn't exist, so without rooms
+    private static BookingRequest.Cancel CancelRequest(int bookingId) => new()
     {
         BookingId = bookingId,
         Reason = "Guest asked to cancel by phone",
-        RefundAmount = refund,
     };
+
+    // cancels the only room of the booking, the other cancellation tests are in BookingServiceCancelRoomsShould
+    private static async Task<BookingRequest.Cancel> CancelRequestAsync(ApplicationDbContext dbContext, int bookingId, decimal refund = 0m)
+    {
+        var booking = await dbContext.Bookings.Include(x => x.Rooms).SingleAsync(x => x.Id == bookingId);
+        var request = CancelRequest(bookingId);
+        request.Rooms = [new BookingRequest.Cancel.RoomSelection { BookingRoomId = booking.Rooms.Single().Id, RefundAmount = refund }];
+        return request;
+    }
+
+    // cancels all rooms, the refund goes on the 1st one
+    private static void CancelAll(Booking booking, string reason, decimal refund = 0m)
+        => booking.CancelRooms(
+            booking.Rooms.Select((x, i) => new RoomCancellation(x, i == 0 ? refund : 0m)).ToList(),
+            DateTime.UtcNow,
+            reason);
 
     /// <summary>
     /// adds a paid booking of the single room (79 a night, refundable) for 2 nights, starting in the given nb of days
     /// </summary>
-    private static async Task<int> AddFutureBookingAsync(ApplicationDbContext dbContext, int daysUntilCheckIn, decimal paid = 158m)
+    private static async Task<int> AddFutureBookingAsync(ApplicationDbContext dbContext, int daysUntilCheckIn, decimal paid = 158m, Action<Rate>? rateAtBookingTime = null)
     {
         var single = await dbContext.Rooms.Include(x => x.Rates).SingleAsync(x => x.Name == "Single Room");
         var guest = await dbContext.Guests.FirstAsync();
         var checkIn = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(daysUntilCheckIn);
-        var booking = new Booking("20261001-SVM-000003", guest, checkIn, checkIn.AddDays(2));
-        booking.AddRoom(single, single.Rates.Single(x => x.Name == "Standard"));
+        var booking = new Booking("20261001-SVM-000003", guest, checkIn, checkIn.AddDays(2), 1);
+        var rate = single.Rates.Single(x => x.Name == "Standard");
+        rateAtBookingTime?.Invoke(rate);
+        booking.AddRoom(single, rate);
         Pay(booking, paid);
         dbContext.Bookings.Add(booking);
         await dbContext.SaveChangesAsync();
@@ -570,16 +801,18 @@ public class BookingServiceShould
         var bookingId = (await dbContext.Bookings.SingleAsync()).Id;
 
         // act
-        var result = await CreateService(dbContext).CancelAsync(CancelRequest(bookingId, 100m));
+        var result = await CreateService(dbContext).CancelAsync(await CancelRequestAsync(dbContext, bookingId, 100m));
 
         // assert
         result.Status.ShouldBe(ResultStatus.Ok);
         result.Value.BookingNumber.ShouldBe("20261001-SVM-000001");
         result.Value.RefundAmount.ShouldBe(100m);
-        var booking = await dbContext.Bookings.SingleAsync();
+        result.Value.CancelledRoomCount.ShouldBe(1);
+        result.Value.RemainingRoomCount.ShouldBe(0);
+        var booking = await dbContext.Bookings.Include(x => x.Rooms).SingleAsync();
         booking.IsCancelled.ShouldBeTrue();
-        booking.CancellationReason.ShouldBe("Guest asked to cancel by phone");
-        booking.RefundAmount.ShouldBe(100m);
+        booking.Rooms.Single().CancellationReason.ShouldBe("Guest asked to cancel by phone");
+        booking.Rooms.Single().RefundAmount.ShouldBe(100m);
     }
 
     [Fact]
@@ -591,7 +824,7 @@ public class BookingServiceShould
         var stripe = Substitute.For<IStripePaymentGateway>();
 
         // act
-        await new BookingService(dbContext, stripe, Substitute.For<IConfiguration>()).CancelAsync(CancelRequest(bookingId, 218m));
+        await new BookingService(dbContext, stripe, Substitute.For<IConfiguration>()).CancelAsync(await CancelRequestAsync(dbContext, bookingId, 218m));
 
         // assert, the refund is only recorded, the admin pays it back by hand
         stripe.ReceivedCalls().ShouldBeEmpty();
@@ -604,11 +837,11 @@ public class BookingServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(KeepACancelledBookingVisibleWithItsTerms), booking => Pay(booking));
         var bookingId = (await dbContext.Bookings.SingleAsync()).Id;
         var service = CreateService(dbContext);
-        await service.CancelAsync(CancelRequest(bookingId, 50m));
+        await service.CancelAsync(await CancelRequestAsync(dbContext, bookingId, 50m));
 
         // act
         var detail = await service.GetDetailAsync(bookingId);
-        var index = await service.GetIndexAsync(new QueryRequest.SkipTake { Skip = 0, Take = 50 });
+        var index = await service.GetIndexAsync(new BookingRequest.Index { Skip = 0, Take = 50 });
 
         // assert
         detail.Status.ShouldBe(ResultStatus.Ok);
@@ -616,9 +849,12 @@ public class BookingServiceShould
         detail.Value.TotalAmount.ShouldBe(218m);
         detail.Value.Rooms.Single().PricePerNight.ShouldBe(109m);
         detail.Value.Payments.Single().Amount.ShouldBe(218m);
-        detail.Value.Cancellation.ShouldNotBeNull();
-        detail.Value.Cancellation.Reason.ShouldBe("Guest asked to cancel by phone");
-        detail.Value.Cancellation.RefundAmount.ShouldBe(50m);
+        var cancellation = detail.Value.Rooms.Single().Cancellation;
+        cancellation.ShouldNotBeNull();
+        cancellation.Reason.ShouldBe("Guest asked to cancel by phone");
+        cancellation.RefundAmount.ShouldBe(50m);
+        detail.Value.ActiveAmount.ShouldBe(0m);
+        detail.Value.RefundedAmount.ShouldBe(50m);
         index.Value.Bookings.Single().Status.ShouldBe("Cancelled");
     }
 
@@ -629,34 +865,34 @@ public class BookingServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnConflictWhenAlreadyCancelled), booking =>
         {
             Pay(booking);
-            booking.Cancel(DateTime.UtcNow, "First reason", 10m);
+            CancelAll(booking, "First reason", 10m);
         });
         var bookingId = (await dbContext.Bookings.SingleAsync()).Id;
 
         // act
-        var result = await CreateService(dbContext).CancelAsync(CancelRequest(bookingId, 20m));
+        var result = await CreateService(dbContext).CancelAsync(await CancelRequestAsync(dbContext, bookingId, 20m));
 
         // assert, the 1st cancellation is kept
         result.Status.ShouldBe(ResultStatus.Conflict);
-        var booking = await dbContext.Bookings.SingleAsync();
-        booking.CancellationReason.ShouldBe("First reason");
-        booking.RefundAmount.ShouldBe(10m);
+        var booking = await dbContext.Bookings.Include(x => x.Rooms).SingleAsync();
+        booking.Rooms.Single().CancellationReason.ShouldBe("First reason");
+        booking.Rooms.Single().RefundAmount.ShouldBe(10m);
     }
 
     [Fact]
     public async Task RejectARefundAboveTheAmountPaid()
     {
-        // arrange, 218 paid
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(RejectARefundAboveTheAmountPaid), booking => Pay(booking));
+        // arrange, 100 of the 218 paid
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(RejectARefundAboveTheAmountPaid), booking => Pay(booking, 100m));
         var bookingId = (await dbContext.Bookings.SingleAsync()).Id;
 
         // act
-        var result = await CreateService(dbContext).CancelAsync(CancelRequest(bookingId, 218.01m));
+        var result = await CreateService(dbContext).CancelAsync(await CancelRequestAsync(dbContext, bookingId, 100.01m));
 
         // assert, nothing saved
         result.Status.ShouldBe(ResultStatus.Invalid);
-        result.ValidationErrors.Single().ErrorMessage.ShouldContain("218.00");
-        (await dbContext.Bookings.SingleAsync()).IsCancelled.ShouldBeFalse();
+        result.ValidationErrors.Single().ErrorMessage.ShouldContain("100.00");
+        (await dbContext.Bookings.Include(x => x.Rooms).SingleAsync()).IsCancelled.ShouldBeFalse();
     }
 
     [Fact]
@@ -667,11 +903,11 @@ public class BookingServiceShould
         var bookingId = (await dbContext.Bookings.SingleAsync()).Id;
 
         // act
-        var result = await CreateService(dbContext).CancelAsync(CancelRequest(bookingId, 1m));
+        var result = await CreateService(dbContext).CancelAsync(await CancelRequestAsync(dbContext, bookingId, 1m));
 
         // assert
         result.Status.ShouldBe(ResultStatus.Invalid);
-        (await dbContext.Bookings.SingleAsync()).IsCancelled.ShouldBeFalse();
+        (await dbContext.Bookings.Include(x => x.Rooms).SingleAsync()).IsCancelled.ShouldBeFalse();
     }
 
     [Fact]
@@ -682,11 +918,11 @@ public class BookingServiceShould
         var bookingId = (await dbContext.Bookings.SingleAsync()).Id;
 
         // act
-        var result = await CreateService(dbContext).CancelAsync(CancelRequest(bookingId));
+        var result = await CreateService(dbContext).CancelAsync(await CancelRequestAsync(dbContext, bookingId));
 
         // assert
         result.Status.ShouldBe(ResultStatus.Ok);
-        (await dbContext.Bookings.SingleAsync()).IsCancelled.ShouldBeTrue();
+        (await dbContext.Bookings.Include(x => x.Rooms).SingleAsync()).IsCancelled.ShouldBeTrue();
     }
 
     [Fact]
@@ -711,7 +947,7 @@ public class BookingServiceShould
         var bookingId = (await dbContext.Bookings.SingleAsync()).Id;
 
         // act
-        var result = await CreateService(dbContext).CancelAsync(CancelRequest(bookingId));
+        var result = await CreateService(dbContext).CancelAsync(await CancelRequestAsync(dbContext, bookingId));
 
         // assert
         result.Status.ShouldBe(ResultStatus.NotFound);
@@ -722,7 +958,7 @@ public class BookingServiceShould
     {
         // arrange, the double room is booked from oct 10 to 12, then cancelled
         await using var dbContext = await CreateSeededDbContextAsync(nameof(FreeTheRoomsOfACancelledBooking),
-            booking => booking.Cancel(DateTime.UtcNow, "Guest is ill", 0m));
+            booking => CancelAll(booking, "Guest is ill"));
         var doubleRoom = await RoomAndRateAsync(dbContext, "Double Room", "Fully refundable");
 
         // act
@@ -739,7 +975,7 @@ public class BookingServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(HideCancelledBookingsFromTheMatrix), booking =>
         {
             Pay(booking);
-            booking.Cancel(DateTime.UtcNow, "Guest is ill", 0m);
+            CancelAll(booking, "Guest is ill");
         });
 
         // act
@@ -758,7 +994,7 @@ public class BookingServiceShould
     {
         // arrange
         await using var dbContext = await CreateSeededDbContextAsync(nameof(RefuseACheckoutSessionForACancelledBooking),
-            booking => booking.Cancel(DateTime.UtcNow, "Guest is ill", 0m));
+            booking => CancelAll(booking, "Guest is ill"));
         var bookingId = (await dbContext.Bookings.SingleAsync()).Id;
 
         // act
@@ -787,20 +1023,199 @@ public class BookingServiceShould
 
         // assert
         result.Value.PaidAmount.ShouldBe(158m);
-        result.Value.SuggestedRefundAmount.ShouldBe(expected);
+        result.Value.Rooms.Single().RefundAmount.ShouldBe(expected);
     }
 
     [Fact]
-    public async Task NeverSuggestMoreThanTheAmountPaid()
+    public async Task LimitWhatCanBeRefundedToTheAmountPaid()
     {
         // arrange, only 100 of the 158 paid
-        await using var dbContext = await CreateSeededDbContextAsync(nameof(NeverSuggestMoreThanTheAmountPaid));
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(LimitWhatCanBeRefundedToTheAmountPaid));
         var bookingId = await AddFutureBookingAsync(dbContext, 60, paid: 100m);
 
         // act
         var result = await CreateService(dbContext).GetDetailAsync(bookingId);
 
         // assert
-        result.Value.SuggestedRefundAmount.ShouldBe(100m);
+        result.Value.RefundableAmount.ShouldBe(100m);
+    }
+
+    [Fact]
+    public async Task SaveTheNbOfGuests()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(SaveTheNbOfGuests));
+        var doubleRoom = await RoomAndRateAsync(dbContext, "Double Room", "Fully refundable");
+        var request = Request(20, 22, "marie@example.com", doubleRoom);
+        request.Adults = 2;
+
+        // act
+        var result = await CreateService(dbContext).CreateAsync(request);
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.Created);
+        var booking = await dbContext.Bookings.SingleAsync(x => x.Id == result.Value.BookingId);
+        booking.Adults.ShouldBe(2);
+    }
+
+    /// <summary>
+    /// the single room fits 1 guest, the search hides it for 2 guests but the api can be called directly
+    /// </summary>
+    [Fact]
+    public async Task RejectMoreGuestsThanTheRoomsFit()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(RejectMoreGuestsThanTheRoomsFit));
+        var single = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        var request = Request(20, 22, "marie@example.com", single);
+        request.Adults = 2;
+
+        // act
+        var result = await CreateService(dbContext).CreateAsync(request);
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.Invalid);
+        (await dbContext.Bookings.CountAsync()).ShouldBe(1);
+    }
+
+    /// <summary>
+    /// 3 guests fit in the double room plus the single room
+    /// </summary>
+    [Fact]
+    public async Task AcceptGuestsSpreadOverSeveralRooms()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(AcceptGuestsSpreadOverSeveralRooms));
+        var doubleRoom = await RoomAndRateAsync(dbContext, "Double Room", "Fully refundable");
+        var single = await RoomAndRateAsync(dbContext, "Single Room", "Standard");
+        var request = Request(20, 22, "marie@example.com", doubleRoom, single);
+        request.Adults = 3;
+
+        // act
+        var result = await CreateService(dbContext).CreateAsync(request);
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.Created);
+    }
+
+    [Fact]
+    public async Task ReturnTheNbOfGuestsInTheAdminDetail()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheNbOfGuestsInTheAdminDetail));
+        var bookingId = (await dbContext.Bookings.SingleAsync()).Id;
+
+        // act
+        var result = await CreateService(dbContext).GetDetailAsync(bookingId);
+
+        // assert
+        result.Value.Adults.ShouldBe(2);
+    }
+
+    /// <summary>
+    /// 100 pct from 30 days before arrival, 50 pct from 7 days, nothing within 7 days, same for the page and the cancel form
+    /// </summary>
+    [Theory]
+    [InlineData(30, 100, 158)]
+    [InlineData(29, 50, 79)]
+    [InlineData(7, 50, 79)]
+    [InlineData(6, 0, 0)]
+    public async Task ApplyTheRefundStepsOfTheAgreedPolicy(int daysUntilCheckIn, int expectedPercent, decimal expectedRefund)
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync($"{nameof(ApplyTheRefundStepsOfTheAgreedPolicy)}-{daysUntilCheckIn}");
+        var bookingId = await AddFutureBookingAsync(dbContext, daysUntilCheckIn);
+
+        // act
+        var result = await CreateService(dbContext).GetDetailAsync(bookingId);
+
+        // assert
+        var detail = result.Value;
+        var room = detail.Rooms.ShouldHaveSingleItem();
+        room.IsRefundable.ShouldBeTrue();
+        room.FullRefundUntil.ShouldBe(detail.CheckIn.AddDays(-30));
+        room.PartialRefundUntil.ShouldBe(detail.CheckIn.AddDays(-7));
+        room.RefundPercent.ShouldBe(expectedPercent);
+        room.RefundAmount.ShouldBe(expectedRefund);
+        room.RefundReferenceDate.ShouldBe(DateOnly.FromDateTime(DateTime.UtcNow));
+    }
+
+    [Fact]
+    public async Task ShowNoRefundForANonRefundableRate()
+    {
+        // arrange, far enough ahead for a full refund on a refundable rate
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ShowNoRefundForANonRefundableRate));
+        var bookingId = await AddFutureBookingAsync(dbContext, 60,
+            rateAtBookingTime: rate => rate.CancellationPolicy = CancellationPolicy.NonRefundable);
+
+        // act
+        var result = await CreateService(dbContext).GetDetailAsync(bookingId);
+
+        // assert
+        var room = result.Value.Rooms.ShouldHaveSingleItem();
+        room.IsRefundable.ShouldBeFalse();
+        room.FullRefundUntil.ShouldBeNull();
+        room.PartialRefundUntil.ShouldBeNull();
+        room.RefundPercent.ShouldBe(0);
+        room.RefundAmount.ShouldBe(0m);
+    }
+
+    /// <summary>
+    /// the admin changes the rate after the guest booked, the booking keeps the name and policy agreed at booking time
+    /// </summary>
+    [Fact]
+    public async Task KeepTheAgreedRateAndPolicyWhenTheRateChangesLater()
+    {
+        // arrange, 10 days ahead gives 50 pct on the agreed policy
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(KeepTheAgreedRateAndPolicyWhenTheRateChangesLater));
+        var bookingId = await AddFutureBookingAsync(dbContext, 10);
+        var rate = (await dbContext.Rooms.Include(x => x.Rates).SingleAsync(x => x.Name == "Single Room")).Rates.Single(x => x.Name == "Standard");
+        rate.Name = "Saver";
+        rate.CancellationPolicy = CancellationPolicy.NonRefundable;
+        rate.FullRefundDays = 60;
+        rate.PartialRefundDays = 14;
+        rate.PartialRefundPercent = 25;
+        await dbContext.SaveChangesAsync();
+
+        // act
+        var result = await CreateService(dbContext).GetDetailAsync(bookingId);
+
+        // assert
+        var room = result.Value.Rooms.ShouldHaveSingleItem();
+        room.RateName.ShouldBe("Standard");
+        room.IsRefundable.ShouldBeTrue();
+        room.FullRefundDays.ShouldBe(30);
+        room.PartialRefundDays.ShouldBe(7);
+        room.PartialRefundPercent.ShouldBe(50);
+        room.RefundPercent.ShouldBe(50);
+        room.RefundAmount.ShouldBe(79m);
+    }
+
+    /// <summary>
+    /// cancelled 10 days before arrival, the page shows the 50 pct of that day, not the 0 pct of today
+    /// </summary>
+    [Fact]
+    public async Task UseTheCancellationDateForTheRefundOfACancelledBooking()
+    {
+        // arrange, check-in was 2 days ago so today would give nothing
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(UseTheCancellationDateForTheRefundOfACancelledBooking));
+        var bookingId = await AddFutureBookingAsync(dbContext, -2);
+        var booking = await dbContext.Bookings.Include(x => x.Payments).Include(x => x.Rooms).SingleAsync(x => x.Id == bookingId);
+        var cancelledOn = booking.CheckIn.AddDays(-10);
+        booking.CancelRooms(
+            [new RoomCancellation(booking.Rooms.Single(), 79m)],
+            cancelledOn.ToDateTime(new TimeOnly(9, 0), DateTimeKind.Utc),
+            "Guest asked to cancel by phone");
+        await dbContext.SaveChangesAsync();
+
+        // act
+        var result = await CreateService(dbContext).GetDetailAsync(bookingId);
+
+        // assert
+        result.Status.ShouldBe(ResultStatus.Ok);
+        var room = result.Value.Rooms.ShouldHaveSingleItem();
+        room.RefundReferenceDate.ShouldBe(cancelledOn);
+        room.RefundPercent.ShouldBe(50);
+        room.RefundAmount.ShouldBe(79m);
     }
 }

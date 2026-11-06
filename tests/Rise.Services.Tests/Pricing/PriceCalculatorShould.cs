@@ -20,6 +20,20 @@ public class PriceCalculatorShould
         PriceCalculator.Total(pricePerNight, nights).ShouldBe(expected);
     }
 
+    [Theory]
+    [InlineData(109, true, 20, 130.80)]
+    [InlineData(109, true, 0, 109)]
+    [InlineData(109, false, 20, 109)]
+    [InlineData(10.01, true, 5, 10.51)]
+    public void ApplyVatOnlyWhenEnabledAndRoundToCurrencyPrecision(
+        decimal price,
+        bool isVatEnabled,
+        decimal vatPercentage,
+        decimal expected)
+    {
+        PriceCalculator.InclusiveOfVat(price, isVatEnabled, vatPercentage).ShouldBe(expected);
+    }
+
     /// <summary>
     /// a stay without nights is a bug, the calculator refuses it instead of giving a wrong price
     /// </summary>
@@ -30,5 +44,44 @@ public class PriceCalculatorShould
     {
         // Should.Throw checks that the code inside the lambda throws this exact exception
         Should.Throw<ArgumentOutOfRangeException>(() => PriceCalculator.Total(160m, nights));
+    }
+
+    /// <summary>
+    /// the VAT inside a price that already holds it, eg 122 at 22 % holds 22
+    /// </summary>
+    [Theory]
+    [InlineData(122, 22, 22)]
+    [InlineData(110, 10, 10)]
+    [InlineData(100, 0, 0)]
+    [InlineData(10, 22, 1.80)]
+    public void TakeTheVatOutOfAPriceIncludingVat(decimal gross, decimal vatPercentage, decimal expected)
+    {
+        PriceCalculator.VatIncluded(gross, vatPercentage).ShouldBe(expected);
+    }
+
+    /// <summary>
+    /// 79.99 at 21 % for 10 nights is paid 96.79 x 10 = 967.90, the price without VAT comes from that total
+    /// so search, confirmation and bill show the same 799.92 and not 79.99 x 10 = 799.90
+    /// </summary>
+    [Theory]
+    [InlineData(122, 22, 100)]
+    [InlineData(967.90, 21, 799.92)]
+    [InlineData(100, 0, 100)]
+    public void TakeTheVatOffATotalLikeTheBill(decimal gross, decimal vatPercentage, decimal expected)
+    {
+        PriceCalculator.ExclusiveOfVat(gross, vatPercentage).ShouldBe(expected);
+    }
+
+    /// <summary>
+    /// half a cent goes up, also for an even last cent, the default Math.Round would give 16.66 and 2.12
+    /// </summary>
+    [Theory]
+    [InlineData(16.665, 16.67)]
+    [InlineData(2.125, 2.13)]
+    [InlineData(2.124, 2.12)]
+    [InlineData(-2.125, -2.13)]
+    public void RoundHalfACentUp(decimal amount, decimal expected)
+    {
+        PriceCalculator.RoundToCents(amount).ShouldBe(expected);
     }
 }

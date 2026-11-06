@@ -1,14 +1,13 @@
 using Rise.Shared.Bookings;
-using Rise.Shared.Common;
 using Rise.Shared.Identity;
 
 namespace Rise.Server.Endpoints.Bookings;
 
 /// <summary>
-/// Returns a paginated list of all bookings for the admin overview.
+/// Returns a paginated list of the bookings for the admin overview, optionally filtered on cancellation.
 /// </summary>
 public class Index(IBookingService bookingService)
-    : Endpoint<QueryRequest.SkipTake, Result<BookingResponse.Index>>
+    : Endpoint<BookingRequest.Index, Result<BookingResponse.Index>>
 {
     public override void Configure()
     {
@@ -16,6 +15,6 @@ public class Index(IBookingService bookingService)
         Roles(AppRoles.Administrator);
     }
 
-    public override Task<Result<BookingResponse.Index>> ExecuteAsync(QueryRequest.SkipTake req, CancellationToken ct)
+    public override Task<Result<BookingResponse.Index>> ExecuteAsync(BookingRequest.Index req, CancellationToken ct)
         => bookingService.GetIndexAsync(req, ct);
 }

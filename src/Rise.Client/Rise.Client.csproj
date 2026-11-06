@@ -13,6 +13,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.12" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.12" PrivateAssets="all" />
         <PackageReference Include="Serilog.Sinks.BrowserConsole" Version="8.0.0" />
+        <PackageReference Include="Toolbelt.Blazor.I18nText" Version="14.1.1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -25,15 +26,19 @@
     </ItemGroup>
     
     <ItemGroup>
-      <Compile Update="Bookings\Confirmationn.razor.cs">
+      <Compile Update="Bookings\Confirmation.razor.cs">
         <DependentUpon>Confirmation.razor</DependentUpon>
       </Compile>
     </ItemGroup>
     
     <ItemGroup>
-      <None Update="Bookings\Confirmationn.razor.css">
+      <None Update="Bookings\Confirmation.razor.css">
         <DependentUpon>Confirmation.razor</DependentUpon>
       </None>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="wwwroot\images\estate\" />
     </ItemGroup>
 
 </Project>

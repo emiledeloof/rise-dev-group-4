@@ -5,6 +5,7 @@ using Rise.Shared.Search;
 using Rise.Services.Bookings;
 using Rise.Services.Pricing;
 using Rise.Domain.Rooms;
+using Rise.Domain.Settings;
 
 namespace Rise.Services.Rooms;
 
@@ -27,8 +28,23 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         var checkOut = request.CheckOut!.Value;
         var lastNight = checkOut.AddDays(-1);
         var nights = request.Nights;
+        var settings = await dbContext.GeneralSettings
+            .AsNoTracking()
+            .SingleAsync(item => item.Id == GeneralSettings.SingletonId, ctx);
 
         var totalCapacity = await ActiveRooms.SumAsync(r => r.MaxGuests, ctx);
+        var totalRooms = await ActiveRooms.CountAsync(ctx);
+
+        // if requested rooms exceeds total estate rooms, return empty rooms
+        if (request.Rooms > totalRooms)
+        {
+            return Result.Success(new RoomResponse.Available
+            {
+                Rooms = [],
+                TotalCapacity = totalCapacity,
+                TotalRooms = totalRooms
+            });
+        }
 
         // rooms with a booking during the stay, EF turns this into a subquery
         var bookedRoomIds = dbContext.BookingRooms
@@ -55,6 +71,7 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                 // so the 1st rate is the cheapest one the guest can book
                 Rates = r.Rates
                     .Where(x => !x.IsDeleted
+                        && x.IsActive
                         && (x.StartDate == null || x.StartDate <= checkIn)
                         && (x.EndDate == null || x.EndDate >= lastNight))
                     .OrderBy(x => x.MinNights > nights)
@@ -78,6 +95,19 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
             })
             .ToListAsync(ctx);
 
+        var appliesVat = settings.IsVatEnabled && settings.VatPercentage > 0m;
+
+        foreach (var rate in rows.SelectMany(row => row.Rates))
+        {
+            rate.PricePerNight = PriceCalculator.InclusiveOfVat(
+                rate.PricePerNight,
+                settings.IsVatEnabled,
+                settings.VatPercentage);
+            rate.TotalPrice = PriceCalculator.Total(rate.PricePerNight, nights);
+            // from the total paid like the confirmation and the bill, the rounded VAT per night would make them differ
+            rate.TotalPriceExclVat = appliesVat ? PriceCalculator.ExclusiveOfVat(rate.TotalPrice, settings.VatPercentage) : null;
+        }
+
         // a room without a rate valid on the stay dates cant be booked, so it is left out
         // from price = 1st rate, ie the cheapest bookable for the stay, or the cheapest one when none fits
         var rooms = rows
@@ -98,7 +128,8 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         return Result.Success(new RoomResponse.Available
         {
             Rooms = rooms,
-            TotalCapacity = totalCapacity
+            TotalCapacity = totalCapacity,
+            TotalRooms = totalRooms
         });
     }
 
@@ -160,7 +191,7 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                 MaxGuests = r.MaxGuests,
                 // "from" price = cheapest rate, the cast to decimal? gives null when the room has no rate instead of 0
                 FromPrice = r.Rates
-                    .Where(x => !x.IsDeleted)
+                    .Where(x => !x.IsDeleted && x.IsActive)
                     .OrderBy(x => x.PricePerNight)
                     .Select(x => (decimal?)x.PricePerNight)
                     .FirstOrDefault(),

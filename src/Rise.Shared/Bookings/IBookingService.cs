@@ -1,5 +1,3 @@
-using Rise.Shared.Common;
-
 namespace Rise.Shared.Bookings;
 
 /// <summary>
@@ -21,7 +19,7 @@ public interface IBookingService
     /// <summary>
     /// Returns a paginated list of all bookings for the admin overview.
     /// </summary>
-    Task<Result<BookingResponse.Index>> GetIndexAsync(QueryRequest.SkipTake request, CancellationToken ctx = default);
+    Task<Result<BookingResponse.Index>> GetIndexAsync(BookingRequest.Index request, CancellationToken ctx = default);
 
     /// <summary>
     /// Returns all rooms with their bookings that overlap the given date window, for the admin calendar.

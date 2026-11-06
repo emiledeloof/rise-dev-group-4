@@ -1,18 +1,21 @@
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
 using Rise.Shared.Rooms;
+using Rise.Client.I18nText;
 
 namespace Rise.Client.Pages;
 
 /// <summary>
 /// landing page, the rooms come from the api, the hero, estate and reviews are static
 /// </summary>
-public partial class Index
+public partial class Index : LocalizedComponentBase
 {
+
     // photos of the hero slideshow, in order, the css keyframes are made for 5 photos of 6 s each
     private const int SlideSeconds = 6;
 
     // max nb of room cards, one row of the card grid on big screens
-    private const int MaxRooms = 3;
+    private const int FeaturedRoomsCount = 3;
 
     private static readonly string[] HeroPhotos =
     [
@@ -51,6 +54,7 @@ public partial class Index
 
     // nb of rooms in the db, more than the cards means a link to see all rooms
     private int _totalCount;
+    private int _totalCapacity;
 
     // true while the api is still answering
     private bool _isLoading = true;
@@ -66,12 +70,15 @@ public partial class Index
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        var result = await RoomService.GetListAsync(new RoomRequest.List { Take = MaxRooms });
+        await LoadTextAsync();
+
+        var result = await RoomService.GetListAsync(new RoomRequest.List { Take = FeaturedRoomsCount });
 
         if (result.IsSuccess)
         {
             _rooms = result.Value.Rooms.ToList();
             _totalCount = result.Value.TotalCount;
+            _totalCapacity = result.Value.TotalCapacity;
         }
 
         // an empty list gets the same msg as an error, the section never stays blank

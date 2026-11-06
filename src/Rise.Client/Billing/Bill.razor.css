@@ -1,0 +1,467 @@
+/* admin final bill styles, scoped to Bill.razor, same look as the booking detail */
+/* mobile first: one column of cards, the summary goes next to the lines from 1024px */
+
+.bill {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+/* small pill back link, same as the booking detail */
+.bill-back {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.8125rem;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.bill-back:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+/* ---------- header ---------- */
+
+.bill-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--space-sm) var(--space-md);
+}
+
+.bill-number {
+    margin: 0;
+    font-family: var(--font-title);
+    font-size: clamp(1.75rem, 6vw, 2.5rem);
+    font-weight: 500;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.bill-stay {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-sm);
+    margin-top: var(--space-xs);
+}
+
+.bill-guest {
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+/* burgundy line on the left like the cancellation card of the booking detail */
+.bill-cancelled-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius);
+    background-color: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
+}
+
+.bill-cancelled-banner i {
+    margin-top: 0.2rem;
+    color: var(--color-accent);
+}
+
+.bill-cancelled-title {
+    font-weight: 600;
+}
+
+/* some rooms are cancelled but the stay goes on, so quieter than a fully cancelled booking */
+.bill-cancelled-banner.is-partial {
+    border-color: var(--color-border);
+    border-left-color: var(--color-gold);
+    background-color: var(--color-surface);
+}
+
+.bill-cancelled-banner.is-partial i {
+    color: var(--color-gold);
+}
+
+/* ---------- cards ---------- */
+
+.bill-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+}
+
+.bill-main,
+.bill-aside {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    min-width: 0;
+}
+
+.bill-card {
+    margin: 0 !important; /* bulma adds a margin under every .box */
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.bill-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.bill-card-header ::deep .bill-add-line {
+    gap: var(--space-xs);
+}
+
+.bill-muted {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.bill-error {
+    color: var(--color-text-muted);
+}
+
+.bill-empty {
+    margin-top: var(--space-sm);
+}
+
+/* ---------- lines ---------- */
+
+.bill-lines {
+    list-style: none;
+    margin: var(--space-sm) 0 0;
+    padding: 0;
+}
+
+.bill-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-xs) var(--space-md);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.bill-line:last-child {
+    border-bottom: none;
+}
+
+.bill-line-text {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.bill-line-title {
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.bill-rate-name {
+    font-family: var(--font-title);
+    font-style: italic;
+}
+
+.bill-line-end {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-left: auto;
+}
+
+.bill-line-amount {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* big enough to tap on a phone */
+.bill-line-actions {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.bill-icon-btn {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background-color: var(--color-surface);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.bill-icon-btn:hover,
+.bill-icon-btn:focus-visible {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.bill-delete-line:hover,
+.bill-delete-line:focus-visible {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+/* delete question in place of the line */
+.bill-delete-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius);
+    background-color: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
+}
+
+.bill-delete-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.bill-delete-error {
+    width: 100%;
+}
+
+.bill-payment-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-sm);
+}
+
+/* an open Stripe session is listed but faded, it is not subtracted */
+.bill-payment.is-open .bill-line-amount {
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.bill-refund-amount {
+    color: var(--color-accent);
+}
+
+/* a cancelled room stays for the records, its price doesn't count anymore */
+.bill-room.is-cancelled .bill-line-title {
+    color: var(--color-text-muted);
+}
+
+.bill-room.is-cancelled .bill-line-amount {
+    color: var(--color-text-muted);
+    font-weight: 500;
+    text-decoration: line-through;
+}
+
+/* the fee belongs to the room above, so no line between them */
+.bill-room.is-cancelled:has(+ .bill-fee) {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.bill-fee {
+    padding-top: var(--space-xs);
+    font-size: 0.875rem;
+}
+
+/* ---------- summary ---------- */
+
+.bill-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    font-size: 0.875rem;
+}
+
+.bill-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+}
+
+.bill-total-amount {
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+
+.bill-vat {
+    margin-bottom: var(--space-sm);
+    color: var(--color-text-muted);
+}
+
+.bill-vat .bill-row {
+    padding: 0.125rem 0;
+    font-size: 0.8125rem;
+}
+
+.bill-paid-row {
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+}
+
+/* the amount the admin is here for, a thin gold line above like the totals of the site */
+.bill-balance {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    padding: var(--space-md);
+    border-radius: var(--radius);
+    border-top: 2px solid color-mix(in srgb, var(--color-gold) 60%, var(--color-border));
+    background-color: var(--color-bg);
+    font-family: var(--font-title);
+    font-size: 1.125rem;
+}
+
+.bill-balance-amount {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.bill-balance.is-open {
+    background-color: var(--color-warning-bg);
+}
+
+.bill-balance.is-open .bill-balance-amount {
+    color: var(--color-accent);
+}
+
+.bill-balance.is-settled .bill-balance-amount,
+.bill-balance.is-credit .bill-balance-amount {
+    color: var(--color-primary-dark);
+}
+
+/* ---------- line sheet ---------- */
+
+/* bottom sheet on phones, the thumb reaches the btns */
+.bill-line-dialog {
+    justify-content: flex-end;
+}
+
+.bill-line-dialog .modal-background {
+    background-color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.bill-line-sheet {
+    width: 100%;
+    max-height: 92vh;
+    margin: 0;
+    padding: var(--space-lg) var(--space-md) calc(var(--space-md) + env(safe-area-inset-bottom));
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    background-color: var(--color-surface);
+    overflow-y: auto;
+}
+
+.bill-sheet-title {
+    margin: var(--space-xs) 0 var(--space-sm);
+    font-family: var(--font-title);
+    font-size: 1.75rem;
+    font-weight: 500;
+    line-height: 1.15;
+}
+
+.bill-sheet-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0 var(--space-md);
+}
+
+/* the price label is long, it gets a full row on phones */
+.bill-sheet-grid > .field:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+}
+
+.bill-sheet-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+    font-family: var(--font-title);
+    font-size: 1.125rem;
+}
+
+.bill-sheet-total-amount {
+    font-weight: 600;
+}
+
+.bill-line-error {
+    margin-top: var(--space-md);
+}
+
+/* main action on top when stacked on phones */
+.bill-sheet-actions {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+}
+
+/* ---------- bigger screens ---------- */
+
+@media (min-width: 768px) {
+    .bill-card {
+        padding: var(--space-lg);
+    }
+
+    .bill-line-dialog {
+        justify-content: center;
+    }
+
+    .bill-line-sheet {
+        width: 34rem;
+        padding: var(--space-lg);
+        border-radius: var(--radius-card);
+    }
+
+    .bill-sheet-grid {
+        grid-template-columns: 6rem minmax(0, 1fr) 7rem;
+    }
+
+    .bill-sheet-grid > .field:nth-child(2) {
+        grid-column: auto;
+        grid-row: auto;
+    }
+
+    .bill-sheet-actions {
+        flex-direction: row;
+        justify-content: flex-end;
+    }
+}
+
+/* the summary stays in view next to the lines while scrolling */
+@media (min-width: 1024px) {
+    .bill-layout {
+        grid-template-columns: minmax(0, 1fr) 22rem;
+        align-items: start;
+    }
+
+    .bill-aside {
+        position: sticky;
+        top: var(--space-lg);
+    }
+}

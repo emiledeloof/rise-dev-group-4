@@ -1,5 +1,7 @@
+using System.Text.Json;
 using System.Net.Http.Json;
 using Rise.Shared.RatePricing;
+using Rise.Shared.Settings;
 
 namespace Rise.Client.RatePricing;
 
@@ -9,6 +11,23 @@ namespace Rise.Client.RatePricing;
 /// </summary>
 public class RatePricingService(HttpClient httpClient) : IRatePricingService
 {
+    public async Task<Result<GeneralSettingsDto>> GetGeneralSettingsAsync(CancellationToken ctx = default)
+    {
+        return await httpClient.GetFromJsonAsync<Result<GeneralSettingsDto>>(
+                   "/api/rate-pricing/settings",
+                   ctx)
+               ?? throw new JsonException("The rate-pricing settings response was empty.");
+    }
+
+    public async Task<Result<GeneralSettingsDto>> UpdateGeneralSettingsAsync(
+        GeneralSettingsRequest.Update request,
+        CancellationToken ctx = default)
+    {
+        using var response = await httpClient.PutAsJsonAsync("/api/rate-pricing/settings", request, ctx);
+        return await response.Content.ReadFromJsonAsync<Result<GeneralSettingsDto>>(cancellationToken: ctx)
+               ?? throw new JsonException("The rate-pricing settings response was empty.");
+    }
+
     /// <summary>
     /// PUT /api/rate-pricing with the new pricing in the body
     /// </summary>

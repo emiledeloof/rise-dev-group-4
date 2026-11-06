@@ -13,6 +13,11 @@ internal class BookingRoomConfiguration : EntityConfiguration<BookingRoom>
     {
         base.Configure(builder);
         builder.Property(x => x.PricePerNight).IsRequired();
+        builder.Property(x => x.VatPercentage).IsRequired().HasPrecision(5, 2).HasDefaultValue(0m);
+        builder.Property(x => x.CancellationReason).HasMaxLength(500);
+
+        // a double submit fails instead of silently replacing the first cancellation and its refund
+        builder.Property(x => x.CancelledAt).IsConcurrencyToken();
 
         builder.HasOne(x => x.Room)
             .WithMany()

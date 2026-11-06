@@ -26,4 +26,7 @@ public partial class SelectionSummary
     // total of all the picked rooms, the server already computed the total of each one
     // TODO: the booking stories must check the total again on the server before paying
     private decimal Total => Rooms.Sum(r => r.TotalPrice);
+
+    // the server only sends an excl. VAT amount when VAT is enabled and above 0, so then the prices include VAT
+    private bool IncludesVat => Rooms.Any(r => r.TotalPriceExclVat is not null);
 }

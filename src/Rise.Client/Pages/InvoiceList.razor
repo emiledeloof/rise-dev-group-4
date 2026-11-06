@@ -33,10 +33,11 @@
                     @foreach (var invoice in invoices)
                     {
                         @* TODO: add the stripe invoice download with the download task *@
+                        @* the booking link covers the whole row, a click anywhere opens the final bill *@
                         <li @key="invoice.Id" class="invoice-row">
                             <div>
                                 <p class="invoice-booking">
-                                    <a class="invoice-booking-link" href="admin/bookings/@invoice.BookingId">Booking @invoice.BookingNumber</a> · @invoice.GuestName
+                                    <a class="invoice-booking-link" href="admin/bookings/@invoice.BookingId/bill">Booking @invoice.BookingNumber</a> · @invoice.GuestName
                                 </p>
                                 <p class="invoice-muted">
                                     @if (invoice.IsPaid)
@@ -61,6 +62,17 @@
                                             <a href="@invoice.StripeReceiptUrl" target="_blank" rel="noopener">Stripe receipt ↗</a>
                                         }
                                         <a href="@StripeDashboardUrl(invoice.StripePaymentIntent)" target="_blank" rel="noopener">View in Stripe ↗</a>
+                                    </p>
+                                }
+                                @* the amount of the row stays what was paid, a refund is about the whole booking *@
+                                @if (invoice.CancelledRoomCount > 0)
+                                {
+                                    <p class="invoice-muted invoice-cancellation">
+                                        <span class="tag is-danger is-light">@(invoice.IsBookingCancelled ? "Booking cancelled" : $"{invoice.CancelledRoomCount} of {invoice.RoomCount} rooms cancelled")</span>
+                                        @if (invoice.RefundedAmount > 0)
+                                        {
+                                            <span class="invoice-refund">@Format.Amount(invoice.RefundedAmount) refunded on this booking</span>
+                                        }
                                     </p>
                                 }
                             </div>

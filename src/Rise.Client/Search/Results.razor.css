@@ -21,6 +21,112 @@
     align-items: start;
 }
 
+.results-main {
+    min-width: 0;
+}
+
+/* ---------- recommendation card (Booking.com style) ---------- */
+
+.recommendation-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-primary);
+    border-radius: var(--radius-card);
+    padding: var(--space-md) var(--space-lg);
+    margin-bottom: var(--space-lg);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.recommendation-badge {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.recommendation-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.recommendation-info {
+    flex: 1 1 18rem;
+}
+
+.recommendation-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: var(--color-text);
+}
+
+.recommendation-desc {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-sm);
+}
+
+.recommendation-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.recommendation-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    background-color: rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text);
+}
+
+.recommendation-action {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-xs);
+}
+
+.recommendation-price-box {
+    text-align: right;
+}
+
+.recommendation-price-label {
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.recommendation-price {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.recommendation-applied {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    padding: 0.4rem 0.8rem;
+    background-color: rgba(30, 60, 50, 0.08);
+    border-radius: var(--radius);
+}
+
 /* the summary stays visible while the guest scrolls the cards */
 /* ::deep because the aside comes from the SelectionSummary child component */
 .results-layout ::deep .selection-summary {
@@ -36,5 +142,16 @@
 
     .results-layout ::deep .selection-summary {
         position: static;
+    }
+}
+
+@media (max-width: 600px) {
+    .recommendation-action {
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    .recommendation-price-box {
+        text-align: left;
     }
 }

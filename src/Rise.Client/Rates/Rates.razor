@@ -7,7 +7,14 @@
 <div class="page">
 <div class="rate-page-heading">
     <h1 class="title">Rates</h1>
-    <Button OnClick="OpenCreateFormAsync">New Rate</Button>
+    <div class="rate-page-actions">
+        <Button OnClick="OpenCreateFormAsync">New Rate</Button>
+        <Button Variant="ButtonVariant.Secondary"
+                OnClick="ToggleSettingsForm"
+                IsDisabled="@(!_settingsLoaded || _generalSettings is null)">
+            General Settings
+        </Button>
+    </div>
 </div>
     
     @if (_rates is null)
@@ -16,38 +23,28 @@
     }
     else
     {
-        <div class="rate-filters">
-            <label class="rate-filter">
-                <span>Room type</span>
-                <div class="rate-select-wrap">
-                    <select @bind="_selectedRoomName" @bind:after="ApplyFiltersAsync">
-                        <option value="">All rooms</option>
-                        @foreach (var roomName in _roomNames)
-                        {
-                            <option value="@roomName">@roomName</option>
-                        }
-                    </select>
-                    <span class="rate-select-arrow" aria-hidden="true"></span>
-                </div>
-            </label>
+        <FilterBar>
+            <SelectField Label="Room type">
+                <select @bind="_selectedRoomName" @bind:after="ApplyFiltersAsync">
+                    <option value="">All rooms</option>
+                    @foreach (var roomName in _roomNames)
+                    {
+                        <option value="@roomName">@roomName</option>
+                    }
+                </select>
+            </SelectField>
 
-            <label class="rate-filter">
-                <span>Date range</span>
-                <div class="rate-select-wrap">
-                    <select @bind="_selectedDate" @bind:after="ApplyFiltersAsync">
-                        <option value="">All date ranges</option>
-                        @foreach (var dateRange in _dateRanges)
-                        {
-                            <option value="@dateRange">@FormatDateRangeOption(dateRange)</option>
-                        }
-                    </select>
-                    <span class="rate-select-arrow" aria-hidden="true"></span>
-                </div>
-            </label>
+            <SelectField Label="Date range">
+                <select @bind="_selectedDate" @bind:after="ApplyFiltersAsync">
+                    <option value="">All date ranges</option>
+                    @foreach (var dateRange in _dateRanges)
+                    {
+                        <option value="@dateRange">@FormatDateRangeOption(dateRange)</option>
+                    }
+                </select>
+            </SelectField>
 
-            <label class="rate-filter">
-            <span>Policy</span>
-            <div class="rate-select-wrap">
+            <SelectField Label="Policy">
                 <select @bind="_selectedPolicy" @bind:after="ApplyFiltersAsync">
                     <option value="">All policies</option>
                     @foreach (var policy in _policies)
@@ -55,12 +52,27 @@
                         <option value="@policy">@policy</option>
                     }
                 </select>
-                <span class="rate-select-arrow" aria-hidden="true"></span>
-            </div>
-            </label>
-        </div>
+            </SelectField>
+        </FilterBar>
         
         <div class="box rate-list">
+            @if (_generalSettings is not null)
+            {
+                <p class="rate-vat-status @(_generalSettings.IsVatEnabled ? "rate-vat-enabled" : "rate-muted")">
+                    @if (_generalSettings.IsVatEnabled)
+                    {
+                        <span>VAT active · @FormatPercentage(_generalSettings.VatPercentage)</span>
+                    }
+                    else
+                    {
+                        <span>VAT is off</span>
+                    }
+                </p>
+            }
+            else if (_settingsLoadErrorMessage is not null)
+            {
+                <p class="notification is-danger is-light rate-vat-status">@_settingsLoadErrorMessage</p>
+            }
 
             @if (_errorMessage is not null)
             {
@@ -81,7 +93,6 @@
                             <th scope="col">From–to</th>
                             <th scope="col">Min nights</th>
                             <th scope="col">Policy</th>
-                            <th scope="col">VAT</th>
                             <th scope="col">Price/night</th>
                             <th scope="col">Active</th>
                             <th scope="col"><span class="is-sr-only">Actions</span></th>
@@ -90,7 +101,7 @@
                         <tbody>
                         @foreach (var rate in _rates)
                         {
-                            <tr @key="rate.Id">
+                            <tr @key="rate.Id" class="@(rate.IsActive ? null : "rate-inactive-row")">
                                 <td>@rate.Name</td>
                                 <td>@rate.RoomName</td>
                                 <td>@FormatDateRange(rate.StartDate, rate.EndDate)</td>
@@ -99,12 +110,27 @@
                                 <td>
                                     <span class="@(rate.IsRefundable ? "rate-policy-fully" : "rate-policy-non")">@FormatPolicy(rate)</span>
                                 </td>
-                                <td class="rate-placeholder">&mdash;</td>
-                                <td class="rate-price">@FormatPrice(rate.PricePerNight)</td>
+                                <td class="rate-price">
+                                    @if (IsVatApplied)
+                                    {
+                                        <span>@FormatPriceIncludingVat(rate.PricePerNight)</span>
+                                        <span class="rate-price-before-vat">@FormatPrice(rate.PricePerNight)</span>
+                                    }
+                                    else
+                                    {
+                                        @FormatPrice(rate.PricePerNight)
+                                    }
+                                </td>
                                 <td>
-                                    <span class="rate-switch" aria-hidden="true">
-                                        <span></span>
-                                    </span>
+                                    <label class="rate-switch">
+                                        <input type="checkbox"
+                                               role="switch"
+                                               aria-label="@(rate.IsActive ? $"Deactivate {rate.Name}" : $"Activate {rate.Name}")"
+                                               checked="@rate.IsActive"
+                                               disabled="@_pendingRateActivations.Contains(rate.Id)"
+                                               @onchange="args => SetRateActiveAsync(rate, args)" />
+                                        <span aria-hidden="true"></span>
+                                    </label>
                                 </td>
                                 <td>
                                     <Button Variant="ButtonVariant.Secondary" OnClick="() => StartEdit(rate)" Class="rate-edit-btn">Edit</Button>
@@ -155,6 +181,48 @@
         @if (_successMessage is not null)
         {
             <p class="notification is-success is-light rate-success">@_successMessage</p>
+        }
+
+        @if (_activationErrorMessage is not null)
+        {
+            <p class="notification is-danger is-light rate-success">@_activationErrorMessage</p>
+        }
+
+        @if (_isSettingsOpen)
+        {
+            <section class="rate-create-panel rate-settings-panel" aria-labelledby="general-settings-heading">
+                <h3 id="general-settings-heading">General Settings</h3>
+                <EditForm Model="_generalSettingsModel" OnValidSubmit="SaveGeneralSettingsAsync">
+                    <FluentValidationValidator />
+                    <div class="rate-create-fields">
+                        <label class="rate-create-field">
+                            <span>VAT percentage</span>
+                            <InputNumber @bind-Value="_generalSettingsModel.VatPercentage"
+                                         id="general-vat-percentage"
+                                         step="0.01"
+                                         disabled="@(!_generalSettingsModel.IsVatEnabled)" />
+                            <ValidationMessage For="() => _generalSettingsModel.VatPercentage" class="help is-danger" />
+                        </label>
+                    </div>
+                    <label class="rate-settings-toggle">
+                        <span>Enable VAT</span>
+                        <span class="rate-switch">
+                            <InputCheckbox @bind-Value="_generalSettingsModel.IsVatEnabled"
+                                           role="switch"
+                                           aria-label="Enable VAT" />
+                            <span aria-hidden="true"></span>
+                        </span>
+                    </label>
+                    @if (_settingsErrorMessage is not null)
+                    {
+                        <p class="notification is-danger is-light">@_settingsErrorMessage</p>
+                    }
+                    <div class="rate-create-actions">
+                        <Button Type="submit" IsDisabled="_isSavingSettings">Save settings</Button>
+                        <Button Variant="ButtonVariant.Secondary" OnClick="CloseSettingsForm">Cancel</Button>
+                    </div>
+                </EditForm>
+            </section>
         }
 
         @* edit form of one rate, only open after a click on edit, same look as the create panel *@
@@ -253,9 +321,8 @@
                             <ValidationMessage For="@(() => _createModel.Name)" class="help is-danger"/>
                         </label>
                         
-                        <label class="rate-filter">
-                            <span>Room type</span>
-                            <div class="rate-select-wrap">
+                        <SelectField Label="Room type">
+                            <ChildContent>
                                 <InputSelect @bind-Value="_createModel.RoomName">
                                     <option value="">Select a room</option>
                                     @foreach (var roomName in _createRoomNames)
@@ -263,10 +330,11 @@
                                         <option value="@roomName">@roomName</option>
                                     }
                                 </InputSelect>
-                                <span class="rate-select-arrow" aria-hidden="true"></span>
-                            </div>
-                            <ValidationMessage For="@(() => _createModel.RoomName)" class="help is-danger" />
-                        </label>
+                            </ChildContent>
+                            <Validation>
+                                <ValidationMessage For="@(() => _createModel.RoomName)" class="help is-danger" />
+                            </Validation>
+                        </SelectField>
 
                         <label class="rate-create-field">
                             <span>Price per night (€)</span>
@@ -309,6 +377,11 @@
                     <label class="checkbox rate-refundable">
                         <InputCheckbox @bind-Value="_createModel.IsRefundable" id="create-is-refundable" />
                         Refundable
+                    </label>
+
+                    <label class="checkbox rate-refundable">
+                        <InputCheckbox @bind-Value="_createModel.IsActive" id="create-is-active" />
+                        Active (available to guests)
                     </label>
 
                     @if (_createModel.IsRefundable)

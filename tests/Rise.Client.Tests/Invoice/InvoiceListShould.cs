@@ -34,6 +34,37 @@ public class InvoiceListShould : BunitContext
     }
 
     [Fact]
+    public void ShowNoCancellationForAnInvoiceWithoutCancelledRooms()
+    {
+        var cut = Render<InvoiceList>();
+
+        cut.FindAll("li.invoice-row")[0].QuerySelector(".invoice-cancellation").ShouldBeNull();
+    }
+
+    [Fact]
+    public void ShowTheCancelledRoomsAndRefundOfAPartlyCancelledBooking()
+    {
+        var cut = Render<InvoiceList>();
+
+        var row = cut.FindAll("li.invoice-row")[1];
+        var cancellation = row.QuerySelector(".invoice-cancellation")!.TextContent;
+        cancellation.ShouldContain("1 of 2 rooms cancelled");
+        cancellation.ShouldContain("€150.00 refunded on this booking");
+        // the row keeps the amount that was paid
+        row.QuerySelector(".invoice-amount")!.TextContent.ShouldContain("€200.00");
+    }
+
+    [Fact]
+    public void ShowAFullyCancelledBookingWithoutARefund()
+    {
+        var cut = Render<InvoiceList>();
+
+        var row = cut.FindAll("li.invoice-row")[2];
+        row.QuerySelector(".invoice-cancellation")!.TextContent.ShouldContain("Booking cancelled");
+        row.QuerySelector(".invoice-refund").ShouldBeNull();
+    }
+
+    [Fact]
     public void ShowStripePaymentInfoForPaidInvoice()
     {
         var cut = Render<InvoiceList>();
@@ -54,10 +85,10 @@ public class InvoiceListShould : BunitContext
     }
 
     [Fact]
-    public void LinkTheBookingToItsDetail()
+    public void LinkTheInvoiceToTheFinalBill()
     {
         var cut = Render<InvoiceList>();
 
-        cut.FindAll("a.invoice-booking-link")[1].GetAttribute("href").ShouldBe("admin/bookings/2");
+        cut.FindAll("a.invoice-booking-link")[1].GetAttribute("href").ShouldBe("admin/bookings/2/bill");
     }
 }

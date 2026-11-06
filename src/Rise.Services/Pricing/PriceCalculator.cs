@@ -19,4 +19,34 @@ public static class PriceCalculator
         // price of 1 night times the nb of nights
         return pricePerNight * nights;
     }
+
+    /// <summary>
+    /// Rounds an amount to cents, half a cent goes up like on a bill, eg 16.665 gives 16.67.
+    /// Every calculated amount uses it, so prices, VAT and refunds round the same way.
+    /// </summary>
+    public static decimal RoundToCents(decimal amount)
+        => Math.Round(amount, 2, MidpointRounding.AwayFromZero);
+
+    /// <summary>
+    /// Applies VAT to a nightly price and rounds the result to the currency precision.
+    /// </summary>
+    public static decimal InclusiveOfVat(decimal price, bool isVatEnabled, decimal vatPercentage)
+        => isVatEnabled && vatPercentage > 0m
+            ? RoundToCents(price * (1m + vatPercentage / 100m))
+            : price;
+
+    /// <summary>
+    /// VAT included in a price that already holds VAT, rounded to the currency precision, eg 122 at 22 % gives 22.
+    /// </summary>
+    public static decimal VatIncluded(decimal grossAmount, decimal vatPercentage)
+        => vatPercentage > 0m
+            ? RoundToCents(grossAmount - grossAmount / (1m + vatPercentage / 100m))
+            : 0m;
+
+    /// <summary>
+    /// Price without the VAT it holds, eg 122 at 22 % gives 100.
+    /// Worked out from the gross amount like the bill, so every screen shows the same number.
+    /// </summary>
+    public static decimal ExclusiveOfVat(decimal grossAmount, decimal vatPercentage)
+        => grossAmount - VatIncluded(grossAmount, vatPercentage);
 }

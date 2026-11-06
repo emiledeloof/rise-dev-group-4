@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using Rise.Shared.Bookings;
-using Rise.Shared.Common;
 
 namespace Rise.Client.Pages;
 
@@ -12,8 +11,24 @@ public partial class BookingList
     private string? _errorMessage;
     private int _currentPage = 1;
     private int _totalCount;
+    private string _cancellationFilter = BookingCancellationFilters.All;
+    private int _loadVersion;
 
     private int TotalPages => _totalCount == 0 ? 1 : (int)Math.Ceiling(_totalCount / (double)PageSize);
+
+    private string ListTitle => _cancellationFilter switch
+    {
+        BookingCancellationFilters.NotCancelled => "Not cancelled bookings",
+        BookingCancellationFilters.OnlyCancelled => "Cancelled bookings",
+        _ => "All bookings",
+    };
+
+    private string EmptyMessage => _cancellationFilter switch
+    {
+        BookingCancellationFilters.NotCancelled => "No bookings that are not cancelled.",
+        BookingCancellationFilters.OnlyCancelled => "No cancelled bookings.",
+        _ => "No bookings yet.",
+    };
 
     [Inject] public required IBookingService BookingService { get; set; }
 
@@ -24,15 +39,21 @@ public partial class BookingList
     {
         _bookings = null; // show loading state
         _errorMessage = null;
+        var version = ++_loadVersion;
 
-        var request = new QueryRequest.SkipTake
+        var request = new BookingRequest.Index
         {
             Skip = (_currentPage - 1) * PageSize,
             Take = PageSize,
             OrderDescending = true, // newest first
+            CancellationFilter = _cancellationFilter,
         };
 
         var result = await BookingService.GetIndexAsync(request);
+
+        // the filter stays usable while loading, an older answer must not replace a newer one
+        if (version != _loadVersion)
+            return;
 
         if (!result.IsSuccess)
         {
@@ -43,6 +64,12 @@ public partial class BookingList
 
         _bookings = result.Value.Bookings;
         _totalCount = result.Value.TotalCount;
+    }
+
+    private async Task ApplyFilterAsync()
+    {
+        _currentPage = 1;
+        await LoadPageAsync();
     }
 
     private async Task PreviousPageAsync()

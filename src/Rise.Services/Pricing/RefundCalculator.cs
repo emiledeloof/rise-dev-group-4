@@ -32,4 +32,16 @@ public static class RefundCalculator
         // too late, nothing back
         return 0;
     }
+
+    /// <summary>
+    /// refund of one room according to its policy, as if it is cancelled on the given date
+    /// the admin page and the cancel form both use it, so their amounts always match
+    /// </summary>
+    /// <param name="bookingRoom">booked room, holds a copy of the policy of the rate at booking time</param>
+    /// <param name="checkIn">arrival date of the booking</param>
+    /// <param name="nights">nb of nights of the stay</param>
+    /// <param name="cancelledOn">date the room is cancelled</param>
+    public static decimal RefundAmount(BookingRoom bookingRoom, DateOnly checkIn, int nights, DateOnly cancelledOn)
+        => PriceCalculator.RoundToCents(
+            PriceCalculator.Total(bookingRoom.PricePerNight, nights) * RefundPercent(bookingRoom, checkIn, cancelledOn) / 100m);
 }

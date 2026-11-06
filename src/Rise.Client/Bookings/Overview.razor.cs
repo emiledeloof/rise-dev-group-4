@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
+using Rise.Client.I18nText;
 using Rise.Shared.Bookings;
 
 namespace Rise.Client.Bookings;
@@ -7,7 +9,7 @@ namespace Rise.Client.Bookings;
 /// overview of the whole booking, the last step before paying
 /// shows what is in the <see cref="BookingDraft"/>, the booking is only saved when the guest clicks "Pay now"
 /// </summary>
-public partial class Overview
+public partial class Overview : LocalizedComponentBase
 {
     // booking the guest put together on the previous pages
     [Inject] public required BookingDraft Draft { get; set; }
@@ -31,13 +33,15 @@ public partial class Overview
 
     // results page with the dates of the draft, the picked rooms are shown again there
     private string RoomsUrl =>
-        $"/search/results?checkIn={Draft.CheckIn:yyyy-MM-dd}&checkOut={Draft.CheckOut:yyyy-MM-dd}";
+        $"/search/results?checkIn={Draft.CheckIn:yyyy-MM-dd}&checkOut={Draft.CheckOut:yyyy-MM-dd}&adults={Draft.Adults}";
 
     /// <summary>
     /// a missing step sends the guest back to it, eg after a page refresh the draft is empty
     /// </summary>
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await LoadTextAsync();
+
         if (!Draft.HasRooms)
             Navigation.NavigateTo("/search");
         else if (Draft.Guest is null)

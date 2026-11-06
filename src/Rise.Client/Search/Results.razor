@@ -1,24 +1,24 @@
+@inherits LocalizedComponentBase
 @page "/search/results"
 @* results of the stay search, shows the free rooms for the chosen dates *@
-@* TODO: translate the texts with the languages task *@
 
-<PageTitle>Available rooms</PageTitle>
+<PageTitle>@Text["AvailableRooms"]</PageTitle>
 
 @* centered frame, see .page in theme.css *@
 <div class="page">
-    <span class="eyebrow">Book a room</span>
-    <h1>Available rooms</h1>
+    <span class="eyebrow">@Text["BookARoom"]</span>
+    <h1>@Text["AvailableRooms"]</h1>
     <p class="subtitle">
-        @CheckIn?.ToString("d MMM") – @CheckOut?.ToString("d MMM yyyy") · @Stay.Nights @(Stay.Nights == 1 ? "night" : "nights") · @Stay.Adults @(Stay.Adults == 1 ? "guest" : "guests")
+        @CheckIn?.ToString("d MMM", DateDisplayCulture) – @CheckOut?.ToString("d MMM yyyy", DateDisplayCulture) · @Stay.Nights @(Stay.Nights == 1 ? Text["Night"] : Text["Nights"]) · @Stay.Adults @(Stay.Adults == 1 ? Text["Guest"] : Text["Guests"]) · @Stay.Rooms @(Stay.Rooms == 1 ? Text["Room"] : Text["RoomsCount"])
     </p>
 
-    @* compact bar to change the dates and guests without leaving the page *@
-    <SearchBar CheckIn="@CheckIn" CheckOut="@CheckOut" Adults="@Stay.Adults" />
+    @* compact bar to change the dates, guests and rooms without leaving the page *@
+    <SearchBar CheckIn="@CheckIn" CheckOut="@CheckOut" Adults="@Stay.Adults" Rooms="@Stay.Rooms" MaxGuests="@_totalCapacity" MaxRooms="@_totalRooms" />
 
     @if (_rooms is null)
     {
         @* api still answering, short text while waiting *@
-        <p>Loading available rooms...</p>
+        <p>@Text["LoadingAvailableRooms"]</p>
     }
     else if (_errorMessage is not null)
     {
@@ -29,32 +29,87 @@
     {
         @* no free room for these dates, the guest can go back and pick other dates *@
         @* short message, eg no rooms are available for these dates *@
-        <p>No rooms are available for these dates.</p>
+        <p>@Text["NoRoomsAvailable"]</p>
 
         @* btn back to the search page to change the dates *@
-        <Button Variant="ButtonVariant.Secondary" Href="search" Class="back-btn mt-3">Change dates</Button>
+        <Button Variant="ButtonVariant.Secondary" Href="search" Class="back-btn mt-3">@Text["ChangeDates"]</Button>
     }
     else
     {
         @* cards on the left and the selection summary on the right, styles in Results.razor.css *@
         <div class="results-layout">
-            @* one card per room, styles of the list in Results.razor.css *@
-            <div class="room-list">
-                @foreach (var room in _rooms)
+            <div class="results-main">
+                @if (Recommendation is not null)
                 {
-                    <RoomCard Name="@room.Name"
-                        Description="@room.Description"
-                        MaxGuests="@room.MaxGuests"
-                        PricePerNight="@room.PricePerNight"
-                        Nights="@room.Nights"
-                        TotalPrice="@room.TotalPrice"
-                        Rates="@room.Rates"
-                        PhotoUrl="@room.PhotoUrl"
-                        DetailsUrl="@DetailsUrlOf(room.Id)"
-                        SelectedRateId="@SelectedRateOf(room.Id)"
-                        OnRateSelected="rateId => SelectRate(room.Id, rateId)"
-                        OnRemove="() => RemoveRoom(room.Id)"/>
+                    <section class="recommendation-card" aria-label="@Text["RecommendedCombination"]">
+                        <div class="recommendation-badge">
+                            @Text["RecommendedCombination"]
+                        </div>
+
+                        <div class="recommendation-content">
+                            <div class="recommendation-info">
+                                <h2 class="recommendation-title">
+                                    @Stay.Rooms @(Stay.Rooms == 1 ? Text["Room"] : Text["RoomsCount"]) @Text["For"] @Stay.Adults @(Stay.Adults == 1 ? Text["Guest"] : Text["Guests"])
+                                </h2>
+                                <p class="recommendation-desc">
+                                    @Text["RecommendedCombinationDesc"]
+                                </p>
+
+                                <div class="recommendation-items">
+                                    @foreach (var item in Recommendation.Items)
+                                    {
+                                        <span class="recommendation-chip">
+                                            <strong>@item.Room.Name</strong> · @item.Rate.Name (€@item.Rate.TotalPrice.ToString("0"))
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="recommendation-action">
+                                <div class="recommendation-price-box">
+                                    <span class="recommendation-price-label">@Text["TotalFor"] @Stay.Nights @(Stay.Nights == 1 ? Text["Night"] : Text["Nights"])</span>
+                                    <span class="recommendation-price">€@Recommendation.TotalPrice.ToString("0")</span>
+                                </div>
+
+                                @if (IsRecommendationSelected)
+                                {
+                                    <div class="recommendation-applied">
+                                        ✓ @Text["Selected"]
+                                    </div>
+                                }
+                                else
+                                {
+                                    <Button Variant="ButtonVariant.Primary"
+                                            OnClick="ApplyRecommendation"
+                                            Class="recommendation-btn">
+                                        @Text["SelectCombination"]
+                                    </Button>
+                                }
+
+                            </div>
+
+                        </div>
+                    </section>
                 }
+
+                @* one card per room, styles of the list in Results.razor.css *@
+                <div class="room-list">
+                    @foreach (var room in _rooms)
+                    {
+                        <RoomCard Name="@room.Name"
+                            Description="@room.Description"
+                            MaxGuests="@room.MaxGuests"
+                            PricePerNight="@room.PricePerNight"
+                            Nights="@room.Nights"
+                            TotalPrice="@room.TotalPrice"
+                            Rates="@room.Rates"
+                            PhotoUrl="@room.PhotoUrl"
+                            DetailsUrl="@DetailsUrlOf(room.Id)"
+                            SelectedRateId="@SelectedRateOf(room.Id)"
+                            OnRateSelected="rateId => SelectRate(room.Id, rateId)"
+                            OnRemove="() => RemoveRoom(room.Id)"/>
+                    }
+                </div>
             </div>
 
             @* picked rooms and total, on the right on big screens, under the cards on phones *@

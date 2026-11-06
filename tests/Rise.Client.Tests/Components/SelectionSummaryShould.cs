@@ -53,7 +53,7 @@ public class SelectionSummaryShould : BunitContext
         lines.Count.ShouldBe(2);
         lines[0].QuerySelector(".selection-summary-room-name")!.TextContent.ShouldBe("Double Room");
         lines[0].QuerySelector(".selection-summary-rate-name")!.TextContent.ShouldBe("Non-refundable");
-        lines[0].QuerySelector(".selection-summary-price")!.TextContent.ShouldBe("€327");
+        lines[0].QuerySelector(".selection-summary-price")!.TextContent.ShouldBe("€327.00");
     }
 
     /// <summary>
@@ -68,7 +68,48 @@ public class SelectionSummaryShould : BunitContext
             new SelectedRoom("Single Room", "Fully refundable", 297m));
 
         // assert
-        cut.Find(".selection-summary-total").TextContent.ShouldContain("€624");
+        cut.Find(".selection-summary-total").TextContent.ShouldContain("€624.00");
+    }
+
+    /// <summary>
+    /// with VAT the paid price is labelled incl. VAT and the excl. VAT amount from the server is shown as info only
+    /// </summary>
+    [Fact]
+    public void ShowTheVatInclusivePriceAndTheVatExclusiveAmountAsInfo()
+    {
+        // arrange and act, 327 and 297 incl. VAT, 272.50 and 247.50 excl. VAT sent by the server
+        var cut = RenderSummary(
+            new SelectedRoom("Double Room", "Non-refundable", 327m, 272.50m),
+            new SelectedRoom("Single Room", "Fully refundable", 297m, 247.50m));
+
+        // assert
+        var lines = cut.FindAll(".selection-summary-room");
+        lines.Count.ShouldBe(2);
+        lines[0].QuerySelector(".selection-summary-price")!.TextContent.ShouldBe("€327.00");
+        lines[0].QuerySelector(".selection-summary-price-label")!.TextContent.ShouldBe("incl. VAT");
+        cut.Find(".selection-summary-total-label").TextContent.ShouldBe("Total (incl. VAT)");
+        cut.Find(".selection-summary-total-amount").TextContent.ShouldBe("€624.00");
+        cut.Markup.ShouldNotContain("VAT amount");
+    }
+
+    /// <summary>
+    /// without VAT (disabled or 0) there is no excl. VAT amount, no VAT label and no VAT notice
+    /// </summary>
+    [Fact]
+    public void ShowNoVatInfoWhenVatDoesNotApply()
+    {
+        // arrange and act, the server sends no excl. VAT amount
+        var cut = RenderSummary(
+            new SelectedRoom("Double Room", "Non-refundable", 327m),
+            new SelectedRoom("Single Room", "Fully refundable", 297m));
+
+        // assert
+        cut.Find(".selection-summary-price").TextContent.ShouldBe("€327.00");
+        cut.FindAll(".selection-summary-price-label").ShouldBeEmpty();
+        cut.FindAll(".selection-summary-excl-vat").ShouldBeEmpty();
+        cut.Find(".selection-summary-total-label").TextContent.ShouldBe("Total");
+        cut.Find(".selection-summary-total-amount").TextContent.ShouldBe("€624.00");
+        cut.Markup.ShouldNotContain("VAT");
     }
 
     /// <summary>

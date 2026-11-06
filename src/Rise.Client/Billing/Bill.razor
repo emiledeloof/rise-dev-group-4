@@ -1,0 +1,399 @@
+@page "/admin/bookings/{BookingId:int}/bill"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Client.Common
+@using Rise.Shared.Billing
+@using Rise.Shared.Bookings
+@using Rise.Shared.Identity
+@* admin final bill of a booking, opened from the booking detail, styles in Bill.razor.css *@
+@* all amounts include VAT, the VAT is only split out in the summary *@
+
+<PageTitle>@(_bill is null ? "Final bill" : $"Bill {_bill.BookingNumber}")</PageTitle>
+
+<div class="page bill">
+    <a class="bill-back" href="admin/bookings/@BookingId">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i><span>Booking</span>
+    </a>
+
+    @if (_isLoading)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else if (_bill is null)
+    {
+        @* unknown or deleted booking, or the api call failed, msg set in the code-behind *@
+        <div class="box bill-card bill-empty-state">
+            <p class="bill-error">@_errorMessage</p>
+            <Button Variant="ButtonVariant.Secondary" Href="admin/booking-list" Class="mt-3">Back to the bookings</Button>
+        </div>
+    }
+    else
+    {
+        @* ---------- header, booking number, guest and stay ---------- *@
+        <header class="bill-header">
+            <div>
+                <span class="eyebrow">Final bill</span>
+                <h1 class="bill-number">@_bill.BookingNumber</h1>
+                <p class="bill-muted bill-stay">
+                    <span class="bill-guest">@_bill.GuestName</span>
+                    <span>@Format.Date(_bill.CheckIn) – @Format.Date(_bill.CheckOut) · @_bill.Nights @(_bill.Nights == 1 ? "night" : "nights")</span>
+                </p>
+            </div>
+            <span class="bill-status">
+                <BookingStatusTag Status="@_bill.Status" />
+            </span>
+        </header>
+
+        @if (_bill.IsCancelled)
+        {
+            <div class="bill-cancelled-banner" role="status">
+                <i class="fas fa-ban" aria-hidden="true"></i>
+                <div>
+                    <p class="bill-cancelled-title">Cancelled on @Format.Date(LastCancelledAt) · nothing due</p>
+                    <p class="bill-muted">All rooms of this booking are cancelled, the bill can't be changed anymore.</p>
+                </div>
+            </div>
+        }
+        else if (_bill.IsPartiallyCancelled)
+        {
+            <div class="bill-cancelled-banner is-partial" role="status">
+                <i class="fas fa-circle-info" aria-hidden="true"></i>
+                <div>
+                    <p class="bill-cancelled-title">@CancelledRooms.Count of @_bill.Accommodation.Count rooms cancelled</p>
+                    <p class="bill-muted">This bill covers the remaining @(_bill.Accommodation.Count - CancelledRooms.Count == 1 ? "room" : "rooms"), the other services and any cancellation fee.</p>
+                </div>
+            </div>
+        }
+
+        <div class="bill-layout">
+            <div class="bill-main">
+                @* ---------- accommodation, the prices agreed at booking time ---------- *@
+                <section class="box bill-card bill-accommodation">
+                    <span class="eyebrow">Accommodation</span>
+
+                    @if (_bill.Accommodation.Count > 0)
+                    {
+                        <ul class="bill-lines">
+                            @foreach (var room in _bill.Accommodation)
+                            {
+                                <li @key="room.RoomNumber" class="bill-line bill-room @(room.IsCancelled ? "is-cancelled" : null)">
+                                    <div class="bill-line-text">
+                                        <p class="bill-line-title">Room @room.RoomNumber · @room.RoomName</p>
+                                        <p class="bill-muted">
+                                            <span class="bill-rate-name">@room.RateName</span>
+                                            · @Format.Amount(room.PricePerNight) × @room.Nights @(room.Nights == 1 ? "night" : "nights")
+                                            @if (room.VatPercentage > 0)
+                                            {
+                                                <span> · VAT @Format.Percent(room.VatPercentage)</span>
+                                            }
+                                        </p>
+                                        @if (room.Cancellation is { } cancellation)
+                                        {
+                                            <p class="bill-muted bill-room-cancellation">Cancelled on @Format.Date(cancellation.CancelledAt) · @cancellation.Reason</p>
+                                        }
+                                    </div>
+                                    <div class="bill-line-end">
+                                        @if (room.IsCancelled)
+                                        {
+                                            <span class="tag is-danger is-light bill-room-tag">Cancelled</span>
+                                        }
+                                        <span class="bill-line-amount">@Format.Amount(room.Total)</span>
+                                    </div>
+                                </li>
+                                @* what the hotel keeps of the cancelled room, this counts in the total instead of the struck through price *@
+                                @if (room.CancellationFee > 0)
+                                {
+                                    <li @key="@($"fee-{room.RoomNumber}")" class="bill-line bill-fee">
+                                        <p class="bill-line-text">Cancellation fee</p>
+                                        <span class="bill-line-amount bill-fee-amount">@Format.Amount(room.CancellationFee)</span>
+                                    </li>
+                                }
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="bill-muted bill-empty">No rooms are assigned to this booking.</p>
+                    }
+                </section>
+
+                @* ---------- extra services from the catalogue, managed in the app, not bookable yet ---------- *@
+                <section class="box bill-card bill-extra-services">
+                    <span class="eyebrow">Extra services</span>
+                    <p class="bill-muted bill-empty bill-no-extra-services">No extra services booked.</p>
+                </section>
+
+                @* ---------- free lines for what the guest used, eg minibar ---------- *@
+                <section class="box bill-card bill-other-services">
+                    <div class="bill-card-header">
+                        <span class="eyebrow">Other services</span>
+                        @if (!_bill.IsCancelled)
+                        {
+                            <Button Variant="ButtonVariant.Secondary" OnClick="OpenAddLine" Class="bill-add-line">
+                                <i class="fas fa-plus" aria-hidden="true"></i><span>Add line</span>
+                            </Button>
+                        }
+                    </div>
+
+                    @if (_bill.OtherServices.Count > 0)
+                    {
+                        <ul class="bill-lines">
+                            @foreach (var line in _bill.OtherServices)
+                            {
+                                <li @key="line.Id" class="bill-line bill-other-service">
+                                    @if (_confirmDeleteId == line.Id)
+                                    {
+                                        @* asked in the page, a browser confirm() would block the app *@
+                                        <div class="bill-delete-confirm" role="alert">
+                                            <p>Delete <strong>@line.Description</strong>?</p>
+                                            <div class="bill-delete-actions">
+                                                <Button Variant="ButtonVariant.Secondary" OnClick="KeepLine" IsDisabled="_isDeleting">Keep</Button>
+                                                <Button Variant="ButtonVariant.Danger" OnClick="() => DeleteLineAsync(line.Id)" IsLoading="_isDeleting" Class="bill-delete-yes">Delete</Button>
+                                            </div>
+                                            @if (_deleteError is not null)
+                                            {
+                                                <p class="help is-danger bill-delete-error">@_deleteError</p>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="bill-line-text">
+                                            <p class="bill-line-title bill-other-service-description">@line.Description</p>
+                                            <p class="bill-muted">
+                                                @line.Quantity × @Format.Amount(line.UnitPrice)
+                                                @if (line.VatPercentage > 0)
+                                                {
+                                                    <span> · VAT @Format.Percent(line.VatPercentage)</span>
+                                                }
+                                            </p>
+                                        </div>
+                                        <div class="bill-line-end">
+                                            <span class="bill-line-amount">@Format.Amount(line.Total)</span>
+                                            @if (!_bill.IsCancelled)
+                                            {
+                                                <div class="bill-line-actions">
+                                                    <button type="button" class="bill-icon-btn bill-edit-line" @onclick="() => OpenEditLine(line)" aria-label="Edit @line.Description">
+                                                        <i class="fas fa-pen" aria-hidden="true"></i>
+                                                    </button>
+                                                    <button type="button" class="bill-icon-btn bill-delete-line" @onclick="() => AskDelete(line.Id)" aria-label="Delete @line.Description">
+                                                        <i class="fas fa-trash" aria-hidden="true"></i>
+                                                    </button>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="bill-muted bill-empty bill-no-other-services">Nothing else added yet, eg minibar or excursions.</p>
+                    }
+                </section>
+
+                @* ---------- payments, only the settled ones are subtracted ---------- *@
+                <section class="box bill-card bill-payments">
+                    <span class="eyebrow">Payments</span>
+
+                    @if (_bill.Payments.Count > 0 || CancelledRooms.Count > 0)
+                    {
+                        <ul class="bill-lines">
+                            @foreach (var payment in _bill.Payments)
+                            {
+                                <li @key="payment.Id" class="bill-line bill-payment @(payment.IsPaid ? null : "is-open")">
+                                    <div class="bill-line-text">
+                                        <p class="bill-line-title">@(payment.PaidAt is { } paidAt ? $"Paid {Format.Date(paidAt)}" : "Awaiting payment")</p>
+                                        <p class="bill-muted bill-payment-info">
+                                            @if (payment.InvoiceNumber is not null)
+                                            {
+                                                <span>@payment.InvoiceNumber</span>
+                                            }
+                                            @if (payment.CardLast4 is not null)
+                                            {
+                                                <span>@Format.Card(payment.CardBrand, payment.CardLast4)</span>
+                                            }
+                                            @if (payment.StripeReceiptUrl is not null)
+                                            {
+                                                <a href="@payment.StripeReceiptUrl" target="_blank" rel="noopener">Stripe receipt ↗</a>
+                                            }
+                                            @if (!payment.IsPaid)
+                                            {
+                                                <span>Not counted until paid</span>
+                                            }
+                                        </p>
+                                    </div>
+                                    <div class="bill-line-end">
+                                        <span class="bill-line-amount">@(payment.IsPaid ? $"− {Format.Amount(payment.Amount)}" : Format.Amount(payment.Amount))</span>
+                                        @if (!payment.IsPaid)
+                                        {
+                                            <span class="tag is-warning is-light">Open</span>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                            @foreach (var room in CancelledRooms)
+                            {
+                                <li @key="room.RoomNumber" class="bill-line bill-refund">
+                                    <div class="bill-line-text">
+                                        <p class="bill-line-title">Refund · Room @room.RoomNumber</p>
+                                        <p class="bill-muted">Recorded on @Format.Date(room.Cancellation!.CancelledAt), paid back by hand</p>
+                                    </div>
+                                    <span class="bill-line-amount bill-refund-amount">@(room.Cancellation.RefundAmount > 0 ? $"+ {Format.Amount(room.Cancellation.RefundAmount)}" : "No refund")</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="bill-muted bill-empty bill-no-payments">No payments recorded yet.</p>
+                    }
+                </section>
+            </div>
+
+            @* ---------- summary and balance, sticky on the right on big screens ---------- *@
+            <aside class="bill-aside">
+                <section class="box bill-card bill-summary">
+                    <span class="eyebrow">Summary</span>
+
+                    <div class="bill-row">
+                        <span>Accommodation</span>
+                        <span class="bill-accommodation-total">@Format.Amount(_bill.AccommodationTotal)</span>
+                    </div>
+                    @if (_bill.CancellationFeesTotal > 0)
+                    {
+                        <div class="bill-row bill-fees-row">
+                            <span>Cancellation fees</span>
+                            <span class="bill-fees-total">@Format.Amount(_bill.CancellationFeesTotal)</span>
+                        </div>
+                    }
+                    <div class="bill-row">
+                        <span>Other services</span>
+                        <span class="bill-other-services-total">@Format.Amount(_bill.OtherServicesTotal)</span>
+                    </div>
+
+                    <div class="bill-total">
+                        <span>Total</span>
+                        <span class="bill-total-amount">@Format.Amount(_bill.Total)</span>
+                    </div>
+
+                    @* the VAT is part of the total, 0 % groups add nothing to show *@
+                    <div class="bill-vat">
+                        @foreach (var group in _bill.VatGroups.Where(x => x.VatPercentage > 0))
+                        {
+                            <div @key="group.VatPercentage" class="bill-row bill-vat-row">
+                                <span>incl. VAT @Format.Percent(group.VatPercentage) <span class="bill-muted">on @Format.Amount(group.GrossAmount)</span></span>
+                                <span>@Format.Amount(group.VatAmount)</span>
+                            </div>
+                        }
+                        <div class="bill-row bill-net-row">
+                            <span>Net amount</span>
+                            <span class="bill-net-amount">@Format.Amount(_bill.NetAmount)</span>
+                        </div>
+                    </div>
+
+                    <div class="bill-row bill-paid-row">
+                        <span>Paid</span>
+                        <span class="bill-paid-amount">− @Format.Amount(_bill.PaidAmount)</span>
+                    </div>
+                    @if (_bill.RefundedAmount > 0)
+                    {
+                        <div class="bill-row bill-refunded-row">
+                            <span>Refunded</span>
+                            <span class="bill-refunded-amount">+ @Format.Amount(_bill.RefundedAmount)</span>
+                        </div>
+                    }
+
+                    @if (_bill.IsCancelled)
+                    {
+                        <div class="bill-balance is-settled">
+                            <span>Nothing due</span>
+                            <span class="bill-balance-amount">@Format.Amount(0)</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="bill-balance @BalanceClass">
+                            <span class="bill-balance-label">@BalanceLabel</span>
+                            <span class="bill-balance-amount">@Format.Amount(Math.Abs(_bill.OutstandingBalance))</span>
+                        </div>
+                    }
+                </section>
+            </aside>
+        </div>
+
+        @* ---------- add or edit a line, a bottom sheet on phones ---------- *@
+        @if (_lineForm is not null)
+        {
+            <div class="modal is-active bill-line-dialog" role="dialog" aria-modal="true" aria-labelledby="bill-line-title">
+                <div class="modal-background" @onclick="CloseLineSheet"></div>
+                <div class="modal-content bill-line-sheet">
+                    <EditForm Model="_lineForm" OnValidSubmit="SaveLineAsync">
+                        <FluentValidationValidator />
+
+                        <span class="eyebrow">Bill @_bill.BookingNumber</span>
+                        <h2 id="bill-line-title" class="bill-sheet-title">@(IsNewLine ? "Add a line" : "Edit line")</h2>
+
+                        <div class="field mt-4">
+                            <label class="label is-required" for="bill-line-description">Description</label>
+                            <div class="control">
+                                <InputText @bind-Value="_lineForm.Description" id="bill-line-description" class="input" maxlength="200"
+                                           placeholder="e.g. Minibar, wine tasting" />
+                            </div>
+                            <ValidationMessage For="() => _lineForm.Description" class="help is-danger" />
+                        </div>
+
+                        <div class="bill-sheet-grid">
+                            <div class="field">
+                                <label class="label is-required" for="bill-line-quantity">Quantity</label>
+                                <div class="control">
+                                    <InputNumber @bind-Value="_lineForm.Quantity" id="bill-line-quantity" class="input" min="1" max="999" step="1" inputmode="numeric" />
+                                </div>
+                                <ValidationMessage For="() => _lineForm.Quantity" class="help is-danger" />
+                            </div>
+
+                            <div class="field">
+                                <label class="label is-required" for="bill-line-price">Unit price (€ incl. VAT)</label>
+                                <div class="control">
+                                    <InputNumber @bind-Value="_lineForm.UnitPrice" id="bill-line-price" class="input" min="0.01" step="0.01" inputmode="decimal" />
+                                </div>
+                                <ValidationMessage For="() => _lineForm.UnitPrice" class="help is-danger" />
+                            </div>
+
+                            <div class="field">
+                                <label class="label is-required" for="bill-line-vat">VAT</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <InputSelect @bind-Value="_lineForm.VatPercentage" id="bill-line-vat">
+                                            @foreach (var rate in VatRates.Presets)
+                                            {
+                                                <option value="@rate">@Format.Percent(rate)</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                                <ValidationMessage For="() => _lineForm.VatPercentage" class="help is-danger" />
+                            </div>
+                        </div>
+
+                        <p class="bill-sheet-total">
+                            <span>Line total</span>
+                            <span class="bill-sheet-total-amount">@Format.Amount(_lineForm.Quantity * _lineForm.UnitPrice)</span>
+                        </p>
+
+                        @if (_lineError is not null)
+                        {
+                            <p class="help is-danger bill-line-error" role="alert">@_lineError</p>
+                        }
+
+                        <div class="bill-sheet-actions">
+                            <Button Variant="ButtonVariant.Secondary" OnClick="CloseLineSheet" IsDisabled="_isSaving">Cancel</Button>
+                            <Button Type="submit" Variant="ButtonVariant.Primary" IsLoading="_isSaving" Class="bill-line-save">@(IsNewLine ? "Add line" : "Save")</Button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        }
+    }
+</div>

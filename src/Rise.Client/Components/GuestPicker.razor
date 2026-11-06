@@ -1,29 +1,30 @@
-@* guest selector popup for the search bar, styles in GuestPicker.razor.css *@
+@inherits LocalizedComponentBase
+@* guest & room selector popup for the search bar, styles in GuestPicker.razor.css *@
 <div class="gp">
-    @* field showing current guest count, opens or closes the counter panel *@
+    @* field showing current guest and room count, opens or closes the counter panel *@
     <button type="button"
             class="gp-field"
-            aria-expanded="@(_isOpen ? "true" : "false")"
-            aria-label="Guests selector"
+            aria-expanded="@(IsOpenValue ? "true" : "false")"
+            aria-label="@(HasRooms ? Text["GuestsAndRoomsSelector"] : Text["GuestsSelector"])"
             @onclick="Toggle">
-        <span class="gp-label">Guests</span>
+        <span class="gp-label">@LabelText</span>
         <span class="gp-value">@FieldText</span>
     </button>
 
-    @if (_isOpen)
+    @if (IsOpenValue)
     {
-        <div class="gp-panel" role="dialog" aria-label="Choose number of guests">
+        <div class="gp-panel" role="dialog" aria-label="@Text["ChooseGuestsAndRooms"]">
             <div class="gp-row">
                 <div class="gp-info">
-                    <span class="gp-title">Adults</span>
-                    <span class="gp-subtitle">Ages 18 or above</span>
+                    <span class="gp-title">@Text["Adults"]</span>
+                    <span class="gp-subtitle">@Text["Ages18OrAbove"]</span>
                 </div>
 
                 <div class="gp-counter">
                     <button type="button"
                             class="gp-counter-btn"
                             disabled="@(!CanDecreaseAdults)"
-                            aria-label="Decrease adults"
+                            aria-label="@Text["DecreaseAdults"]"
                             @onclick="DecreaseAdults">
                         −
                     </button>
@@ -40,9 +41,49 @@
                 </div>
             </div>
 
+            @if (HasRooms)
+            {
+                <div class="gp-row">
+                    <div class="gp-info">
+                        <span class="gp-title">@Text["RoomsLabel"]</span>
+                        <span class="gp-subtitle">@Text["UpTo"] @MaxRooms @Text["RoomsCount"]</span>
+                    </div>
+
+                    <div class="gp-counter">
+                        <button type="button"
+                                class="gp-counter-btn"
+                                disabled="@(!CanDecreaseRooms)"
+                                aria-label="@Text["DecreaseRooms"]"
+                                @onclick="DecreaseRooms">
+                            −
+                        </button>
+
+                        <span class="gp-count gp-count-rooms" aria-live="polite">@Rooms</span>
+
+                        <button type="button"
+                                class="gp-counter-btn"
+                                disabled="@(!CanIncreaseRooms)"
+                                aria-label="@Text["IncreaseRooms"]"
+                                @onclick="IncreaseRooms">
+                            +
+                        </button>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_notice))
+                {
+                    <div class="gp-notice" role="status">
+                        @_notice
+                    </div>
+                }
+            }
+
             <div class="gp-footer">
-                <span class="gp-capacity-hint">Max @Max guests</span>
-                <button type="button" class="gp-done-btn" aria-label="Close guest picker" @onclick="Close">Done</button>
+                @if (Max > 0)
+                {
+                    <span class="gp-capacity-hint">@Text["Max"] @Max @Text["Guests"]</span>
+                }
+                <button type="button" class="gp-done-btn" aria-label="@Text["CloseGuestPicker"]" @onclick="Close">@Text["Done"]</button>
             </div>
         </div>
     }

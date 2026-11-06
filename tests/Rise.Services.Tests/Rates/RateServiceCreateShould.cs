@@ -16,7 +16,7 @@ public class RateServiceCreateShould
             .UseInMemoryDatabase(nameof(CreateRateForAnExistingRoom))
             .Options;
         await using var dbContext = new ApplicationDbContext(options);
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         dbContext.Rooms.Add(room);
         await dbContext.SaveChangesAsync();
 
@@ -24,6 +24,7 @@ public class RateServiceCreateShould
         {
             Name = "Standard",
             PricePerNight = 79m,
+            IsActive = false,
             Description = "Flexible cancellation",
             RoomName = "Single Room",
             StartDate = new DateOnly(2026, 10, 1),
@@ -34,6 +35,7 @@ public class RateServiceCreateShould
         result.Value.Name.ShouldBe("Standard");
         result.Value.RoomName.ShouldBe("Single Room");
         result.Value.PricePerNight.ShouldBe(79m);
+        result.Value.IsActive.ShouldBeFalse();
         result.Value.Description.ShouldBe("Flexible cancellation");
         result.Value.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
         result.Value.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
@@ -42,6 +44,7 @@ public class RateServiceCreateShould
         savedRate.Room.Id.ShouldBe(room.Id);
         savedRate.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
         savedRate.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
+        savedRate.IsActive.ShouldBeFalse();
     }
 
     [Fact]
@@ -70,7 +73,7 @@ public class RateServiceCreateShould
             .UseInMemoryDatabase(databaseName)
             .Options;
         var dbContext = new ApplicationDbContext(options);
-        dbContext.Rooms.Add(new Room("101", "Single Room", 1));
+        dbContext.Rooms.Add(new Room("101", "Single Room", 1, new RoomType("Standard")));
         await dbContext.SaveChangesAsync();
         return dbContext;
     }

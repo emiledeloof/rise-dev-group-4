@@ -29,6 +29,38 @@ public class BookingListShould : BunitContext
         cut.FindAll("li.booking-row").Count.ShouldBe(3);
     }
 
+    /// <summary>
+    /// the payment status stays visible next to the nb of cancelled rooms
+    /// </summary>
+    [Fact]
+    public void ShowThePartialTagNextToTheStatusOfAPartlyCancelledBooking()
+    {
+        var first = _bookingService.IndexAnswer.Value.Bookings.First();
+        first.RoomCount = 2;
+        first.CancelledRoomCount = 1;
+
+        var cut = Render<BookingList>();
+
+        var row = cut.FindAll("li.booking-row")[0];
+        row.QuerySelector(".booking-list-status")!.TextContent.ShouldContain("Paid");
+        row.QuerySelector(".booking-list-partial")!.TextContent.ShouldBe("1 of 2 rooms cancelled");
+        cut.FindAll(".booking-list-partial").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void NotShowThePartialTagWhenAllRoomsAreCancelled()
+    {
+        var booking = _bookingService.IndexAnswer.Value.Bookings.First();
+        booking.Status = "Cancelled";
+        booking.RoomCount = 2;
+        booking.CancelledRoomCount = 2;
+
+        var cut = Render<BookingList>();
+
+        cut.FindAll(".booking-list-partial").ShouldBeEmpty();
+        cut.FindAll("li.booking-row")[0].QuerySelector(".booking-list-status")!.TextContent.Trim().ShouldBe("Cancelled");
+    }
+
     [Fact]
     public void ShowGuestNameRoomsDateAndStatusInEachRow()
     {
@@ -104,6 +136,8 @@ public class BookingListShould : BunitContext
                 TotalAmount = 100m,
                 RoomNumbers = ["101"],
                 Status = "Pending",
+                RoomCount = 1,
+                CancelledRoomCount = 0,
             }).ToList(),
             TotalCount = 25,
         });
@@ -132,4 +166,105 @@ public class BookingListShould : BunitContext
         links.Count.ShouldBe(3);
         links[0].GetAttribute("href").ShouldBe("admin/bookings/1");
     }
+
+    [Fact]
+    public void ShowCancelledTagForCancelledBooking()
+    {
+        _bookingService.IndexAnswer = Result.Success(AnswerWith(Booking(1, "Cancelled")));
+
+        var cut = Render<BookingList>();
+
+        cut.Find("li.booking-row .tag.is-danger").TextContent.Trim().ShouldBe("Cancelled");
+    }
+
+    [Fact]
+    public void AskForAllBookingsByDefault()
+    {
+        var cut = Render<BookingList>();
+
+        _bookingService.IndexRequests.Single().CancellationFilter.ShouldBe(BookingCancellationFilters.All);
+        cut.Find(".booking-list-title").TextContent.ShouldBe("All bookings");
+    }
+
+    [Theory]
+    [InlineData(BookingCancellationFilters.OnlyCancelled, "Cancelled bookings")]
+    [InlineData(BookingCancellationFilters.NotCancelled, "Not cancelled bookings")]
+    [InlineData(BookingCancellationFilters.All, "All bookings")]
+    public async Task SendSelectedFilterToService(string filter, string title)
+    {
+        var cut = Render<BookingList>();
+
+        await cut.Find(".select-field select").ChangeAsync(filter);
+
+        _bookingService.IndexRequests[^1].CancellationFilter.ShouldBe(filter);
+        cut.Find(".booking-list-title").TextContent.ShouldBe(title);
+    }
+
+    [Fact]
+    public async Task ResetToFirstPageWhenFilterChanges()
+    {
+        var page = AnswerWith(Enumerable.Range(1, 10).Select(i => Booking(i, "Pending")).ToArray());
+        page.TotalCount = 25;
+        _bookingService.IndexAnswer = Result.Success(page);
+        var cut = Render<BookingList>();
+
+        await cut.Find(".pagination-next").ClickAsync();
+        _bookingService.IndexRequests[^1].Skip.ShouldBe(10);
+
+        await cut.Find(".select-field select").ChangeAsync(BookingCancellationFilters.OnlyCancelled);
+
+        _bookingService.IndexRequests[^1].Skip.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task ShowCancelledEmptyMessageAndKeepFilterVisible()
+    {
+        var cut = Render<BookingList>();
+        _bookingService.IndexAnswer = Result.Success(AnswerWith());
+
+        await cut.Find(".select-field select").ChangeAsync(BookingCancellationFilters.OnlyCancelled);
+
+        cut.Find(".booking-empty").TextContent.ShouldBe("No cancelled bookings.");
+        cut.Find(".select-field select").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task KeepNewestAnswerWhenAnOlderOneArrivesLate()
+    {
+        var cut = Render<BookingList>();
+        var slowAnswer = new TaskCompletionSource<Result<BookingResponse.Index>>();
+        _bookingService.PendingIndexAnswers.Enqueue(slowAnswer.Task);
+        _bookingService.IndexAnswer = Result.Success(AnswerWith(Booking(2, "Pending")));
+
+        // act: the first filter is still loading when the admin picks the second
+        var slowChange = cut.Find(".select-field select").ChangeAsync(BookingCancellationFilters.OnlyCancelled);
+        await cut.Find(".select-field select").ChangeAsync(BookingCancellationFilters.NotCancelled);
+        slowAnswer.SetResult(Result.Success(AnswerWith(Booking(1, "Cancelled"))));
+        await slowChange;
+
+        // assert
+        cut.WaitForAssertion(() => cut.Find(".booking-list-number").TextContent.ShouldEndWith("2"));
+        cut.FindAll(".tag.is-danger").ShouldBeEmpty();
+    }
+
+    private static BookingResponse.Index AnswerWith(params BookingDto.Index[] bookings) => new()
+    {
+        Bookings = bookings,
+        TotalCount = bookings.Length,
+    };
+
+    private static BookingDto.Index Booking(int id, string status) => new()
+    {
+        Id = id,
+        BookingNumber = $"20261001-SVM-00000{id}",
+        GuestName = $"Guest {id}",
+        GuestEmail = $"guest{id}@example.com",
+        CheckIn = new DateOnly(2026, 10, 1),
+        CheckOut = new DateOnly(2026, 10, 3),
+        TotalAmount = 100m,
+        RoomNumbers = ["101"],
+        Status = status,
+        RoomCount = 1,
+        CancelledRoomCount = status == "Cancelled" ? 1 : 0,
+    };
 }

@@ -21,6 +21,7 @@
 
 /* label left, amount right, thin line between the rows */
 .invoice-row {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -33,6 +34,10 @@
     border-bottom: none;
 }
 
+.invoice-row:hover {
+    background-color: var(--color-surface-inactive);
+}
+
 .invoice-booking {
     color: var(--color-text);
 }
@@ -42,11 +47,22 @@
     color: var(--color-text-muted);
 }
 
-/* card + Stripe links of a paid payment */
+/* card + Stripe links of a paid payment, above the row link so they stay clickable */
 .invoice-stripe {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-sm);
+}
+
+/* a phone wraps the refund under the tag */
+.invoice-cancellation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs) var(--space-sm);
+    margin-top: var(--space-xs);
 }
 
 .invoice-amount {
@@ -57,7 +73,7 @@
     white-space: nowrap;
 }
 
-/* booking number opens the booking detail */
+/* booking number opens the final bill, its ::after stretches over the whole row */
 .invoice-booking-link {
     color: inherit;
     text-decoration: underline;
@@ -65,6 +81,13 @@
     text-underline-offset: 3px;
 }
 
+.invoice-booking-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+.invoice-row:hover .invoice-booking-link,
 .invoice-booking-link:hover {
     color: var(--color-primary);
     text-decoration-color: currentColor;

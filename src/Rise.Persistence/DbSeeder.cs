@@ -77,7 +77,12 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         // deluxe non refundable price = "from" price of the current booking site
         // ! refundable prices are placeholders, a bit above the non refundable one
         // TODO: real standard room price and real refundable prices from the client, asked to the BAs
-        var standard = new Room("101", "Standard Room", 2,
+        // one type per room for now, the estate has 3 different rooms
+        var standardType = new RoomType("Standard Room", "Twin room with shower, breakfast included.");
+        var deluxeType = new RoomType("Deluxe Room", "Bright room with a California king bed and a shower.");
+        var deluxeBathtubType = new RoomType("Deluxe Room with bathtub", "Room with a California king bed and a bathtub.");
+
+        var standard = new Room("101", "Standard Room", 2, standardType,
             "Twin room with a private bathroom with shower, hairdryer and bidet. Air conditioning, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Breakfast included, baby cot available, non-smoking.");
         // non-refundable policy to match the name, the default is refundable
         standard.AddRate("Non-refundable", 133m, "No refund after booking").CancellationPolicy = CancellationPolicy.NonRefundable;
@@ -86,14 +91,14 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         for (var i = 1; i <= 4; i++)
             standard.AddPhoto($"images/rooms/standard-room-{i}.jpg");
 
-        var deluxe = new Room("102", "Deluxe Room", 2,
+        var deluxe = new Room("102", "Deluxe Room", 2, deluxeType,
             "Bright room with a California king bed and a high ceiling. Private bathroom with shower, bathrobes, hairdryer and vanity mirror. Air conditioning, central heating, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Non-smoking.");
         deluxe.AddRate("Non-refundable", 175m, "No refund after booking").CancellationPolicy = CancellationPolicy.NonRefundable;
         deluxe.AddRate("Refundable", 195m);
         for (var i = 1; i <= 5; i++)
             deluxe.AddPhoto($"images/rooms/deluxe-room-{i}.jpg");
 
-        var deluxeBathtub = new Room("103", "Deluxe Room with bathtub", 2,
+        var deluxeBathtub = new Room("103", "Deluxe Room with bathtub", 2, deluxeBathtubType,
             "Room with a California king bed, a high ceiling and sound-proofed windows. Private bathroom with bathtub, bathrobes, hairdryer and vanity mirror. Desk, iron, air conditioning, central heating, Wi-Fi, flat-screen TV, fridge, coffee machine and tea-maker. Non-smoking.");
         deluxeBathtub.AddRate("Non-refundable", 175m, "No refund after booking").CancellationPolicy = CancellationPolicy.NonRefundable;
         deluxeBathtub.AddRate("Refundable", 195m);
@@ -166,41 +171,60 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         if (guests.Count < 3 || rooms.Count < 3)
             return;
 
-        var paidBooking = new Booking("20261001-0001", guests[0], new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
+        var paidBooking = new Booking("20261001-0001", guests[0], new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
         paidBooking.AddRoom(rooms[1], rooms[1].Rates[0]);
         var paidPayment = paidBooking.AddPayment(2 * rooms[1].Rates[0].PricePerNight, "cs_test_seed_0001");
         paidPayment.MarkAsPaid(new DateTime(2026, 10, 1, 14, 30, 0, DateTimeKind.Utc), "in_test_seed_0001", "INV-2026-0001");
 
-        var openBooking = new Booking("20261003-0002", guests[1], new DateOnly(2026, 11, 5), new DateOnly(2026, 11, 8));
+        // 3 guests over 2 rooms, a non-refundable and a refundable rate so both policies show on the detail page
+        var openBooking = new Booking("20261003-0002", guests[1], new DateOnly(2026, 11, 5), new DateOnly(2026, 11, 8), 3);
         openBooking.AddRoom(rooms[0], rooms[0].Rates[0]);
-        openBooking.AddRoom(rooms[2], rooms[2].Rates[0]);
-        openBooking.AddPayment(3 * (rooms[0].Rates[0].PricePerNight + rooms[2].Rates[0].PricePerNight), "cs_test_seed_0002");
+        openBooking.AddRoom(rooms[2], rooms[2].Rates[1]);
+        openBooking.AddPayment(3 * (rooms[0].Rates[0].PricePerNight + rooms[2].Rates[1].PricePerNight), "cs_test_seed_0002");
 
-        var familyBooking = new Booking("20261004-0003", guests[2], new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 20));
+        var familyBooking = new Booking("20261004-0003", guests[2], new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 20), 2);
         familyBooking.AddRoom(rooms[2], rooms[2].Rates[0]);
         var familyPayment = familyBooking.AddPayment(3 * rooms[2].Rates[0].PricePerNight, "cs_test_seed_0003");
         familyPayment.MarkAsPaid(new DateTime(2026, 10, 4, 9, 15, 0, DateTimeKind.Utc), "in_test_seed_0003", "INV-2026-0002");
+        // used during the stay and still open on the final bill
+        // VAT is off in the seeded settings, so the rooms have 0 % VAT and only these lines carry VAT
+        familyBooking.AddBillLine("Minibar", 3, 6.50m, 22m);
+        familyBooking.AddBillLine("Guided vineyard tour", 2, 45m, 22m);
 
         // Deposit is paid, the remaining amount is still open.
-        var suiteBooking = new Booking("20261005-0004", guests[0], new DateOnly(2026, 12, 23), new DateOnly(2026, 12, 27));
-        suiteBooking.AddRoom(rooms[0], rooms[0].Rates[0]);
+        var suiteBooking = new Booking("20261005-0004", guests[0], new DateOnly(2026, 12, 23), new DateOnly(2026, 12, 27), 2);
+        suiteBooking.AddRoom(rooms[0], rooms[0].Rates[1]);
         var deposit = suiteBooking.AddPayment(300m, "cs_test_seed_0004");
         deposit.MarkAsPaid(new DateTime(2026, 10, 5, 11, 0, 0, DateTimeKind.Utc), "in_test_seed_0004", "INV-2026-0003");
-        suiteBooking.AddPayment(4 * rooms[0].Rates[0].PricePerNight - 300m, "cs_test_seed_0005");
+        suiteBooking.AddPayment(4 * rooms[0].Rates[1].PricePerNight - 300m, "cs_test_seed_0005");
 
-        var shortBooking = new Booking("20261006-0005", guests[1], new DateOnly(2026, 10, 24), new DateOnly(2026, 10, 25));
+        var shortBooking = new Booking("20261006-0005", guests[1], new DateOnly(2026, 10, 24), new DateOnly(2026, 10, 25), 1);
         shortBooking.AddRoom(rooms[1], rooms[1].Rates[0]);
         var shortPayment = shortBooking.AddPayment(rooms[1].Rates[0].PricePerNight, "cs_test_seed_0006");
         shortPayment.MarkAsPaid(new DateTime(2026, 10, 6, 18, 45, 0, DateTimeKind.Utc), "in_test_seed_0006", "INV-2026-0004");
 
         // Paid on the refundable rate, then cancelled by the guest with a full refund.
-        var cancelledBooking = new Booking("20261007-0006", guests[2], new DateOnly(2026, 11, 20), new DateOnly(2026, 11, 23));
+        var cancelledBooking = new Booking("20261007-0006", guests[2], new DateOnly(2026, 11, 20), new DateOnly(2026, 11, 23), 2);
         cancelledBooking.AddRoom(rooms[1], rooms[1].Rates[1]);
         var cancelledPayment = cancelledBooking.AddPayment(3 * rooms[1].Rates[1].PricePerNight, "cs_test_seed_0007");
         cancelledPayment.MarkAsPaid(new DateTime(2026, 10, 7, 10, 20, 0, DateTimeKind.Utc), "in_test_seed_0007", "INV-2026-0005");
-        cancelledBooking.Cancel(new DateTime(2026, 10, 12, 16, 5, 0, DateTimeKind.Utc), "Guest asked to cancel by phone, flight was cancelled", cancelledBooking.PaidAmount);
+        cancelledBooking.CancelRooms(
+            [new RoomCancellation(cancelledBooking.Rooms[0], cancelledBooking.PaidAmount)],
+            new DateTime(2026, 10, 12, 16, 5, 0, DateTimeKind.Utc),
+            "Guest asked to cancel by phone, flight was cancelled");
 
-        dbContext.Bookings.AddRange(paidBooking, openBooking, familyBooking, suiteBooking, shortBooking, cancelledBooking);
+        // Paid for 2 rooms with different policies, the refundable room is cancelled and the other one stays booked.
+        var partlyCancelledBooking = new Booking("20261008-0007", guests[0], new DateOnly(2027, 2, 12), new DateOnly(2027, 2, 15), 2);
+        partlyCancelledBooking.AddRoom(rooms[0], rooms[0].Rates[0]);
+        var cancelledRoom = partlyCancelledBooking.AddRoom(rooms[2], rooms[2].Rates[1]);
+        var partlyCancelledPayment = partlyCancelledBooking.AddPayment(3 * (rooms[0].Rates[0].PricePerNight + rooms[2].Rates[1].PricePerNight), "cs_test_seed_0008");
+        partlyCancelledPayment.MarkAsPaid(new DateTime(2026, 10, 8, 12, 0, 0, DateTimeKind.Utc), "in_test_seed_0008", "INV-2026-0006");
+        partlyCancelledBooking.CancelRooms(
+            [new RoomCancellation(cancelledRoom, cancelledRoom.TotalPrice)],
+            new DateTime(2026, 10, 20, 9, 30, 0, DateTimeKind.Utc),
+            "One of the two couples can no longer travel");
+
+        dbContext.Bookings.AddRange(paidBooking, openBooking, familyBooking, suiteBooking, shortBooking, cancelledBooking, partlyCancelledBooking);
         await dbContext.SaveChangesAsync();
     }
 }

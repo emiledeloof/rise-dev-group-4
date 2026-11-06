@@ -21,6 +21,8 @@ public class Rate : Entity
         set => _pricePerNight = Guard.Against.NegativeOrZero(value);
     }
 
+    public bool IsActive { get; set; } = true;
+
     // min nb of nights a guest must book with this rate, eg 1
     private int _minNights = 1;
     public int MinNights

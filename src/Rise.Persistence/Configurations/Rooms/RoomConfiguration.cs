@@ -32,6 +32,12 @@ internal class RoomConfiguration : EntityConfiguration<Room>
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
+        // ! restrict, a type still used by a room must never disappear with it
+        builder.HasOne(x => x.RoomType)
+            .WithMany()
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Rates are referenced by bookings, so they can't be removed together with the room.
         builder.HasMany(x => x.Rates)
             .WithOne(x => x.Room)

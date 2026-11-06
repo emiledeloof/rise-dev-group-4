@@ -31,7 +31,17 @@ public static class InvoiceDto
         public string? StripeReceiptUrl { get; set; }
         public string? CardBrand { get; set; }
         public string? CardLast4 { get; set; }
+        /// <summary>
+        /// Nb of rooms of the booking, cancelled ones included.
+        /// </summary>
+        public required int RoomCount { get; set; }
+        public required int CancelledRoomCount { get; set; }
+        /// <summary>
+        /// Sum of the refunds on the whole booking, the amount of this payment stays what was paid.
+        /// </summary>
+        public required decimal RefundedAmount { get; set; }
 
         public bool IsPaid => PaidAt is not null;
+        public bool IsBookingCancelled => RoomCount > 0 && CancelledRoomCount == RoomCount;
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
+using Rise.Domain.Settings;
 using Rise.Persistence;
 using Rise.Services.Rooms;
 using Rise.Shared.Rooms;
@@ -31,9 +32,10 @@ public class RoomServiceShould
             .Options;
 
         var dbContext = new ApplicationDbContext(options);
+        dbContext.GeneralSettings.Add(new GeneralSettings(false, 0m));
 
         // the expensive rate is added first on purpose, the service must still sort them cheapest first
-        var doubleRoom = new Room("102", DoubleRoom, 2, "Spacious room with a double bed.");
+        var doubleRoom = new Room("102", DoubleRoom, 2, new RoomType("Standard"), "Spacious room with a double bed.");
         doubleRoom.AddRate("Fully refundable", 139m, "100% refund until 7 days before");
         var doubleRate = doubleRoom.AddRate("Non-refundable", 109m, "No refund after booking");
         doubleRoom.AddPhoto("https://example.com/double-1.jpg");
@@ -47,12 +49,12 @@ public class RoomServiceShould
         doubleRoom.AddAmenity(new Amenity("Hairdryer", "fa-wind"));
 
         // no photo, characteristics or amenities on purpose, to check the dto gets empty values
-        var singleRoom = new Room("101", SingleRoom, 1, "Cosy room with a single bed.");
+        var singleRoom = new Room("101", SingleRoom, 1, new RoomType("Standard"), "Cosy room with a single bed.");
         singleRoom.AddRate("Standard", 79m);
 
         var guest = new Guest("Jan Janssens", "jan.janssens@example.com", "+32 470 12 34 56",
             new GuestAddress("Koningstraat 12", null, "Belgium"));
-        var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
+        var booking = new Booking("20261001-0001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
         booking.AddRoom(doubleRoom, doubleRate);
 
         // lets a test change the data before saving, eg mark the booking as deleted
@@ -160,6 +162,33 @@ public class RoomServiceShould
     }
 
     /// <summary>
+    /// 2 rooms in 1 booking and only the double one is cancelled, it can be found again and the other stays taken
+    /// </summary>
+    [Fact]
+    public async Task OnlyFreeTheCancelledRoomOfABooking()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(OnlyFreeTheCancelledRoomOfABooking));
+        var booking = await dbContext.Bookings.Include(x => x.Rooms).SingleAsync();
+        var single = await dbContext.Rooms.Include(x => x.Rates).SingleAsync(x => x.Name == SingleRoom);
+        booking.AddRoom(single, single.Rates.Single());
+        await dbContext.SaveChangesAsync();
+        (await FreeRoomNamesAsync(dbContext, Stay(10, 12))).ShouldBeEmpty();
+
+        // act
+        booking.CancelRooms(
+            [new RoomCancellation(booking.Rooms.Single(x => x.Room.Name == DoubleRoom), 0m)],
+            DateTime.UtcNow,
+            "Guest is ill",
+            adults: 1);
+        await dbContext.SaveChangesAsync();
+        var names = await FreeRoomNamesAsync(dbContext, Stay(10, 12));
+
+        // assert
+        names.ShouldBe(new[] { DoubleRoom });
+    }
+
+    /// <summary>
     /// a cancelled booking does not block the room anymore
     /// </summary>
     [Fact]
@@ -167,7 +196,7 @@ public class RoomServiceShould
     {
         // arrange, same data but the booking is cancelled
         await using var dbContext = await CreateSeededDbContextAsync(nameof(IgnoreCancelledBookings),
-            (_, booking) => booking.Cancel(DateTime.UtcNow, "Guest is ill", 0m));
+            (_, booking) => booking.CancelRooms(booking.Rooms.Select(x => new RoomCancellation(x, 0m)).ToList(), DateTime.UtcNow, "Guest is ill"));
 
         // act
         var names = await FreeRoomNamesAsync(dbContext, Stay(10, 12));
@@ -237,6 +266,48 @@ public class RoomServiceShould
         rooms.Single(r => r.Name == SingleRoom).TotalPrice.ShouldBe(237m);
     }
 
+    [Fact]
+    public async Task IncludeVatInPricesReturnedForRoomSearch()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(IncludeVatInPricesReturnedForRoomSearch));
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(true, 20m);
+        await dbContext.SaveChangesAsync();
+
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+
+        result.IsSuccess.ShouldBeTrue();
+        var doubleRoom = result.Value.Rooms.Single(room => room.Name == DoubleRoom);
+        var cheapestRate = doubleRoom.Rates.First();
+        cheapestRate.PricePerNight.ShouldBe(130.80m);
+        cheapestRate.TotalPrice.ShouldBe(261.60m);
+        doubleRoom.PricePerNight.ShouldBe(130.80m);
+        doubleRoom.TotalPrice.ShouldBe(261.60m);
+        // 109 x 2 nights without VAT, only informational
+        cheapestRate.TotalPriceExclVat.ShouldBe(218m);
+    }
+
+    /// <summary>
+    /// no VAT-exclusive amount is sent when VAT is disabled or 0, the prices are the stored ones
+    /// </summary>
+    [Theory]
+    [InlineData(false, 20)]
+    [InlineData(true, 0)]
+    public async Task NotSendAVatExclusiveTotalWhenVatDoesNotApply(bool isVatEnabled, int vatPercentage)
+    {
+        await using var dbContext = await CreateSeededDbContextAsync($"{nameof(NotSendAVatExclusiveTotalWhenVatDoesNotApply)}{isVatEnabled}{vatPercentage}");
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(isVatEnabled, vatPercentage);
+        await dbContext.SaveChangesAsync();
+
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+
+        result.IsSuccess.ShouldBeTrue();
+        var rates = result.Value.Rooms.SelectMany(room => room.Rates).ToList();
+        rates.ShouldAllBe(rate => rate.TotalPriceExclVat == null);
+        rates.First().TotalPrice.ShouldBe(218m);
+    }
+
     /// <summary>
     /// all the rates of a room come back, cheapest first, each with its total for the stay
     /// </summary>
@@ -255,6 +326,23 @@ public class RoomServiceShould
         rates[0].Description.ShouldBe("No refund after booking");
         rates[0].TotalPrice.ShouldBe(327m);
         rates[1].TotalPrice.ShouldBe(417m);
+    }
+
+    [Fact]
+    public async Task HideInactiveRatesAndPriceRoomsUsingOnlyActiveRates()
+    {
+        await using var dbContext = await CreateSeededDbContextAsync(
+            nameof(HideInactiveRatesAndPriceRoomsUsingOnlyActiveRates),
+            (room, _) =>
+            {
+                room.Rates.Single(rate => rate.Name == "Non-refundable").IsActive = false;
+            });
+
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 23));
+
+        var doubleRoom = result.Value.Rooms.Single(room => room.Name == DoubleRoom);
+        doubleRoom.PricePerNight.ShouldBe(139m);
+        doubleRoom.Rates.ShouldHaveSingleItem();
     }
 
     // id the in memory db gave to a room, the tests don't know it in advance

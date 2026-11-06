@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Rise.Shared.RatePricing;
+using Rise.Shared.Settings;
 
 namespace Rise.Client.Rates;
 
@@ -8,6 +9,14 @@ namespace Rise.Client.Rates;
 /// </summary>
 public class FakeRatePricingService : IRatePricingService
 {
+    public Result<GeneralSettingsDto> GeneralSettingsAnswer { get; set; } = Result.Success(new GeneralSettingsDto
+    {
+        IsVatEnabled = false,
+        VatPercentage = 0m,
+    });
+
+    public List<GeneralSettingsRequest.Update> GeneralSettingsRequests { get; } = [];
+
     /// <summary>
     /// what the fake answers, success by default
     /// </summary>
@@ -22,5 +31,21 @@ public class FakeRatePricingService : IRatePricingService
     {
         EditRequests.Add(request);
         return Task.FromResult(EditAnswer);
+    }
+
+    public Task<Result<GeneralSettingsDto>> GetGeneralSettingsAsync(CancellationToken ctx = default)
+        => Task.FromResult(GeneralSettingsAnswer);
+
+    public Task<Result<GeneralSettingsDto>> UpdateGeneralSettingsAsync(
+        GeneralSettingsRequest.Update request,
+        CancellationToken ctx = default)
+    {
+        GeneralSettingsRequests.Add(request);
+        GeneralSettingsAnswer = Result.Success(new GeneralSettingsDto
+        {
+            IsVatEnabled = request.IsVatEnabled,
+            VatPercentage = request.VatPercentage,
+        });
+        return Task.FromResult(GeneralSettingsAnswer);
     }
 }

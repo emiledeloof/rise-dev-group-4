@@ -1,5 +1,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
+using Rise.Client.I18nText;
 
 namespace Rise.Client.Components;
 
@@ -11,10 +13,11 @@ namespace Rise.Client.Components;
 /// &lt;DateRangePicker @bind-CheckIn="_stay.CheckIn" @bind-CheckOut="_stay.CheckOut" /&gt;
 /// </code>
 /// </example>
-public partial class DateRangePicker
+public partial class DateRangePicker : LocalizedComponentBase
 {
-    // TODO: use the selected language for month and day names with the languages task
-    private static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
+
+    private static CultureInfo Culture =>
+        OperatingSystem.IsBrowser() ? CultureInfo.CurrentCulture : CultureInfo.InvariantCulture;
 
     // weeks start on monday like in most of europe
     private static readonly string[] WeekDayNames = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -42,7 +45,9 @@ public partial class DateRangePicker
     /// <summary>
     /// Label shown above the selected range.
     /// </summary>
-    [Parameter] public string FieldLabel { get; set; } = "Dates";
+    [Parameter] public string FieldLabel { get; set; } = "";
+
+    private string DisplayFieldLabel => string.IsNullOrEmpty(FieldLabel) ? Text["Dates"] : FieldLabel;
 
     /// <summary>
     /// When false, the picker formats a date period without calculating stay nights.
@@ -64,7 +69,18 @@ public partial class DateRangePicker
     /// </summary>
     [Parameter] public int MonthsShown { get; set; } = 2;
 
-    private bool _isOpen;
+    /// <summary>
+    /// controls whether the calendar dropdown panel is open
+    /// </summary>
+    [Parameter] public bool? IsOpen { get; set; }
+
+    /// <summary>
+    /// called when the open state changes
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    private bool _internalIsOpen;
+    private bool IsOpenValue => IsOpen ?? _internalIsOpen;
     private DateOnly _firstVisibleMonth;
     private DateOnly? _hoverDate;
 
@@ -73,9 +89,10 @@ public partial class DateRangePicker
     /// <summary>
     /// starts on the month of the chosen check in, or on the current month
     /// </summary>
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _firstVisibleMonth = FirstDayOfMonth(CheckIn ?? (AllowPastDates ? DateOnly.FromDateTime(DateTime.Today) : FirstAllowedDate));
+        await LoadTextAsync();
     }
 
     // ---------- navigation ----------
@@ -94,7 +111,13 @@ public partial class DateRangePicker
 
     private void NextMonth() => _firstVisibleMonth = _firstVisibleMonth.AddMonths(1);
 
-    private void Toggle() => _isOpen = !_isOpen;
+    private async Task Toggle()
+    {
+        var newState = !IsOpenValue;
+        _internalIsOpen = newState;
+        if (IsOpenChanged.HasDelegate)
+            await IsOpenChanged.InvokeAsync(newState);
+    }
 
     // ---------- selection ----------
 
@@ -122,7 +145,9 @@ public partial class DateRangePicker
         await CheckOutChanged.InvokeAsync(CheckOut);
 
         // range is complete so the calendar can close
-        _isOpen = false;
+        _internalIsOpen = false;
+        if (IsOpenChanged.HasDelegate)
+            await IsOpenChanged.InvokeAsync(false);
         _hoverDate = null;
     }
 
@@ -140,36 +165,36 @@ public partial class DateRangePicker
     private string FieldText => ShowDuration
         ? (CheckIn, CheckOut) switch
         {
-            (null, _) => "Add dates",
+            (null, _) => Text["AddDates"],
             ({ } checkIn, null) => $"{checkIn.ToString("d MMM yyyy", Culture)} – …",
             ({ } checkIn, { } checkOut) =>
                 $"{checkIn.ToString("d MMM", Culture)} – {checkOut.ToString("d MMM yyyy", Culture)} · {NightsText}",
         }
         : (CheckIn, CheckOut) switch
         {
-            (null, null) => "Any dates",
+            (null, null) => Text["AnyDates"],
             (null, { } checkOut) => $"… – {checkOut.ToString("d MMM yyyy", Culture)}",
             ({ } checkIn, null) => $"{checkIn.ToString("d MMM yyyy", Culture)} – …",
             ({ } checkIn, { } checkOut) =>
                 $"{checkIn.ToString("d MMM yyyy", Culture)} – {checkOut.ToString("d MMM yyyy", Culture)}",
         };
 
-    // TODO: translate with the languages task
     private string HintText => ShowDuration
         ? (CheckIn, CheckOut) switch
         {
-            (null, _) => "Select your check-in date",
-            (_, null) => "Select your check-out date",
+            (null, _) => Text["SelectCheckInDate"],
+            (_, null) => Text["SelectCheckOutDate"],
             _ => NightsText,
         }
         : (CheckIn, CheckOut) switch
         {
-            (null, null) => "Select the first date of the availability period",
-            (_, null) => "Select the last date of the availability period",
-            _ => "Availability period",
+            (null, null) => Text["SelectFirstAvailabilityDate"],
+            (_, null) => Text["SelectLastAvailabilityDate"],
+            _ => Text["AvailabilityPeriod"],
         };
 
-    private string NightsText => Nights == 1 ? "1 night" : $"{Nights} nights";
+    private string NightsText => Nights == 1 ? $"1 {Text["Night"]}" : $"{Nights} {Text["Nights"]}";
+
 
     private bool IsDisabled(DateOnly day) =>
         (MinDate is { } minDate && day < minDate)

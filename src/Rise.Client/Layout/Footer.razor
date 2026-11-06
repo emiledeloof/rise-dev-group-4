@@ -1,18 +1,30 @@
 @* site footer, styled after the ba mockup, styles in Footer.razor.css *@
 <footer class="site-footer">
     <div class="site-footer-left">
-        <a href="/terms">General terms and conditions</a>
-        <a href="/privacy">Privacy statement</a>
+        <a href="/terms">@Text["GeneralTerms"]</a>
+        <a href="/privacy">@Text["PrivacyStatement"]</a>
     </div>
 
     <div class="site-footer-right">
         <a href="#">Facebook</a>
         <a href="#">Instagram</a>
         <a href="#">TikTok</a>
-        @* TODO: make each language clickable with the languages task *@
-        <span class="site-footer-languages">EN · NL · FR · DE · IT · PL</span>
+        <LanguageSelector FooterStyle="true" />
         @* discreet entry point for the admin, there is no login link in the navbar *@
+        <span class="site-footer-cin">CIN: <strong>IT090036C2000U5607</strong></span>
         @* ! goes to /admin, not /login, a logged in admin lands on the dashboard, the others are sent to the login page first *@
-        <a href="/admin" class="site-footer-admin" title="Admin">Admin</a>
+        <a href="/admin" class="site-footer-admin" title="@Text["Admin"]">@Text["Admin"]</a>
     </div>
 </footer>
+
+@code {
+    [Inject]
+    private Toolbelt.Blazor.I18nText.I18nText I18nText { get; set; } = null!;
+
+    private AppText Text { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Text = await I18nText.GetTextTableAsync<AppText>(this);
+    }
+}

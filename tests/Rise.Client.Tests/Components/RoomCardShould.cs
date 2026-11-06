@@ -21,11 +21,12 @@ public class RoomCardShould : BunitContext
 
     // 2 sample rates for 3 nights, the 2nd one has no conditions on purpose
     // the 1st is non refundable, the 2nd refundable with the client rules
-    private static RateDto.Available[] SampleRates(int nights = 3) =>
+    private static RateDto.Available[] SampleRates(int nights = 3, bool includesVat = false) =>
     [
         new()
         {
             Id = 1, Name = "Non-refundable", Description = "No refund after booking", PricePerNight = 109m, TotalPrice = 109m * nights,
+            TotalPriceExclVat = includesVat ? 100m * nights : null,
             IsRefundable = false, FullRefundDays = 30, PartialRefundDays = 7, PartialRefundPercent = 50,
         },
         new()
@@ -37,7 +38,7 @@ public class RoomCardShould : BunitContext
 
     // renders a card with sample values, each test only changes what it checks
     private IRenderedComponent<RoomCard> RenderCard(int maxGuests = 2, string? photoUrl = null, string? description = "Spacious room.",
-        int nights = 3) =>
+        int nights = 3, bool includesVat = false) =>
         Render<RoomCard>(p => p
             .Add(x => x.Name, "Double Room")
             .Add(x => x.Description, description)
@@ -45,7 +46,7 @@ public class RoomCardShould : BunitContext
             .Add(x => x.PricePerNight, 109m)
             .Add(x => x.Nights, nights)
             .Add(x => x.TotalPrice, 109m * nights)
-            .Add(x => x.Rates, SampleRates(nights))
+            .Add(x => x.Rates, SampleRates(nights, includesVat))
             .Add(x => x.PhotoUrl, photoUrl));
 
     /// <summary>
@@ -63,7 +64,7 @@ public class RoomCardShould : BunitContext
     }
 
     /// <summary>
-    /// the nb of nights is written once above the rates, with the vat note
+    /// the nb of nights is written once above the rates, without a vat note when vat is disabled
     /// </summary>
     [Fact]
     public void ShowTheNightsOnceAboveTheRates()
@@ -72,6 +73,14 @@ public class RoomCardShould : BunitContext
         var cut = RenderCard();
 
         // assert
+        cut.Find(".room-card-price-detail").TextContent.ShouldBe("3 nights");
+    }
+
+    [Fact]
+    public void ShowVatNoteWhenVatIsEnabled()
+    {
+        var cut = RenderCard(includesVat: true);
+
         cut.Find(".room-card-price-detail").TextContent.ShouldBe("3 nights · prices include VAT");
     }
 
@@ -93,8 +102,8 @@ public class RoomCardShould : BunitContext
         first.QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Non-refundable");
         lines[1].QuerySelector(".room-card-rate-name")!.TextContent.ShouldBe("Fully refundable");
         first.QuerySelector(".room-card-rate-conditions").ShouldBeNull();
-        first.QuerySelector(".room-card-total")!.TextContent.ShouldBe("€327");
-        first.QuerySelector(".room-card-rate-detail")!.TextContent.ShouldBe("€109 × 3 nights");
+        first.QuerySelector(".room-card-total")!.TextContent.ShouldBe("€327.00");
+        first.QuerySelector(".room-card-rate-detail")!.TextContent.ShouldBe("€109.00 × 3 nights");
     }
 
     /// <summary>
@@ -123,8 +132,8 @@ public class RoomCardShould : BunitContext
         var cut = RenderCard(nights: 1);
 
         // assert, in the line above the rates and in the detail of each rate
-        cut.Find(".room-card-price-detail").TextContent.ShouldBe("1 night · prices include VAT");
-        cut.Find(".room-card-rate-detail").TextContent.ShouldBe("€109 × 1 night");
+        cut.Find(".room-card-price-detail").TextContent.ShouldBe("1 night");
+        cut.Find(".room-card-rate-detail").TextContent.ShouldBe("€109.00 × 1 night");
     }
 
     /// <summary>

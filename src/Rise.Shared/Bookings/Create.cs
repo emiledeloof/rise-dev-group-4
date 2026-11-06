@@ -1,4 +1,5 @@
 using Rise.Shared.Guests;
+using Rise.Shared.Search;
 
 namespace Rise.Shared.Bookings;
 
@@ -12,6 +13,11 @@ public static partial class BookingRequest
     {
         public DateOnly CheckIn { get; set; }
         public DateOnly CheckOut { get; set; }
+
+        /// <summary>
+        /// Nb of guests of the stay, the server checks it against the capacity of the selected rooms.
+        /// </summary>
+        public int Adults { get; set; } = SearchRequest.StayPeriod.DefaultAdults;
 
         /// <summary>
         /// Guest details, an existing guest with the same email is reused and updated.
@@ -44,6 +50,10 @@ public static partial class BookingRequest
                 RuleFor(x => x.CheckOut)
                     .GreaterThan(x => x.CheckIn)
                     .WithMessage("Check-out must be after check-in.");
+
+                RuleFor(x => x.Adults)
+                    .GreaterThanOrEqualTo(SearchRequest.StayPeriod.MinAdults)
+                    .WithMessage($"At least {SearchRequest.StayPeriod.MinAdults} guest is required.");
 
                 RuleFor(x => x.Rooms)
                     .NotEmpty()

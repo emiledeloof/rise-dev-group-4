@@ -45,7 +45,7 @@ public class SearchPageShould : BunitContext
     }
 
     /// <summary>
-    /// sending the form with valid dates goes to the results page with the dates and default adults in the url
+    /// sending the form with valid dates goes to the results page with the dates, default adults and rooms in the url
     /// </summary>
     [Fact]
     public void GoToResultsWithTheDatesInTheUrl()
@@ -60,8 +60,8 @@ public class SearchPageShould : BunitContext
         cut.Find("form").Submit();
 
         // assert, bunit gives a fake NavigationManager, its Uri is the page we were sent to
-        // the url must end with /search/results?checkIn=...&checkOut=...&adults=2 in yyyy-MM-dd
+        // the url must end with /search/results?checkIn=...&checkOut=...&adults=2&rooms=1 in yyyy-MM-dd
         var navigation = Services.GetRequiredService<NavigationManager>();
-        navigation.Uri.ShouldEndWith($"/search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=2");
+        navigation.Uri.ShouldEndWith($"/search/results?checkIn={Today.AddDays(2):yyyy-MM-dd}&checkOut={Today.AddDays(5):yyyy-MM-dd}&adults=2&rooms=1");
     }
 }

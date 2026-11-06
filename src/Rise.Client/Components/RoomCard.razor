@@ -1,4 +1,6 @@
-﻿@* one room in the search results, styles in RoomCard.razor.css *@
+﻿@inherits LocalizedComponentBase
+@using Rise.Client.Common
+@* one room in the search results, styles in RoomCard.razor.css *@
 <article class="room-card">
     @* photo of the room, a beige block is shown when there is no photo yet *@
     @if (!string.IsNullOrWhiteSpace(PhotoUrl))
@@ -42,7 +44,12 @@
         @* rates of the room for the stay, cheapest first, styles in RoomCard.razor.css *@
         <div class="room-card-prices">
             @* nb of nights once for all the rates, night or nights like on the results page *@
-            <p class="room-card-price-detail">@Nights @(Nights == 1 ? "night" : "nights") · prices include VAT</p>
+            <p class="room-card-price-detail">
+                @Nights @(Nights == 1 ? Text["Night"] : Text["Nights"])@if (Rates.Any(rate => rate.TotalPriceExclVat is not null))
+                {
+                    <text> · @Text["PricesIncludeVat"]</text>
+                }
+            </p>
 
             @* one line per rate, a radio btn to pick it, the price per night next to it and the total on the right *@
             <ul class="room-card-rates">
@@ -68,8 +75,8 @@
                         @* the conditions are the policy line below, the description would say the same thing *@
                         <span class="room-card-rate-name">@rate.Name</span>
                         @* detail eg €109 × 3 nights in room-card-rate-detail, total on the right in room-card-total *@
-                        <span class="room-card-total">€@rate.TotalPrice.ToString("0")</span>
-                        <span class="room-card-rate-detail">€@rate.PricePerNight.ToString("0") × @Nights @(Nights == 1 ? "night" : "nights")</span>
+                        <span class="room-card-total">@Format.Amount(rate.TotalPrice)</span>
+                        <span class="room-card-rate-detail">@Format.Amount(rate.PricePerNight) × @Nights @(Nights == 1 ? "night" : "nights")</span>
                         @* cancellation policy of the rate under the price, on a 2nd row of the grid *@
                         <span class="room-card-rate-policy">@CancellationPolicyText.Of(rate)</span>
                         @* min nb of nights of the rate, no line when the rate has no minimum *@

@@ -68,6 +68,13 @@ public class Room : Entity
         set => _policies = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
+    /// <summary>
+    /// type of the room, several rooms can share the same type, for example two deluxe rooms 104 and 105
+    /// </summary>
+    // ? nullable for now so the existing rooms and the code of the team keep working
+    // TODO: make the type required once the rooms are managed in the admin and the rates are linked to the room type
+    public RoomType? RoomType { get; private set; }
+
     private readonly List<Amenity> _amenities = [];
     public IReadOnlyList<Amenity> Amenities => _amenities.AsReadOnly();
 
@@ -87,11 +94,13 @@ public class Room : Entity
     {
     }
 
-    public Room(string roomNumber, string name, int maxGuests, string? description = null)
+    public Room(string roomNumber, string name, int maxGuests, RoomType roomType, string? description = null)
     {
         RoomNumber = roomNumber;
         Name = name;
         MaxGuests = maxGuests;
+        // ! a new room always has a type
+        RoomType = Guard.Against.Null(roomType);
         Description = description;
     }
 
@@ -104,6 +113,14 @@ public class Room : Entity
 
         if (!_amenities.Contains(amenity))
             _amenities.Add(amenity);
+    }
+
+    /// <summary>
+    /// links the room to a type, a room has one type at a time
+    /// </summary>
+    public void ChangeType(RoomType roomType)
+    {
+        RoomType = Guard.Against.Null(roomType);
     }
 
     public RoomPhoto AddPhoto(string url)

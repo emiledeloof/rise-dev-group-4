@@ -5,6 +5,7 @@ using Rise.Domain.Admins;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
+using Rise.Domain.Settings;
 
 namespace Rise.Persistence;
 
@@ -22,12 +23,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> opts) :
     public DbSet<Admin> Admins => Set<Admin>();
     public DbSet<Guest> Guests => Set<Guest>();
     public DbSet<Room> Rooms => Set<Room>();
+    public DbSet<RoomType> RoomTypes => Set<RoomType>();
     public DbSet<RoomPhoto> RoomPhotos => Set<RoomPhoto>();
     public DbSet<Amenity> Amenities => Set<Amenity>();
     public DbSet<Rate> Rates => Set<Rate>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BookingRoom> BookingRooms => Set<BookingRoom>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<BillLine> BillLines => Set<BillLine>();
+    public DbSet<GeneralSettings> GeneralSettings => Set<GeneralSettings>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

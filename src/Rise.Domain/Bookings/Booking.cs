@@ -16,6 +16,11 @@ public class Booking : Entity
     public DateOnly CheckIn { get; private set; }
     public DateOnly CheckOut { get; private set; }
 
+    /// <summary>
+    /// Nb of guests of the stay, chosen in the search, at least 1.
+    /// </summary>
+    public int Adults { get; private set; }
+
     private readonly List<BookingRoom> _rooms = [];
     public IReadOnlyList<BookingRoom> Rooms => _rooms.AsReadOnly();
 
@@ -23,17 +28,41 @@ public class Booking : Entity
     public IReadOnlyList<Payment> Payments => _payments.AsReadOnly();
 
     /// <summary>
-    /// Set by <see cref="Cancel"/>, a cancelled booking keeps its rooms, prices and payments for the admin.
+    /// Free lines the admin adds to the bill for what the guest used, eg minibar or an excursion.
     /// </summary>
-    public DateTime? CancelledAt { get; private set; }
-    public string? CancellationReason { get; private set; }
+    private readonly List<BillLine> _billLines = [];
+    public IReadOnlyList<BillLine> BillLines => _billLines.AsReadOnly();
 
     /// <summary>
-    /// Refund the admin decided on when cancelling, the website never refunds it, the admin does it by hand.
+    /// Nb of nights of the stay.
     /// </summary>
-    public decimal? RefundAmount { get; private set; }
+    public int Nights => CheckOut.DayNumber - CheckIn.DayNumber;
 
-    public bool IsCancelled => CancelledAt is not null;
+    /// <summary>
+    /// Rooms that are still part of the stay, the rooms must be loaded.
+    /// </summary>
+    public IReadOnlyList<BookingRoom> ActiveRooms => _rooms.Where(x => !x.IsDeleted && !x.IsCancelled).ToList();
+
+    /// <summary>
+    /// True when all rooms are cancelled, derived from the rooms so it can't get out of sync, the rooms must be loaded.
+    /// A cancelled booking keeps its rooms, prices and payments for the admin.
+    /// </summary>
+    public bool IsCancelled => _rooms.Any(x => !x.IsDeleted) && _rooms.Where(x => !x.IsDeleted).All(x => x.IsCancelled);
+
+    /// <summary>
+    /// True when some but not all rooms are cancelled, the rooms must be loaded.
+    /// </summary>
+    public bool IsPartiallyCancelled => !IsCancelled && _rooms.Any(x => !x.IsDeleted && x.IsCancelled);
+
+    /// <summary>
+    /// Price of the rooms that are still part of the stay, what a new checkout charges, the rooms must be loaded.
+    /// </summary>
+    public decimal ActiveAmount => ActiveRooms.Sum(x => x.TotalPrice);
+
+    /// <summary>
+    /// Sum of the refunds recorded on the cancelled rooms, the rooms must be loaded.
+    /// </summary>
+    public decimal RefundedAmount => _rooms.Where(x => !x.IsDeleted).Sum(x => x.RefundAmount ?? 0m);
 
     /// <summary>
     /// Sum of the settled payments, the most that can be refunded.
@@ -47,10 +76,11 @@ public class Booking : Entity
     {
     }
 
-    public Booking(string bookingNumber, Guest guest, DateOnly checkIn, DateOnly checkOut)
+    public Booking(string bookingNumber, Guest guest, DateOnly checkIn, DateOnly checkOut, int adults)
     {
         BookingNumber = Guard.Against.NullOrWhiteSpace(bookingNumber).Trim();
         Guest = Guard.Against.Null(guest);
+        Adults = Guard.Against.NegativeOrZero(adults);
         ChangeDates(checkIn, checkOut);
     }
 
@@ -66,7 +96,8 @@ public class Booking : Entity
     /// <summary>
     /// Adds a room to the booking, the price per night is copied from the rate at booking time.
     /// </summary>
-    public BookingRoom AddRoom(Room room, Rate rate)
+    /// <param name="vatPercentage">VAT pct included in the price per night, 0 when VAT is off</param>
+    public BookingRoom AddRoom(Room room, Rate rate, decimal? pricePerNight = null, decimal vatPercentage = 0m)
     {
         Guard.Against.Null(room);
         Guard.Against.Null(rate);
@@ -77,28 +108,65 @@ public class Booking : Entity
         if (_rooms.Any(x => x.Room == room))
             throw new ArgumentException("The room is already part of this booking.", nameof(room));
 
-        var bookingRoom = new BookingRoom(this, room, rate);
+        var bookingRoom = new BookingRoom(this, room, rate, pricePerNight ?? rate.PricePerNight, vatPercentage);
         _rooms.Add(bookingRoom);
         return bookingRoom;
     }
 
     /// <summary>
-    /// Cancels the booking and records the refund decision, the payments must be loaded to check the refund.
+    /// Cancels one or more rooms and records the refund of each, cancelling all rooms cancels the booking.
+    /// Everything is checked first, so a refused cancellation changes nothing.
+    /// The rooms with their <see cref="Room"/> and the payments must be loaded.
+    /// BookingService.CancelAsync checks the same rules first to return a Result, keep both in sync.
     /// </summary>
-    public void Cancel(DateTime cancelledAt, string reason, decimal refundAmount)
+    /// <param name="rooms">rooms to cancel with their refund</param>
+    /// <param name="cancelledAt">moment of the cancellation</param>
+    /// <param name="reason">why, stored on each room of this cancellation</param>
+    /// <param name="adults">new nb of guests of the remaining rooms, null keeps the current nb</param>
+    public void CancelRooms(IReadOnlyCollection<RoomCancellation> rooms, DateTime cancelledAt, string reason, int? adults = null)
     {
-        if (IsCancelled)
-            throw new InvalidOperationException("The booking is already cancelled.");
-
+        Guard.Against.Null(rooms);
         Guard.Against.NullOrWhiteSpace(reason);
-        Guard.Against.Negative(refundAmount);
 
-        if (refundAmount > PaidAmount)
-            throw new ArgumentException("The refund can't be more than the amount paid.", nameof(refundAmount));
+        if (rooms.Count == 0)
+            throw new ArgumentException("Select at least one room to cancel.", nameof(rooms));
 
-        CancelledAt = cancelledAt;
-        CancellationReason = reason.Trim();
-        RefundAmount = refundAmount;
+        if (rooms.Select(x => x.Room).Distinct().Count() != rooms.Count)
+            throw new ArgumentException("A room can only be cancelled once.", nameof(rooms));
+
+        foreach (var (room, refund) in rooms)
+        {
+            if (!_rooms.Contains(room) || room.IsDeleted)
+                throw new ArgumentException("The room is not part of this booking.", nameof(rooms));
+
+            if (room.IsCancelled)
+                throw new InvalidOperationException("The room is already cancelled.");
+
+            Guard.Against.Negative(refund);
+
+            if (refund > room.TotalPrice)
+                throw new ArgumentException("The refund can't be more than the price of the room.", nameof(rooms));
+        }
+
+        if (RefundedAmount + rooms.Sum(x => x.RefundAmount) > PaidAmount)
+            throw new ArgumentException("The refunds can't be more than the amount paid.", nameof(rooms));
+
+        var remaining = ActiveRooms.Where(x => rooms.All(c => c.Room != x)).ToList();
+
+        // ! with no rooms left the nb of guests is only history, nobody has to fit anywhere anymore
+        if (remaining.Count > 0)
+        {
+            var guests = Guard.Against.NegativeOrZero(adults ?? Adults);
+
+            if (guests > remaining.Sum(x => x.Room.MaxGuests))
+                throw new ArgumentException("The guests don't fit in the remaining rooms.", nameof(adults));
+
+            Adults = guests;
+        }
+
+        var trimmedReason = reason.Trim();
+        foreach (var (room, refund) in rooms)
+            room.Cancel(cancelledAt, trimmedReason, refund);
     }
 
     public Payment AddPayment(decimal amount, string? stripeCheckoutSession = null)
@@ -106,5 +174,19 @@ public class Booking : Entity
         var payment = new Payment(this, amount, stripeCheckoutSession);
         _payments.Add(payment);
         return payment;
+    }
+
+    /// <summary>
+    /// Adds a free line to the bill, the bill of a fully cancelled booking can't be changed.
+    /// The rooms must be loaded, <see cref="IsCancelled"/> is derived from them.
+    /// </summary>
+    public BillLine AddBillLine(string description, int quantity, decimal unitPrice, decimal vatPercentage)
+    {
+        if (IsCancelled)
+            throw new InvalidOperationException("The bill of a cancelled booking can't be changed.");
+
+        var line = new BillLine(this, description, quantity, unitPrice, vatPercentage);
+        _billLines.Add(line);
+        return line;
     }
 }

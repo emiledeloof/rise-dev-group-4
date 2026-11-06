@@ -1,12 +1,13 @@
+@inherits LocalizedComponentBase
 @page "/guests/create"
 @page "/guest-registration"
 
-<PageTitle>Your details</PageTitle>
+<PageTitle>@Text["GuestRegistration"]</PageTitle>
 
 <div class="container my-5">
-    <h2 class="title is-3">Guest Registration</h2>
-    <p class="subtitle is-6">Please enter your personal details and address below.</p>
-    <p class="form-required-hint">Fields marked with <span class="form-required-mark">*</span> are required.</p>
+    <h2 class="title is-3">@Text["GuestRegistration"]</h2>
+    <p class="subtitle is-6">@Text["GuestRegistrationSubtitle"]</p>
+    <p class="form-required-hint">@Text["RequiredFieldsHint"]</p>
 
     @* the details are kept in the booking draft, nothing is saved before "Pay now" on the overview *@
     @* id, name and autocomplete follow the html autofill tokens so browsers and password managers (eg Bitwarden identities) fill every field *@
@@ -17,7 +18,7 @@
         <div class="columns">
             <div class="column is-6">
                 <div class="field">
-                    <label class="label is-required" for="guest-first-name">First Name</label>
+                    <label class="label is-required" for="guest-first-name">@Text["FirstName"]</label>
                     <div class="control">
                         <InputText @bind-Value="Model.FirstName" id="guest-first-name" name="given-name" autocomplete="given-name" class="input" placeholder="e.g. John" />
                     </div>
@@ -27,7 +28,7 @@
 
             <div class="column is-6">
                 <div class="field">
-                    <label class="label is-required" for="guest-last-name">Last Name</label>
+                    <label class="label is-required" for="guest-last-name">@Text["LastName"]</label>
                     <div class="control">
                         <InputText @bind-Value="Model.LastName" id="guest-last-name" name="family-name" autocomplete="family-name" class="input" placeholder="e.g. Doe" />
                     </div>
@@ -39,7 +40,7 @@
         <div class="columns">
             <div class="column is-6">
                 <div class="field">
-                    <label class="label is-required" for="guest-email">Email Address</label>
+                    <label class="label is-required" for="guest-email">@Text["EmailAddress"]</label>
                     <div class="control">
                         <InputText @bind-Value="Model.Email" id="guest-email" name="email" autocomplete="email" type="email" class="input" placeholder="e.g. john.doe@example.com" />
                     </div>
@@ -49,7 +50,7 @@
 
             <div class="column is-6">
                 <div class="field">
-                    <label class="label is-required" for="guest-phone-number">Phone Number</label>
+                    <label class="label is-required" for="guest-phone-number">@Text["PhoneNumber"]</label>
                     <div class="control">
                         <InputText @bind-Value="Model.PhoneNumber" id="guest-phone-number" name="tel" autocomplete="tel" type="tel" class="input" placeholder="e.g. +32 123 456 789" />
                     </div>
@@ -59,7 +60,7 @@
         </div>
 
         <div class="field">
-            <label class="label is-required" for="guest-address-line1">Address Line 1</label>
+            <label class="label is-required" for="guest-address-line1">@Text["AddressLine1"]</label>
             <div class="control">
                 <InputText @bind-Value="Model.AddressLine1" id="guest-address-line1" name="address-line1" autocomplete="address-line1" class="input" placeholder="Street and house number" />
             </div>
@@ -67,7 +68,7 @@
         </div>
 
         <div class="field">
-            <label class="label" for="guest-address-line2">Address Line 2 (Optional)</label>
+            <label class="label" for="guest-address-line2">@Text["AddressLine2"] (@Text["Optional"])</label>
             <div class="control">
                 <InputText @bind-Value="Model.AddressLine2" id="guest-address-line2" name="address-line2" autocomplete="address-line2" class="input" placeholder="Apartment, suite, unit, etc." />
             </div>
@@ -75,7 +76,7 @@
         </div>
 
         <div class="field">
-            <label class="label is-required" for="guest-country">Country</label>
+            <label class="label is-required" for="guest-country">@Text["Country"]</label>
             <div class="control">
                 <InputText @bind-Value="Model.Country" id="guest-country" name="country-name" autocomplete="country-name" class="input" placeholder="e.g. Belgium" />
             </div>
@@ -86,14 +87,14 @@
         @if (IsErrorSummaryVisible && context.GetValidationMessages().Any())
         {
             <div class="notification is-danger is-light form-error-summary mt-5" role="alert">
-                <p class="has-text-weight-semibold">Please correct the highlighted fields:</p>
+                <p class="has-text-weight-semibold">@Text["PleaseCorrectFields"]</p>
                 <ValidationSummary />
             </div>
         }
 
         <div class="field is-grouped is-grouped-right mt-5">
             <div class="control">
-                <Button Variant="ButtonVariant.Secondary" Href="@BackToRoomsUrl">Back to rooms</Button>
+                <Button Variant="ButtonVariant.Secondary" Href="@BackToRoomsUrl">@Text["BackToRooms"]</Button>
             </div>
             <div class="control">
                 <Button Type="submit">Continue</Button>

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rise.Domain.Rooms;
 
@@ -16,6 +17,7 @@ internal class RateConfiguration : EntityConfiguration<Rate>
         // ? the search uses Contains so it cant use this index
         builder.HasIndex(x => x.Name);
         builder.Property(x => x.PricePerNight).IsRequired();
+        builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
         builder.Property(x => x.Description).HasMaxLength(500);
     }
 }
