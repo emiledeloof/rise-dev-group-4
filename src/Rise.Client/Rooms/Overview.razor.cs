@@ -26,7 +26,7 @@ public partial class Overview : LocalizedComponentBase
     // what every guest gets, same facts as the estate section of the landing page
     private static readonly ExperienceItem[] ExperienceList =
     [
-        new("fa-seedling", "Gardens & vineyards", "2.4 hectares of gardens and three small vineyards right outside your door."),
+        new("fa-seedling", "Gardens & vineyards", "2.4 hectares of gardens and two small vineyards right outside your door."),
         new("fa-mountain", "Granite wood", "A wood with granite rocks and caves, where the statue of Mary was found."),
         new("fa-mug-hot", "Breakfast on the terrace", "Start the day slowly on the terrace, among the vines."),
         new("fa-umbrella-beach", "Close to the coast", "The beaches and the coast are a short drive away."),

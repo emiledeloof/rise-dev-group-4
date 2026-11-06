@@ -31,9 +31,9 @@ public class BillingServiceShould
 
         var dbContext = new ApplicationDbContext(options);
 
-        var single = new Room("101", "Single Room", 1);
+        var single = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var singleRate = single.AddRate("Standard", 100m);
-        var twin = new Room("102", "Twin Room", 2);
+        var twin = new Room("102", "Twin Room", 2, new RoomType("Standard"));
         var twinRate = twin.AddRate("Flexible", 100m);
 
         var guest = new Guest("Jan Janssens", "jan@example.com", "+32 470 12 34 56",
