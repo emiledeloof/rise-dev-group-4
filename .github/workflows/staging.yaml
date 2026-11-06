@@ -49,7 +49,7 @@ jobs:
   deploy-test-env:
     name: Deploy to Test environment
     needs: build-test-env
-    runs-on: [self-hosted, prod-server]
+    runs-on: [self-hosted, kubectl]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
