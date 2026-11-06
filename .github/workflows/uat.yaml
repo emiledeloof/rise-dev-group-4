@@ -10,6 +10,11 @@ env:
   IMAGE_NAME: emiledeloofhg/devops
   CONTAINER_NAME: rise-server-prod
 
+#geen twee productie-deploys tesamen
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Build image
@@ -62,10 +67,28 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.version }}
             ${{ env.IMAGE_NAME }}:latest
+  backup:
+    name: Pre-deploy database backup
+    needs: build
+    runs-on: [self-hosted, build-server]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Trigger backup on the database server
+        env:
+          SSH_KEY: ${{ secrets.BACKUP_SSH_KEY }}
+          VERSION: ${{ needs.build.outputs.image_tag }}
+        run: |
+          KEY="$RUNNER_TEMP/backup_key"
+          install -m 600 /dev/null "$KEY"
+          printf '%s\n' "$SSH_KEY" > "$KEY"
+          trap 'rm -f "$KEY"' EXIT
+          LABEL=$(printf '%s' "pre-deploy-${VERSION}" | tr -c 'A-Za-z0-9._-' '-' | cut -c1-40)
+          ssh -i "$KEY" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new backup@10.11.2.113 "$LABEL"
+
 
   deploy:
     name: Deploy to Production
-    needs: build
+    needs: [build, backup]
     runs-on: [self-hosted, prod-server]
     if: startsWith(github.ref, 'refs/tags/v')
 
@@ -110,7 +133,7 @@ jobs:
 
   notify:
     name: Notify team
-    needs: [build, deploy]
+    needs: [build, backup, deploy]
     if: always()
     uses: ./.github/workflows/notify.yaml
     with:
