@@ -121,12 +121,155 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                 Rates = r.Rates
             }).ToList();
 
+        // suitable rooms means there exists at least one combination of request.Rooms whose capacity >= request.Adults
+        var suitableRooms = rooms.Count >= request.Rooms
+            && HasSuitableCombination(rooms, request.Rooms, request.Adults);
+        var alternativePeriods = !suitableRooms
+            ? await FindAlternativeStayPeriodsAsync(request, settings, ctx)
+            : [];
+
         return Result.Success(new RoomResponse.Available
         {
             Rooms = rooms,
             TotalCapacity = totalCapacity,
-            TotalRooms = totalRooms
+            TotalRooms = totalRooms,
+            AlternativePeriods = alternativePeriods
         });
+    }
+
+    private static bool HasSuitableCombination(IReadOnlyList<RoomDto.Available> rooms, int targetRooms, int targetAdults)
+    {
+        if (rooms.Count < targetRooms)
+            return false;
+
+        return GetCombinations(rooms.ToList(), targetRooms)
+            .Any(combo => combo.Sum(r => r.MaxGuests) >= targetAdults);
+    }
+
+    private static List<List<T>> GetCombinations<T>(List<T> list, int length)
+    {
+        if (length == 0)
+            return [[]];
+
+        var result = new List<List<T>>();
+        for (var i = 0; i <= list.Count - length; i++)
+        {
+            var head = list[i];
+            var tail = list.Skip(i + 1).ToList();
+            foreach (var sub in GetCombinations(tail, length - 1))
+            {
+                result.Add([head, .. sub]);
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// finds the next 2 available stay periods of the same length that satisfy the requested room count and capacity,
+    /// searching forward from the day after the requested check-in date regardless of distance
+    /// </summary>
+    private async Task<List<RoomResponse.AlternativeStayPeriodDto>> FindAlternativeStayPeriodsAsync(
+        SearchRequest.StayPeriod request,
+        GeneralSettings settings,
+        CancellationToken ctx)
+    {
+        var nights = request.Nights;
+        var reqRooms = request.Rooms;
+        var reqAdults = request.Adults;
+
+        // load all active rooms with their active rates and existing non-cancelled bookings
+        var activeRooms = await ActiveRooms
+            .Select(r => new
+            {
+                r.Id,
+                r.MaxGuests,
+                Rates = r.Rates
+                    .Where(x => !x.IsDeleted && x.IsActive)
+                    .Select(x => new
+                    {
+                        x.Id,
+                        x.MinNights,
+                        x.PricePerNight,
+                        x.StartDate,
+                        x.EndDate
+                    }).ToList(),
+                Bookings = dbContext.BookingRooms
+                    .Where(br => !br.IsDeleted
+                        && !br.Booking.IsDeleted
+                        && br.Booking.CancelledAt == null
+                        && br.Room.Id == r.Id)
+                    .Select(br => new { br.Booking.CheckIn, br.Booking.CheckOut })
+                    .ToList()
+            })
+            .ToListAsync(ctx);
+
+        if (activeRooms.Count < reqRooms)
+            return [];
+
+        // start searching forward from the day after the requested checkIn, or tomorrow if requested was in the past
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var candidateCheckIn = request.CheckIn!.Value.AddDays(1);
+        if (candidateCheckIn < today)
+            candidateCheckIn = today;
+
+        var alternatives = new List<RoomResponse.AlternativeStayPeriodDto>();
+        const int maxDaysToScan = 730; // scan up to 2 years ahead
+
+        for (var day = 0; day < maxDaysToScan && alternatives.Count < 2; day++)
+        {
+            var curCheckIn = candidateCheckIn.AddDays(day);
+            var curCheckOut = curCheckIn.AddDays(nights);
+            var lastNight = curCheckOut.AddDays(-1);
+
+            // check each room's availability and bookable rates for this period
+            var availableRoomsForCandidate = new List<(int MaxGuests, decimal MinTotalPrice)>();
+
+            foreach (var r in activeRooms)
+            {
+                var isBooked = r.Bookings.Any(b => b.CheckIn < curCheckOut && b.CheckOut > curCheckIn);
+                if (isBooked)
+                    continue;
+
+                // check if the room has at least one rate valid for this period
+                var validRates = r.Rates
+                    .Where(x => (x.StartDate == null || x.StartDate <= curCheckIn)
+                        && (x.EndDate == null || x.EndDate >= lastNight)
+                        && x.MinNights <= nights)
+                    .ToList();
+
+                if (validRates.Count == 0)
+                    continue;
+
+                var lowestRate = validRates.Min(x => x.PricePerNight);
+                var pricePerNightIncVat = PriceCalculator.InclusiveOfVat(lowestRate, settings.IsVatEnabled, settings.VatPercentage);
+                var totalPrice = PriceCalculator.Total(pricePerNightIncVat, nights);
+
+                availableRoomsForCandidate.Add((r.MaxGuests, totalPrice));
+            }
+
+            if (availableRoomsForCandidate.Count >= reqRooms)
+            {
+                // find combinations that meet the adult capacity requirement
+                var validCombos = GetCombinations(availableRoomsForCandidate, reqRooms)
+                    .Where(combo => combo.Sum(r => r.MaxGuests) >= reqAdults)
+                    .ToList();
+
+                if (validCombos.Count > 0)
+                {
+                    // price from: cheapest combination of reqRooms that satisfies the capacity
+                    var startingPrice = validCombos.Min(combo => combo.Sum(r => r.MinTotalPrice));
+                    alternatives.Add(new RoomResponse.AlternativeStayPeriodDto
+                    {
+                        CheckIn = curCheckIn,
+                        CheckOut = curCheckOut,
+                        Nights = nights,
+                        PriceFrom = startingPrice
+                    });
+                }
+            }
+        }
+
+        return alternatives;
     }
 
     /// <summary>
