@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rise-server
+spec:
+  template:
+    spec:
+      containers:
+      - name: rise-server
+        image: emiledeloofhg/devops:latest  # Use your specific tag here (e.g., v1.0.0 for prod, staging for staging)
+        imagePullPolicy: IfNotPresent
