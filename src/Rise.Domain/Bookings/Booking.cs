@@ -55,6 +55,11 @@ public class Booking : Entity
     public bool IsPartiallyCancelled => !IsCancelled && _rooms.Any(x => !x.IsDeleted && x.IsCancelled);
 
     /// <summary>
+    /// Price of the rooms that are still part of the stay, what a new checkout charges, the rooms must be loaded.
+    /// </summary>
+    public decimal ActiveAmount => ActiveRooms.Sum(x => x.TotalPrice);
+
+    /// <summary>
     /// Sum of the refunds recorded on the cancelled rooms, the rooms must be loaded.
     /// </summary>
     public decimal RefundedAmount => _rooms.Where(x => !x.IsDeleted).Sum(x => x.RefundAmount ?? 0m);

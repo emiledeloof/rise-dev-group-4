@@ -580,4 +580,18 @@ public class BookingShould
 
         booking.BillLines.ShouldHaveSingleItem().ShouldBe(line);
     }
+
+    /// <summary>
+    /// a new checkout after a cancellation charges only the remaining rooms, the webhook compares the payment with this
+    /// </summary>
+    [Fact]
+    public void LeaveCancelledRoomsOutOfTheActiveAmount()
+    {
+        var (booking, a, b) = CreatePaidBookingWithTwoRooms();
+        booking.ActiveAmount.ShouldBe(200m);
+
+        booking.CancelRooms([new RoomCancellation(b, 0m)], CancelledAt, "Guest is ill");
+
+        booking.ActiveAmount.ShouldBe(a.TotalPrice);
+    }
 }
