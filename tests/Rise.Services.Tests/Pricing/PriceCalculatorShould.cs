@@ -71,4 +71,17 @@ public class PriceCalculatorShould
     {
         PriceCalculator.ExclusiveOfVat(gross, vatPercentage).ShouldBe(expected);
     }
+
+    /// <summary>
+    /// half a cent goes up, also for an even last cent, the default Math.Round would give 16.66 and 2.12
+    /// </summary>
+    [Theory]
+    [InlineData(16.665, 16.67)]
+    [InlineData(2.125, 2.13)]
+    [InlineData(2.124, 2.12)]
+    [InlineData(-2.125, -2.13)]
+    public void RoundHalfACentUp(decimal amount, decimal expected)
+    {
+        PriceCalculator.RoundToCents(amount).ShouldBe(expected);
+    }
 }

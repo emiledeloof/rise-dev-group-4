@@ -42,6 +42,24 @@ public class BookingRoom : Entity
     public int PartialRefundPercent { get; private set; }
 
     /// <summary>
+    /// Set by <see cref="Booking.CancelRooms"/>, a cancelled room keeps its price and policy for the admin and frees the room.
+    /// </summary>
+    public DateTime? CancelledAt { get; private set; }
+    public string? CancellationReason { get; private set; }
+
+    /// <summary>
+    /// Refund decided on when cancelling this room, the website never refunds it, the admin does it by hand.
+    /// </summary>
+    public decimal? RefundAmount { get; private set; }
+
+    public bool IsCancelled => CancelledAt is not null;
+
+    /// <summary>
+    /// Price of this room for the whole stay, the most that can be refunded for it.
+    /// </summary>
+    public decimal TotalPrice => PricePerNight * Booking.Nights;
+
+    /// <summary>
     /// VAT pct included in <see cref="PricePerNight"/> at booking time, 0 when VAT was off.
     /// Kept per room so the bill can show the VAT even after the VAT setting changes.
     /// </summary>
@@ -67,5 +85,15 @@ public class BookingRoom : Entity
         FullRefundDays = rate.FullRefundDays;
         PartialRefundDays = rate.PartialRefundDays;
         PartialRefundPercent = rate.PartialRefundPercent;
+    }
+
+    /// <summary>
+    /// Only called by <see cref="Booking.CancelRooms"/>, which checks the rules over all rooms first.
+    /// </summary>
+    internal void Cancel(DateTime cancelledAt, string reason, decimal refundAmount)
+    {
+        CancelledAt = cancelledAt;
+        CancellationReason = reason;
+        RefundAmount = refundAmount;
     }
 }

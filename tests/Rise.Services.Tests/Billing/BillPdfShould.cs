@@ -32,6 +32,8 @@ public class BillPdfShould
         Total = 208m,
         Payments = [],
         PaidAmount = 50m,
+        RefundedAmount = 0m,
+        CancellationFeesTotal = 0m,
         OutstandingBalance = 158m,
         SettledAt = new DateTime(2026, 10, 12, 10, 0, 0, DateTimeKind.Utc),
     };

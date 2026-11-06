@@ -1,5 +1,6 @@
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
+using Rise.Domain.Rooms;
 
 namespace Rise.Domain.Tests.Bookings;
 
@@ -11,6 +12,13 @@ public class BookingSettlementShould
         => new("20261006-0042",
             new Guest("Jan Janssens", "jan@example.com", "+32 470 12 34 56", new GuestAddress("Koningstraat 12", null, "Belgium")),
             new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
+
+    // a booking is cancelled when all its rooms are, so the tests that cancel need one
+    private static BookingRoom AddRoom(Booking booking)
+    {
+        var room = new Room("101", "Standard Room", 2, new RoomType("Standard"));
+        return booking.AddRoom(room, room.AddRate("Standard", 100m));
+    }
 
     [Fact]
     public void BeSettled()
@@ -50,7 +58,8 @@ public class BookingSettlementShould
     public void NotSettleACancelledBooking()
     {
         var booking = CreateBooking();
-        booking.Cancel(SettledAt, "Guest is ill", 0m);
+        var room = AddRoom(booking);
+        booking.CancelRooms([new RoomCancellation(room, 0m)], SettledAt, "Guest is ill");
 
         Action act = () => booking.Settle(SettledAt);
 
@@ -62,9 +71,10 @@ public class BookingSettlementShould
     public void NotBeCancelledOnceSettled()
     {
         var booking = CreateBooking();
+        var room = AddRoom(booking);
         booking.Settle(SettledAt);
 
-        Action act = () => booking.Cancel(SettledAt.AddDays(1), "Guest is ill", 0m);
+        Action act = () => booking.CancelRooms([new RoomCancellation(room, 0m)], SettledAt.AddDays(1), "Guest is ill");
 
         act.ShouldThrow<InvalidOperationException>();
         booking.IsCancelled.ShouldBeFalse();

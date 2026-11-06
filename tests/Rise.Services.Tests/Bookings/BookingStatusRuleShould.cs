@@ -1,3 +1,6 @@
+using Rise.Domain.Bookings;
+using Rise.Domain.Guests;
+using Rise.Domain.Rooms;
 using Rise.Services.Bookings;
 using Rise.Shared.Bookings;
 using Shouldly;
@@ -15,5 +18,79 @@ public class BookingStatusRuleShould
     public void GiveTheStrongestStatus(bool isCancelled, bool isBillSettled, bool hasSettledPayment, string expected)
     {
         BookingStatusRule.For(isCancelled, isBillSettled, hasSettledPayment).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void BePendingWithAnOpenPayment()
+    {
+        var booking = CreateBooking();
+        booking.AddPayment(100m);
+
+        BookingStatusRule.For(booking).ShouldBe(BookingStatus.Pending);
+    }
+
+    [Fact]
+    public void BePaidWithASettledPayment()
+    {
+        var booking = CreateBooking();
+        booking.AddPayment(100m).MarkAsPaid(DateTime.UtcNow);
+
+        BookingStatusRule.For(booking).ShouldBe(BookingStatus.Paid);
+    }
+
+    [Fact]
+    public void IgnoreADeletedSettledPayment()
+    {
+        var booking = CreateBooking();
+        var payment = booking.AddPayment(100m);
+        payment.MarkAsPaid(DateTime.UtcNow);
+        payment.IsDeleted = true;
+
+        BookingStatusRule.For(booking).ShouldBe(BookingStatus.Pending);
+    }
+
+    [Fact]
+    public void BeCancelledWhenTheBookingIsCancelled()
+    {
+        var booking = CreateBooking();
+        var room = AddRoom(booking, "101");
+        booking.AddPayment(100m).MarkAsPaid(DateTime.UtcNow);
+        booking.CancelRooms([new RoomCancellation(room, 0m)], DateTime.UtcNow, "Guest is ill");
+
+        BookingStatusRule.For(booking).ShouldBe(BookingStatus.Cancelled);
+    }
+
+    [Fact]
+    public void StayPaidWhenOnlyARoomIsCancelled()
+    {
+        var booking = CreateBooking();
+        var room = AddRoom(booking, "101");
+        AddRoom(booking, "102");
+        booking.AddPayment(100m).MarkAsPaid(DateTime.UtcNow);
+        booking.CancelRooms([new RoomCancellation(room, 0m)], DateTime.UtcNow, "Guest is ill");
+
+        BookingStatusRule.For(booking).ShouldBe(BookingStatus.Paid);
+    }
+
+    [Fact]
+    public void BeSettledWhenTheBillIsSettled()
+    {
+        var booking = CreateBooking();
+        AddRoom(booking, "101");
+        booking.AddPayment(100m).MarkAsPaid(DateTime.UtcNow);
+        booking.Settle(DateTime.UtcNow);
+
+        BookingStatusRule.For(booking).ShouldBe(BookingStatus.Settled);
+    }
+
+    private static Booking CreateBooking()
+        => new("20261006-0042",
+            new Guest("Jan Janssens", "jan@example.com", "+32 470 12 34 56", new GuestAddress("Koningstraat 12", null, "Belgium")),
+            new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
+
+    private static BookingRoom AddRoom(Booking booking, string roomNumber)
+    {
+        var room = new Room(roomNumber, "Twin Room", 2, new RoomType("Standard"));
+        return booking.AddRoom(room, room.AddRate("Standard", 100m));
     }
 }

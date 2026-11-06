@@ -41,6 +41,17 @@ public class Payment : Entity
         StripeCheckoutSession = stripeCheckoutSession;
     }
 
+    /// <summary>
+    /// Follows the price of the booking while unpaid, eg when a room was cancelled before the guest started the checkout.
+    /// </summary>
+    public void ChangeAmount(decimal amount)
+    {
+        if (IsPaid)
+            throw new InvalidOperationException("The amount of a paid payment can't change.");
+
+        Amount = Guard.Against.NegativeOrZero(amount);
+    }
+
     public void SetStripeCheckoutSession(string stripeCheckoutSession)
     {
         if (string.IsNullOrWhiteSpace(stripeCheckoutSession))

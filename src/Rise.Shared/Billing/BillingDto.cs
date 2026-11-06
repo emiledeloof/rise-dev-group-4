@@ -26,7 +26,14 @@ public static class BillingDto
         /// </summary>
         public required List<OtherServiceLine> OtherServices { get; set; } = [];
 
+        /// <summary>
+        /// The rooms still booked, a cancelled room only counts through its fee in <see cref="CancellationFeesTotal"/>.
+        /// </summary>
         public required decimal AccommodationTotal { get; set; }
+        /// <summary>
+        /// What the hotel keeps of the cancelled rooms, see <see cref="AccommodationLine.CancellationFee"/>.
+        /// </summary>
+        public required decimal CancellationFeesTotal { get; set; }
         public required decimal OtherServicesTotal { get; set; }
         /// <summary>
         /// The VAT included in <see cref="Total"/>, one group per VAT pct.
@@ -42,16 +49,19 @@ public static class BillingDto
         /// </summary>
         public required decimal PaidAmount { get; set; }
         /// <summary>
-        /// What the guest still has to pay, negative when the guest paid too much, 0 for a cancelled booking.
+        /// Sum of the refunds recorded on the cancelled rooms, the admin pays them back by hand.
+        /// </summary>
+        public required decimal RefundedAmount { get; set; }
+        /// <summary>
+        /// What the guest still has to pay after the payments and refunds, negative when the guest paid too much,
+        /// 0 for a fully cancelled booking.
         /// </summary>
         public required decimal OutstandingBalance { get; set; }
 
         /// <summary>
-        /// Null while the booking is not cancelled.
+        /// All rooms are cancelled, the bill can't be changed anymore.
         /// </summary>
-        public Cancellation? Cancellation { get; set; }
-
-        public bool IsCancelled => Cancellation is not null;
+        public bool IsCancelled => Status == Bookings.BookingStatus.Cancelled;
 
         /// <summary>null while the bill is not settled</summary>
         public DateTime? SettledAt { get; set; }
@@ -60,10 +70,15 @@ public static class BillingDto
 
         /// <summary>a cancelled or settled bill can not be changed anymore</summary>
         public bool IsClosed => IsCancelled || IsSettled;
+
+        /// <summary>
+        /// Some rooms are cancelled, the bill of the remaining rooms stays open.
+        /// </summary>
+        public bool IsPartiallyCancelled => !IsCancelled && Accommodation.Any(x => x.IsCancelled);
     }
 
     /// <summary>
-    /// A booked room with the price agreed at booking time.
+    /// A booked room with the price agreed at booking time, a cancelled room stays on the bill for the records.
     /// </summary>
     public class AccommodationLine
     {
@@ -73,7 +88,25 @@ public static class BillingDto
         public required int Nights { get; set; }
         public required decimal PricePerNight { get; set; }
         public required decimal VatPercentage { get; set; }
+        /// <summary>
+        /// The price of the whole stay as agreed, also for a cancelled room.
+        /// </summary>
         public required decimal Total { get; set; }
+        /// <summary>
+        /// The part of a cancelled room's price the hotel keeps, 0 for a room still booked.
+        /// </summary>
+        public decimal CancellationFee { get; set; }
+        /// <summary>
+        /// Null while the room is not cancelled.
+        /// </summary>
+        public Cancellation? Cancellation { get; set; }
+
+        public bool IsCancelled => Cancellation is not null;
+
+        /// <summary>
+        /// What this room adds to the total of the bill.
+        /// </summary>
+        public decimal ChargedAmount => IsCancelled ? CancellationFee : Total;
     }
 
     /// <summary>
@@ -113,6 +146,9 @@ public static class BillingDto
         public bool IsPaid => PaidAt is not null;
     }
 
+    /// <summary>
+    /// The cancellation of one room, see <see cref="AccommodationLine.Cancellation"/>.
+    /// </summary>
     public class Cancellation
     {
         public required DateTime CancelledAt { get; set; }

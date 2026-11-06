@@ -77,6 +77,10 @@
                                     {
                                         <span class="tag is-warning is-light">Pending</span>
                                     }
+                                    @if (booking.CancelledRoomCount > 0 && booking.CancelledRoomCount < booking.RoomCount)
+                                    {
+                                        <span class="tag is-danger is-light booking-list-partial">@booking.CancelledRoomCount of @booking.RoomCount rooms cancelled</span>
+                                    }
                                 </span>
                                 <i class="fas fa-chevron-right booking-row-chevron" aria-hidden="true"></i>
                             </div>

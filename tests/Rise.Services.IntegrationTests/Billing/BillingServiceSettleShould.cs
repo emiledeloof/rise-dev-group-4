@@ -84,7 +84,8 @@ public class BillingServiceSettleShould(PostgresFixture database) : IAsyncLifeti
     [Fact]
     public async Task RefuseToSettleACancelledBooking()
     {
-        var bookingId = await SeedAsync(booking => booking.Cancel(DateTime.UtcNow, "Guest is ill", 0m));
+        var bookingId = await SeedAsync(booking =>
+            booking.CancelRooms([new RoomCancellation(booking.Rooms.Single(), 0m)], DateTime.UtcNow, "Guest is ill"));
 
         var result = await SettleAsync(bookingId);
 
@@ -125,12 +126,13 @@ public class BillingServiceSettleShould(PostgresFixture database) : IAsyncLifeti
         await SettleAsync(bookingId);
 
         await using var dbContext = database.CreateDbContext();
+        var bookingRoomId = await dbContext.BookingRooms.Where(x => x.Booking.Id == bookingId).Select(x => x.Id).SingleAsync();
         // stripe and the configuration are not used when cancelling
         var result = await new BookingService(dbContext, null!, null!).CancelAsync(new BookingRequest.Cancel
         {
             BookingId = bookingId,
             Reason = "Guest is ill",
-            RefundAmount = 0m,
+            Rooms = [new BookingRequest.Cancel.RoomSelection { BookingRoomId = bookingRoomId, RefundAmount = 0m }],
         });
 
         result.Status.ShouldBe(ResultStatus.Conflict);

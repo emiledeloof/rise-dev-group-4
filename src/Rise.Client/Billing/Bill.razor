@@ -45,13 +45,23 @@
             </span>
         </header>
 
-        @if (_bill.Cancellation is { } cancellation)
+        @if (_bill.IsCancelled)
         {
             <div class="bill-cancelled-banner" role="status">
                 <i class="fas fa-ban" aria-hidden="true"></i>
                 <div>
-                    <p class="bill-cancelled-title">Cancelled on @Format.Date(cancellation.CancelledAt) · nothing due</p>
-                    <p class="bill-muted">@cancellation.Reason</p>
+                    <p class="bill-cancelled-title">Cancelled on @Format.Date(LastCancelledAt) · nothing due</p>
+                    <p class="bill-muted">All rooms of this booking are cancelled, the bill can't be changed anymore.</p>
+                </div>
+            </div>
+        }
+        else if (_bill.IsPartiallyCancelled)
+        {
+            <div class="bill-cancelled-banner is-partial" role="status">
+                <i class="fas fa-circle-info" aria-hidden="true"></i>
+                <div>
+                    <p class="bill-cancelled-title">@CancelledRooms.Count of @_bill.Accommodation.Count rooms cancelled</p>
+                    <p class="bill-muted">This bill covers the remaining @(_bill.Accommodation.Count - CancelledRooms.Count == 1 ? "room" : "rooms"), the other services and any cancellation fee.</p>
                 </div>
             </div>
         }
@@ -75,7 +85,7 @@
                         <ul class="bill-lines">
                             @foreach (var room in _bill.Accommodation)
                             {
-                                <li @key="room.RoomNumber" class="bill-line">
+                                <li @key="room.RoomNumber" class="bill-line bill-room @(room.IsCancelled ? "is-cancelled" : null)">
                                     <div class="bill-line-text">
                                         <p class="bill-line-title">Room @room.RoomNumber · @room.RoomName</p>
                                         <p class="bill-muted">
@@ -86,9 +96,27 @@
                                                 <span> · VAT @Format.Percent(room.VatPercentage)</span>
                                             }
                                         </p>
+                                        @if (room.Cancellation is { } cancellation)
+                                        {
+                                            <p class="bill-muted bill-room-cancellation">Cancelled on @Format.Date(cancellation.CancelledAt) · @cancellation.Reason</p>
+                                        }
                                     </div>
-                                    <span class="bill-line-amount">@Format.Amount(room.Total)</span>
+                                    <div class="bill-line-end">
+                                        @if (room.IsCancelled)
+                                        {
+                                            <span class="tag is-danger is-light bill-room-tag">Cancelled</span>
+                                        }
+                                        <span class="bill-line-amount">@Format.Amount(room.Total)</span>
+                                    </div>
                                 </li>
+                                @* what the hotel keeps of the cancelled room, this counts in the total instead of the struck through price *@
+                                @if (room.CancellationFee > 0)
+                                {
+                                    <li @key="@($"fee-{room.RoomNumber}")" class="bill-line bill-fee">
+                                        <p class="bill-line-text">Cancellation fee</p>
+                                        <span class="bill-line-amount bill-fee-amount">@Format.Amount(room.CancellationFee)</span>
+                                    </li>
+                                }
                             }
                         </ul>
                     }
@@ -178,7 +206,7 @@
                 <section class="box bill-card bill-payments">
                     <span class="eyebrow">Payments</span>
 
-                    @if (_bill.Payments.Count > 0 || _bill.Cancellation is not null)
+                    @if (_bill.Payments.Count > 0 || CancelledRooms.Count > 0)
                     {
                         <ul class="bill-lines">
                             @foreach (var payment in _bill.Payments)
@@ -214,14 +242,14 @@
                                     </div>
                                 </li>
                             }
-                            @if (_bill.Cancellation is { } refunded)
+                            @foreach (var room in CancelledRooms)
                             {
-                                <li class="bill-line bill-refund">
+                                <li @key="room.RoomNumber" class="bill-line bill-refund">
                                     <div class="bill-line-text">
-                                        <p class="bill-line-title">Refund</p>
-                                        <p class="bill-muted">Recorded on @Format.Date(refunded.CancelledAt), paid back by hand</p>
+                                        <p class="bill-line-title">Refund · Room @room.RoomNumber</p>
+                                        <p class="bill-muted">Recorded on @Format.Date(room.Cancellation!.CancelledAt), paid back by hand</p>
                                     </div>
-                                    <span class="bill-line-amount bill-refund-amount">@(refunded.RefundAmount > 0 ? $"+ {Format.Amount(refunded.RefundAmount)}" : "No refund")</span>
+                                    <span class="bill-line-amount bill-refund-amount">@(room.Cancellation.RefundAmount > 0 ? $"+ {Format.Amount(room.Cancellation.RefundAmount)}" : "No refund")</span>
                                 </li>
                             }
                         </ul>
@@ -242,6 +270,13 @@
                         <span>Accommodation</span>
                         <span class="bill-accommodation-total">@Format.Amount(_bill.AccommodationTotal)</span>
                     </div>
+                    @if (_bill.CancellationFeesTotal > 0)
+                    {
+                        <div class="bill-row bill-fees-row">
+                            <span>Cancellation fees</span>
+                            <span class="bill-fees-total">@Format.Amount(_bill.CancellationFeesTotal)</span>
+                        </div>
+                    }
                     <div class="bill-row">
                         <span>Other services</span>
                         <span class="bill-other-services-total">@Format.Amount(_bill.OtherServicesTotal)</span>
@@ -271,6 +306,13 @@
                         <span>Paid</span>
                         <span class="bill-paid-amount">− @Format.Amount(_bill.PaidAmount)</span>
                     </div>
+                    @if (_bill.RefundedAmount > 0)
+                    {
+                        <div class="bill-row bill-refunded-row">
+                            <span>Refunded</span>
+                            <span class="bill-refunded-amount">+ @Format.Amount(_bill.RefundedAmount)</span>
+                        </div>
+                    }
 
                     @if (_bill.IsCancelled)
                     {

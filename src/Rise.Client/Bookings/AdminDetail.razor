@@ -37,6 +37,10 @@
             </div>
             <span class="booking-detail-status">
                 <BookingStatusTag Status="@_booking.Status" />
+                @if (CancelledRooms.Count > 0 && ActiveRooms.Count > 0)
+                {
+                    <span class="tag is-danger is-light is-medium booking-detail-partial-tag">@CancelledRooms.Count of @_booking.Rooms.Count rooms cancelled</span>
+                }
             </span>
         </header>
 
@@ -50,41 +54,53 @@
 
         <div class="booking-detail-layout">
             <div class="booking-detail-main">
-                @* ---------- cancellation, the booking and its original terms stay visible below ---------- *@
-                @if (_booking.Cancellation is { } cancellation)
+                @* ---------- cancellations per room, the booking and its original terms stay visible below ---------- *@
+                @if (CancelledRooms.Count > 0)
                 {
                     <section class="box booking-detail-card booking-detail-cancellation">
                         <span class="eyebrow">Cancellation</span>
 
-                        <dl class="booking-detail-facts">
-                            <div>
-                                <dt><i class="fas fa-calendar-xmark" aria-hidden="true"></i>Cancelled on</dt>
-                                <dd class="booking-detail-cancelled-at">@Format.Date(cancellation.CancelledAt)</dd>
-                            </div>
-                            <div>
-                                <dt><i class="fas fa-comment" aria-hidden="true"></i>Reason</dt>
-                                <dd class="booking-detail-cancel-reason">@cancellation.Reason</dd>
-                            </div>
-                            <div>
-                                <dt><i class="fas fa-rotate-left" aria-hidden="true"></i>Refund</dt>
-                                <dd class="booking-detail-refund">@(cancellation.RefundAmount > 0 ? Format.Amount(cancellation.RefundAmount) : "No refund")</dd>
-                            </div>
-                        </dl>
+                        <ul>
+                            @foreach (var room in CancelledRooms)
+                            {
+                                <li @key="room.BookingRoomId" class="booking-detail-cancelled-room">
+                                    <p class="booking-detail-room-name">Room @room.RoomNumber · @room.RoomName</p>
+                                    <dl class="booking-detail-facts">
+                                        <div>
+                                            <dt><i class="fas fa-calendar-xmark" aria-hidden="true"></i>Cancelled on</dt>
+                                            <dd class="booking-detail-cancelled-at">@Format.Date(room.Cancellation!.CancelledAt)</dd>
+                                        </div>
+                                        <div>
+                                            <dt><i class="fas fa-comment" aria-hidden="true"></i>Reason</dt>
+                                            <dd class="booking-detail-cancel-reason">@room.Cancellation.Reason</dd>
+                                        </div>
+                                        <div>
+                                            <dt><i class="fas fa-rotate-left" aria-hidden="true"></i>Refund</dt>
+                                            <dd class="booking-detail-refund">@(room.Cancellation.RefundAmount > 0 ? Format.Amount(room.Cancellation.RefundAmount) : "No refund")</dd>
+                                        </div>
+                                    </dl>
+                                </li>
+                            }
+                        </ul>
 
-                        @if (cancellation.RefundAmount > 0)
+                        @if (_booking.RefundedAmount > 0)
                         {
+                            <p class="booking-detail-refunded-total">
+                                <span>Total refunds</span>
+                                <span class="booking-detail-refunded-amount">@Format.Amount(_booking.RefundedAmount)</span>
+                            </p>
                             <p class="booking-detail-refund-note">
                                 <i class="fas fa-circle-info" aria-hidden="true"></i>
                                 The website does not refund automatically, pay the refund back to the guest yourself, e.g. in the Stripe dashboard.
                             </p>
                         }
 
-                        @* the guest can still finish an open Stripe checkout after the cancellation *@
-                        @if (_booking.Payments.Any(x => x.PaidAt > cancellation.CancelledAt))
+                        @* the guest can still finish an open Stripe checkout after a cancellation, for the old amount *@
+                        @if (OverpaidAmount > 0)
                         {
                             <p class="booking-detail-refund-note booking-detail-paid-after-cancel" role="alert">
                                 <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-                                A payment came in after the cancellation, refund it to the guest yourself, e.g. in the Stripe dashboard.
+                                A payment came in after a cancellation for @Format.Amount(OverpaidAmount) more than the remaining rooms cost, refund the difference to the guest yourself, e.g. in the Stripe dashboard.
                             </p>
                         }
                     </section>
@@ -122,12 +138,16 @@
                         <ul class="booking-detail-rooms">
                             @foreach (var room in _booking.Rooms)
                             {
-                                <li @key="room.RoomId" class="booking-detail-room">
+                                <li @key="room.RoomId" class="booking-detail-room @(room.Cancellation is null ? "" : "is-cancelled")">
                                     <span class="booking-detail-room-number">@room.RoomNumber</span>
                                     <div>
                                         <p class="booking-detail-room-name">@room.RoomName</p>
                                         <p class="booking-detail-muted">@room.RateName</p>
                                     </div>
+                                    @if (room.Cancellation is not null)
+                                    {
+                                        <span class="tag is-danger is-light booking-detail-room-tag">Cancelled</span>
+                                    }
                                 </li>
                             }
                         </ul>
@@ -186,7 +206,7 @@
                                     }
 
                                     <p class="booking-detail-entitlement">
-                                        <span>@(_booking.Cancellation is null ? "Refund if cancelled today" : $"Entitlement on {Format.Date(_booking.RefundReferenceDate)}")</span>
+                                        <span>@(room.Cancellation is null ? "Refund if cancelled today" : $"Entitlement on {Format.Date(room.RefundReferenceDate)}")</span>
                                         <span class="booking-detail-entitlement-amount">@room.RefundPercent% · @Format.Amount(room.RefundAmount)</span>
                                     </p>
                                 </li>
@@ -278,7 +298,7 @@
 
                     @foreach (var room in _booking.Rooms)
                     {
-                        <div @key="room.RoomId" class="booking-detail-price-row">
+                        <div @key="room.RoomId" class="booking-detail-price-row @(room.Cancellation is null ? "" : "is-cancelled")">
                             <span>
                                 Room @room.RoomNumber
                                 <span class="booking-detail-muted">@Format.Amount(room.PricePerNight) × @_booking.Nights</span>
@@ -287,9 +307,24 @@
                         </div>
                     }
 
+                    @if (CancelledRooms.Count > 0)
+                    {
+                        <div class="booking-detail-price-row is-summary">
+                            <span>Original total</span>
+                            <span class="booking-detail-original-total">@Format.Amount(_booking.TotalAmount)</span>
+                        </div>
+                        @if (_booking.RefundedAmount > 0)
+                        {
+                            <div class="booking-detail-price-row">
+                                <span>Refunds recorded</span>
+                                <span class="booking-detail-price-refunds">@Format.Amount(_booking.RefundedAmount)</span>
+                            </div>
+                        }
+                    }
+
                     <div class="booking-detail-total">
-                        <span>Total</span>
-                        <span class="booking-detail-total-amount">@Format.Amount(_booking.TotalAmount)</span>
+                        <span>@(CancelledRooms.Count > 0 ? "Remaining total" : "Total")</span>
+                        <span class="booking-detail-total-amount">@Format.Amount(_booking.ActiveAmount)</span>
                     </div>
                 </section>
 
@@ -298,10 +333,10 @@
                 </Button>
 
                 @* a settled bill is final, the booking can not be cancelled anymore *@
-                @if (_booking.Cancellation is null && _booking.Status != BookingStatus.Settled)
+                @if (ActiveRooms.Count > 0 && _booking.Status != BookingStatus.Settled)
                 {
                     <Button Variant="ButtonVariant.Danger" IsFullWidth="true" OnClick="OpenCancelDialog" Class="booking-detail-cancel-open">
-                        Cancel booking
+                        @(ActiveRooms.Count == 1 ? "Cancel booking" : "Cancel rooms")
                     </Button>
                 }
             </aside>
@@ -317,10 +352,88 @@
                         <FluentValidationValidator />
 
                         <span class="eyebrow">Booking @_booking.BookingNumber</span>
-                        <h2 id="booking-cancel-title" class="booking-cancel-title">Cancel this booking?</h2>
+                        <h2 id="booking-cancel-title" class="booking-cancel-title">@(ActiveRooms.Count == 1 ? "Cancel this booking?" : "Which rooms do you want to cancel?")</h2>
                         <p class="booking-detail-muted">
-                            The rooms become available again. The booking, its prices and payments stay visible here.
+                            Cancelled rooms become available again. The booking, its prices and payments stay visible here.
                         </p>
+
+                        @if (ActiveRooms.Count > 1)
+                        {
+                            <label class="booking-cancel-select-all">
+                                <input type="checkbox" checked="@AllActiveRoomsSelected" @onchange="ToggleAllRooms" />
+                                <span>Select all rooms</span>
+                            </label>
+                        }
+
+                        <ul class="booking-cancel-rooms">
+                            @foreach (var room in ActiveRooms)
+                            {
+                                var selection = SelectionOf(room);
+                                <li @key="room.BookingRoomId" class="booking-cancel-room @(selection is null ? "" : "is-selected")">
+                                    <label class="booking-cancel-room-toggle">
+                                        <input type="checkbox" checked="@(selection is not null)" @onchange="() => ToggleRoom(room)" />
+                                        <span class="booking-cancel-room-info">
+                                            <span class="booking-detail-room-name">Room @room.RoomNumber · @room.RoomName</span>
+                                            @* a tag and not plain text, rates are often named after their policy *@
+                                            <span class="booking-detail-muted is-block">
+                                                @room.RateName
+                                                <span class="tag @(room.IsRefundable ? "is-primary" : "is-danger") is-light">@(room.IsRefundable ? "Refundable" : "Non-refundable")</span>
+                                            </span>
+                                            <span class="booking-cancel-room-due is-block">Policy: @room.RefundPercent% · @Format.Amount(room.RefundAmount)</span>
+                                        </span>
+                                    </label>
+                                    @if (selection is not null)
+                                    {
+                                        <div class="booking-cancel-room-refund">
+                                            <label class="label" for="booking-cancel-refund-@room.BookingRoomId">Refund (€)</label>
+                                            <div class="control">
+                                                <InputNumber @bind-Value="selection.RefundAmount" id="@($"booking-cancel-refund-{room.BookingRoomId}")" class="input" min="0" max="@room.Total" step="0.01"
+                                                             inputmode="decimal" disabled="@(_booking.RefundableAmount == 0)" />
+                                            </div>
+                                            <ValidationMessage For="() => selection.RefundAmount" class="help is-danger" />
+                                        </div>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                        <ValidationMessage For="() => _cancelForm.Rooms" class="help is-danger" />
+
+                        <div class="booking-cancel-summary">
+                            <span class="booking-cancel-summary-count">@_cancelForm.Rooms.Count of @ActiveRooms.Count @(ActiveRooms.Count == 1 ? "room" : "rooms") selected</span>
+                            <span class="booking-cancel-summary-total">Total refund @Format.Amount(SelectedRefundTotal) of @Format.Amount(_booking.RefundableAmount) refundable</span>
+                        </div>
+
+                        @if (_booking.PaidAmount == 0)
+                        {
+                            <p class="help booking-cancel-refund-hint">Nothing has been paid, so there is nothing to refund.</p>
+                        }
+
+                        @if (IsRefundAboveLimit)
+                        {
+                            <p class="help is-danger booking-cancel-refund-limit" role="alert">The refunds can't be more than @Format.Amount(_booking.RefundableAmount).</p>
+                        }
+
+                        @if (_cancelForm.Rooms.Count > 0 && AllActiveRoomsSelected)
+                        {
+                            <p class="booking-detail-refund-note booking-cancel-whole-note">
+                                <i class="fas fa-circle-info" aria-hidden="true"></i>
+                                No rooms remain, so this cancels the whole booking.
+                            </p>
+                        }
+
+                        @if (NeedsNewGuestCount)
+                        {
+                            <div class="field mt-4 booking-cancel-guests">
+                                <label class="label is-required" for="booking-cancel-adults">New number of guests</label>
+                                <div class="control">
+                                    <InputNumber @bind-Value="_cancelForm.Adults" id="booking-cancel-adults" class="input" min="1" max="@RemainingCapacity" step="1" inputmode="numeric" />
+                                </div>
+                                <ValidationMessage For="() => _cancelForm.Adults" class="help is-danger" />
+                                <p class="help booking-cancel-guests-hint">
+                                    The booking has @_booking.Adults guests, but the remaining rooms fit at most @RemainingCapacity.
+                                </p>
+                            </div>
+                        }
 
                         <div class="field mt-4">
                             <label class="label is-required" for="booking-cancel-reason">Reason</label>
@@ -329,25 +442,6 @@
                                                placeholder="e.g. Guest asked to cancel by phone" />
                             </div>
                             <ValidationMessage For="() => _cancelForm.Reason" class="help is-danger" />
-                        </div>
-
-                        <div class="field">
-                            <label class="label" for="booking-cancel-refund">Refund (€)</label>
-                            <div class="control">
-                                <InputNumber @bind-Value="_cancelForm.RefundAmount" id="booking-cancel-refund" class="input" min="0" max="@_booking.PaidAmount" step="0.01"
-                                             inputmode="decimal" disabled="@(_booking.PaidAmount == 0)" />
-                            </div>
-                            <ValidationMessage For="() => _cancelForm.RefundAmount" class="help is-danger" />
-                            <p class="help booking-cancel-refund-hint">
-                                @if (_booking.PaidAmount == 0)
-                                {
-                                    <span>Nothing has been paid, so there is nothing to refund.</span>
-                                }
-                                else
-                                {
-                                    <span>Due per the cancellation policy: @Format.Amount(_booking.SuggestedRefundAmount) of @Format.Amount(_booking.PaidAmount) paid.</span>
-                                }
-                            </p>
                         </div>
 
                         <p class="booking-detail-refund-note">
@@ -362,7 +456,9 @@
 
                         <div class="booking-cancel-actions">
                             <Button Variant="ButtonVariant.Secondary" OnClick="CloseCancelDialog" IsDisabled="_isCancelling">Keep booking</Button>
-                            <Button Type="submit" Variant="ButtonVariant.Danger" IsLoading="_isCancelling" Class="booking-cancel-confirm">Cancel booking</Button>
+                            <Button Type="submit" Variant="ButtonVariant.Danger" IsLoading="_isCancelling" IsDisabled="IsRefundAboveLimit" Class="booking-cancel-confirm">
+                                @(_cancelForm.Rooms.Count > 0 && AllActiveRoomsSelected ? "Cancel booking" : _cancelForm.Rooms.Count == 1 ? "Cancel 1 room" : $"Cancel {_cancelForm.Rooms.Count} rooms")
+                            </Button>
                         </div>
                     </EditForm>
                 </div>

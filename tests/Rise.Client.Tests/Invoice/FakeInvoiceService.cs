@@ -25,6 +25,10 @@ public class FakeInvoiceService : IInvoiceService
                 StripeReceiptUrl = i == 1 ? "https://pay.stripe.com/receipts/test_1" : null,
                 CardBrand = i == 1 ? "visa" : null,
                 CardLast4 = i == 1 ? "4242" : null,
+                // 1st row nothing cancelled, 2nd partly with a refund, 3rd fully without a refund
+                RoomCount = 2,
+                CancelledRoomCount = i - 1,
+                RefundedAmount = i == 2 ? 150m : 0m,
                 IsBillSettled = i == 1,
             });
 

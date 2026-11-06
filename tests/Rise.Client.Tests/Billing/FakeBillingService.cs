@@ -93,6 +93,7 @@ public static class TestBills
             },
         ],
         AccommodationTotal = 330m,
+        CancellationFeesTotal = 0m,
         OtherServicesTotal = otherServicesTotal,
         VatGroups =
         [
@@ -108,6 +109,7 @@ public static class TestBills
             new BillingDto.Payment { Id = 2, Amount = 130m },
         ],
         PaidAmount = 200m,
+        RefundedAmount = 0m,
         OutstandingBalance = 130m + otherServicesTotal,
     };
 
@@ -125,12 +127,43 @@ public static class TestBills
         var bill = Open();
         bill.Status = "Cancelled";
         bill.OutstandingBalance = 0m;
-        bill.Cancellation = new BillingDto.Cancellation
+        bill.RefundedAmount = 150m;
+        bill.Accommodation[0].Cancellation = new BillingDto.Cancellation
         {
             CancelledAt = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc),
             Reason = "Guest is ill",
             RefundAmount = 150m,
         };
+        return bill;
+    }
+
+    /// <summary>
+    /// <see cref="Open"/> with a 2nd room, room 102 cancelled with a €100 refund and a €50 fee
+    /// </summary>
+    public static BillingDto.Bill PartlyCancelled()
+    {
+        var bill = Open();
+        bill.Accommodation.Add(new BillingDto.AccommodationLine
+        {
+            RoomNumber = "102",
+            RoomName = "Deluxe Room",
+            RateName = "Flexible",
+            Nights = 3,
+            PricePerNight = 50m,
+            VatPercentage = 10m,
+            Total = 150m,
+            CancellationFee = 50m,
+            Cancellation = new BillingDto.Cancellation
+            {
+                CancelledAt = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc),
+                Reason = "Guest is ill",
+                RefundAmount = 100m,
+            },
+        });
+        bill.CancellationFeesTotal = 50m;
+        bill.RefundedAmount = 100m;
+        bill.Total += 50m;
+        bill.OutstandingBalance = 0m;
         return bill;
     }
 }

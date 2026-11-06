@@ -64,6 +64,17 @@
                                         <a href="@StripeDashboardUrl(invoice.StripePaymentIntent)" target="_blank" rel="noopener">View in Stripe ↗</a>
                                     </p>
                                 }
+                                @* the amount of the row stays what was paid, a refund is about the whole booking *@
+                                @if (invoice.CancelledRoomCount > 0)
+                                {
+                                    <p class="invoice-muted invoice-cancellation">
+                                        <span class="tag is-danger is-light">@(invoice.IsBookingCancelled ? "Booking cancelled" : $"{invoice.CancelledRoomCount} of {invoice.RoomCount} rooms cancelled")</span>
+                                        @if (invoice.RefundedAmount > 0)
+                                        {
+                                            <span class="invoice-refund">@Format.Amount(invoice.RefundedAmount) refunded on this booking</span>
+                                        }
+                                    </p>
+                                }
                             </div>
                             <div class="invoice-amount">
                                 <span>@Format.Amount(invoice.Amount)</span>
