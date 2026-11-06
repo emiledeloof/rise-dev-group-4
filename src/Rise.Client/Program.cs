@@ -115,6 +115,10 @@ try
     }).AddHttpMessageHandler<CookieHandler>();
 
     builder.Services.AddHttpClient<IPromotionCodeService, PromotionCodeService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
     // the admin room endpoints need the admin role, so send the auth cookie along
     builder.Services.AddHttpClient<IRoomAdminService, RoomAdminService>(client =>
     {
