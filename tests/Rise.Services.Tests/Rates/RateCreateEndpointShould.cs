@@ -74,7 +74,7 @@ public class RateCreateEndpointShould
             .UseInMemoryDatabase(nameof(PersistTheRateWhenTheEndpointRunsWithTheRealService))
             .Options;
         await using var dbContext = new ApplicationDbContext(options);
-        var room = new Room("101", "Deluxe Room", 2);
+        var room = new Room("101", "Deluxe Room", 2, new RoomType("Standard"));
         dbContext.Rooms.Add(room);
         await dbContext.SaveChangesAsync();
 

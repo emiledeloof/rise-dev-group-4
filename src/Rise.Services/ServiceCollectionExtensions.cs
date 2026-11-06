@@ -35,6 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoomService, RoomService>();
         services.AddScoped<IRatePricingService, RatePricingService>();
         services.AddScoped<IRoomTypeService, RoomTypeService>();
+        services.AddScoped<IRoomAdminService, RoomAdminService>();
         services.AddTransient<DbSeeder>();
 
         // Add other application services here.
