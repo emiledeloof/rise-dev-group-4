@@ -4,7 +4,8 @@ namespace: staging
 
 resources:
 - ../../base
+- namespace.yaml
 
 patches:
-- patch-image.yaml
-- patch-ingress.yaml
+- path: patch-image.yaml
+- path: patch-ingress.yaml

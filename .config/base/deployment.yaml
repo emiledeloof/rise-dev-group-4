@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rise-server-prod
+  name: rise-server
   labels:
     app: rise
 spec:
@@ -32,4 +32,3 @@ spec:
       - name: rise-logs
         persistentVolumeClaim:
           claimName: rise-logs-pvc
-
