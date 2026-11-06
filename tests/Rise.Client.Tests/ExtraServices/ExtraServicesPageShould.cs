@@ -59,4 +59,16 @@ public class ExtraServicesPageShould : BunitContext
 
         _service.Services.First(s => s.Name == "Breakfast").IsActive.ShouldBeFalse();
     }
+
+    [Fact]
+    public void OpenEditFormWhenEditButtonClicked()
+    {
+        var cut = Render<Rise.Client.ExtraServices.ExtraServices>();
+
+        cut.FindAll(".rate-edit-btn")[0].Click();
+
+        cut.Find(".service-panel").ShouldNotBeNull();
+        cut.Find("#service-form-heading").TextContent.ShouldBe("Edit extra service");
+        cut.Find("input[role='switch'][aria-label='Active (available for bookings and rates)']").ShouldNotBeNull();
+    }
 }

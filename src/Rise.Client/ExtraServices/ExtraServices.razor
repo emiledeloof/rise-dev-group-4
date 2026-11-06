@@ -65,8 +65,8 @@
                                                disabled="@_pendingActivations.Contains(service.Id)"
                                                @onchange="args => SetServiceActiveAsync(service, args)" />
                                         <span aria-hidden="true"></span>
-                                        <span class="is-sr-only">@(service.IsActive ? "Active" : "Inactive")</span>
                                     </label>
+                                    <span class="is-sr-only">@(service.IsActive ? "Active" : "Inactive")</span>
                                 </td>
                                 <td>
                                     <Button Variant="ButtonVariant.Secondary"
@@ -137,9 +137,15 @@
 
                     @if (_formModel is ExtraServiceRequest.Edit editModel)
                     {
-                        <label class="checkbox rate-refundable">
-                            <InputCheckbox @bind-Value="editModel.IsActive" id="service-active" />
-                            Active (available for bookings and rates)
+                        <label class="rate-settings-toggle">
+                            <span>Active (available for bookings and rates)</span>
+                            <span class="rate-switch">
+                                <InputCheckbox @bind-Value="editModel.IsActive"
+                                               id="service-active"
+                                               role="switch"
+                                               aria-label="Active (available for bookings and rates)" />
+                                <span aria-hidden="true"></span>
+                            </span>
                         </label>
                     }
 
