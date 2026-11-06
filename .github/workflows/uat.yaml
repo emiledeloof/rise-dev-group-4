@@ -110,7 +110,7 @@ jobs:
 
   notify:
     name: Notify team
-    needs: [ci, build, deploy]
+    needs: [build, deploy]
     if: always()
     uses: ./.github/workflows/notify.yaml
     with:
