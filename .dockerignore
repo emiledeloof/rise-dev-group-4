@@ -7,6 +7,7 @@
 .git/
 .github/
 .env
+.config
 tests/
 docker/
 Dockerfile
