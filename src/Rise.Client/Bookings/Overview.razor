@@ -1,25 +1,26 @@
+@inherits LocalizedComponentBase
 @page "/booking/overview"
 @using Rise.Client.Common
 @* last step of the booking, everything the guest picked before paying, styles in Overview.razor.css *@
 @* TODO: translate the texts with the languages task *@
 
-<PageTitle>Booking overview</PageTitle>
+<PageTitle>@Text["BookingOverview"]</PageTitle>
 
 @if (Draft.IsComplete)
 {
     var guest = Draft.Guest!;
 
     <div class="page">
-        <span class="eyebrow">Book a room</span>
-        <h1>Review your booking</h1>
-        <p class="subtitle">Check the details below, then continue to the payment.</p>
+        <span class="eyebrow">@Text["BookARoom"]</span>
+        <h1>@Text["ReviewYourBooking"]</h1>
+        <p class="subtitle">@Text["ReviewYourBookingSubtitle"]</p>
 
         @if (_conflictMessage is not null)
         {
             @* a room was booked by someone else while the guest filled in the form *@
             <div class="notification is-danger overview-error">
                 <p>@_conflictMessage</p>
-                <Button Variant="ButtonVariant.Secondary" Href="@RoomsUrl" Class="mt-3">Choose other rooms</Button>
+                <Button Variant="ButtonVariant.Secondary" Href="@RoomsUrl" Class="mt-3">@Text["ChooseOtherRooms"]</Button>
             </div>
         }
         else if (_errors.Count > 0)
@@ -36,19 +37,19 @@
             <div class="overview-sections">
                 <section class="overview-section overview-stay" aria-labelledby="overview-stay-title">
                     <header class="overview-section-header">
-                        <h2 id="overview-stay-title" class="overview-section-title">Your stay</h2>
-                        <a class="overview-edit" href="/search">Edit</a>
+                        <h2 id="overview-stay-title" class="overview-section-title">@Text["YourStay"]</h2>
+                        <a class="overview-edit" href="/search">@Text["Edit"]</a>
                     </header>
                     <p>
                         @Draft.CheckIn!.Value.ToString("ddd d MMM yyyy") – @Draft.CheckOut!.Value.ToString("ddd d MMM yyyy")
                     </p>
-                    <p class="overview-muted overview-stay-summary">@Draft.Nights @(Draft.Nights == 1 ? "night" : "nights") · @Draft.Adults @(Draft.Adults == 1 ? "guest" : "guests")</p>
+                    <p class="overview-muted overview-stay-summary">@Draft.Nights @(Draft.Nights == 1 ? Text["Night"] : Text["Nights"]) · @Draft.Adults @(Draft.Adults == 1 ? Text["Guest"] : Text["Guests"])</p>
                 </section>
 
                 <section class="overview-section overview-rooms" aria-labelledby="overview-rooms-title">
                     <header class="overview-section-header">
-                        <h2 id="overview-rooms-title" class="overview-section-title">Rooms</h2>
-                        <a class="overview-edit" href="@RoomsUrl">Edit</a>
+                        <h2 id="overview-rooms-title" class="overview-section-title">@Text["RoomsLabel"]</h2>
+                        <a class="overview-edit" href="@RoomsUrl">@Text["Edit"]</a>
                     </header>
                     <ul class="overview-room-list">
                         @foreach (var room in Draft.Rooms)
@@ -56,7 +57,7 @@
                             <li class="overview-room">
                                 <div>
                                     <p class="overview-room-name">@room.RoomName</p>
-                                    <p class="overview-rate-name">@room.RateName · @Format.Amount(room.PricePerNight) / night</p>
+                                    <p class="overview-rate-name">@room.RateName · @Format.Amount(room.PricePerNight) / @Text["Night"]</p>
                                     @if (!string.IsNullOrWhiteSpace(room.RateDescription))
                                     {
                                         <p class="overview-rate-description">@room.RateDescription</p>
@@ -64,7 +65,14 @@
                                     @* cancellation policy of the rate at booking time, always there so no if *@
                                     <p class="overview-rate-policy">@room.CancellationText</p>
                                 </div>
-                                <span class="overview-room-price">@Format.Amount(room.TotalPrice)</span>
+                                @* the price paid is the prominent one, the excl. VAT amount from the server is only informational *@
+                                <div class="overview-room-pricing">
+                                    <span class="overview-room-price">@Format.Amount(room.TotalPrice)</span>
+                                    @if (room.TotalPriceExclVat is { } exclVat)
+                                    {
+                                        <span class="overview-room-price-label">@Text["InclVat"]</span>
+                                    }
+                                </div>
                             </li>
                         }
                     </ul>
@@ -72,15 +80,15 @@
 
                 <section class="overview-section overview-guest" aria-labelledby="overview-guest-title">
                     <header class="overview-section-header">
-                        <h2 id="overview-guest-title" class="overview-section-title">Guest details</h2>
-                        <a class="overview-edit" href="/guests/create">Edit</a>
+                        <h2 id="overview-guest-title" class="overview-section-title">@Text["GuestDetails"]</h2>
+                        <a class="overview-edit" href="/guests/create">@Text["Edit"]</a>
                     </header>
                     <dl class="overview-guest-list">
-                        <div><dt>Name</dt><dd>@guest.FirstName @guest.LastName</dd></div>
-                        <div><dt>Email</dt><dd>@guest.Email</dd></div>
-                        <div><dt>Phone</dt><dd>@guest.PhoneNumber</dd></div>
+                        <div><dt>@Text["Name"]</dt><dd>@guest.FirstName @guest.LastName</dd></div>
+                        <div><dt>@Text["Email"]</dt><dd>@guest.Email</dd></div>
+                        <div><dt>@Text["Phone"]</dt><dd>@guest.PhoneNumber</dd></div>
                         <div>
-                            <dt>Address</dt>
+                            <dt>@Text["Address"]</dt>
                             <dd>
                                 @guest.AddressLine1
                                 @if (!string.IsNullOrWhiteSpace(guest.AddressLine2))
@@ -97,11 +105,10 @@
             @* total and pay btn, on the right on big screens, under the details on phones *@
             <aside class="overview-summary" aria-label="Total">
                 <p class="overview-total">
-                    <span>Total</span>
-                    <span>@Format.Amount(Draft.Total)</span>
+                    <span class="overview-total-label">@(Draft.IncludesVat ? Text["TotalInclVat"] : Text["Total"])</span>
+                    <span class="overview-total-amount">@Format.Amount(Draft.Total)</span>
                 </p>
-                <p class="overview-muted">Prices include VAT when enabled</p>
-                <Button IsFullWidth="true" IsLoading="_isPaying" OnClick="PayAsync" Class="pay-btn">Pay now</Button>
+                <Button IsFullWidth="true" IsLoading="_isPaying" OnClick="PayAsync" Class="pay-btn">@Text["PayNow"]</Button>
             </aside>
         </div>
     </div>

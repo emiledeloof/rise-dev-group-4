@@ -16,7 +16,7 @@ public class RefundCalculatorShould
     // a booked room with a copy of the policy of its rate
     private static BookingRoom CreateBookingRoom(CancellationPolicy policy = CancellationPolicy.Refundable)
     {
-        var room = new Room("101", "Single Room", 1);
+        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
         var rate = room.AddRate("Flexible", 79m);
         rate.CancellationPolicy = policy;
 

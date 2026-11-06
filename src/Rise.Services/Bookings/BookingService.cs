@@ -173,7 +173,8 @@ public sealed class BookingService(
                 rate.PricePerNight,
                 settings.IsVatEnabled,
                 settings.VatPercentage);
-            booking.AddRoom(room, rate, pricePerNight);
+            // the VAT pct is kept on the room, so the bill still shows the right VAT after the setting changes
+            booking.AddRoom(room, rate, pricePerNight, settings.IsVatEnabled ? settings.VatPercentage : 0m);
         }
 
         // guest and booking are saved together, one SaveChanges is atomic
@@ -275,8 +276,7 @@ public sealed class BookingService(
             Id = booking.Id,
             BookingNumber = booking.BookingNumber,
             CreatedAt = booking.CreatedAt,
-            // same rule as GetIndexAsync
-            Status = booking.IsCancelled ? BookingStatus.Cancelled : payments.Any(x => x.IsPaid) ? BookingStatus.Paid : BookingStatus.Pending,
+            Status = BookingStatusRule.For(booking),
             CheckIn = booking.CheckIn,
             CheckOut = booking.CheckOut,
             Nights = nights,
@@ -396,6 +396,8 @@ public sealed class BookingService(
 
     private static BookingDto.Detail ToDetailDto(Booking booking)
     {
+        var nights = booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
+
         return new BookingDto.Detail
         {
             Id = booking.Id,
@@ -409,12 +411,20 @@ public sealed class BookingService(
                 Email = booking.Guest.Email,
                 Phone = booking.Guest.Phone,
             },
-            Rooms = booking.Rooms.Select(x => new BookingDto.BookingRoomDto
+            Rooms = booking.Rooms.Select(x =>
             {
-                Id = x.Id,
-                RoomId = x.Room.Id,
-                RoomNumber = x.Room.RoomNumber,
-                PricePerNight = x.PricePerNight,
+                var total = PriceCalculator.Total(x.PricePerNight, nights);
+                return new BookingDto.BookingRoomDto
+                {
+                    Id = x.Id,
+                    RoomId = x.Room.Id,
+                    RoomNumber = x.Room.RoomNumber,
+                    RoomName = x.Room.Name,
+                    PricePerNight = x.PricePerNight,
+                    Total = total,
+                    // from the VAT pct stored at booking time, so a later VAT change doesn't alter the breakdown
+                    TotalExclVat = x.VatPercentage > 0m ? PriceCalculator.ExclusiveOfVat(total, x.VatPercentage) : null,
+                };
             }).ToList(),
             Payments = booking.Payments.Select(x => new BookingDto.PaymentDto
             {
@@ -443,14 +453,21 @@ public sealed class BookingService(
     }
 
     /// <summary>
-    /// Returns a paginated list of all bookings for the admin overview.
+    /// Returns a paginated list of the bookings for the admin overview, optionally filtered on cancellation.
     /// Status is "Cancelled" for a cancelled booking, else "Paid" when at least one payment has been settled, otherwise "Pending".
     /// </summary>
     public async Task<Result<BookingResponse.Index>> GetIndexAsync(
-        QueryRequest.SkipTake request,
+        BookingRequest.Index request,
         CancellationToken ctx = default)
     {
         var query = dbContext.Bookings.Where(b => !b.IsDeleted);
+
+        query = request.CancellationFilter switch
+        {
+            BookingCancellationFilters.NotCancelled => query.Where(b => b.CancelledAt == null),
+            BookingCancellationFilters.OnlyCancelled => query.Where(b => b.CancelledAt != null),
+            _ => query,
+        };
 
         var totalCount = await query.CountAsync(ctx);
 
@@ -482,7 +499,8 @@ public sealed class BookingService(
                 GuestEmail = b.Guest.Email,
                 RoomPrices = b.Rooms.Select(r => r.PricePerNight).ToList(),
                 RoomNumbers = b.Rooms.Select(r => r.Room.RoomNumber).ToList(),
-                Status = b.CancelledAt != null ? BookingStatus.Cancelled : b.Payments.Any(p => p.PaidAt != null) ? BookingStatus.Paid : BookingStatus.Pending,
+                IsCancelled = b.CancelledAt != null,
+                HasSettledPayment = b.Payments.AsQueryable().Any(BookingStatusRule.IsSettled),
             })
             .ToListAsync(ctx);
 
@@ -500,7 +518,7 @@ public sealed class BookingService(
                 GuestEmail = x.GuestEmail,
                 TotalAmount = x.RoomPrices.Sum(p => PriceCalculator.Total(p, nights)),
                 RoomNumbers = x.RoomNumbers,
-                Status = x.Status,
+                Status = BookingStatusRule.For(x.IsCancelled, x.HasSettledPayment),
             };
         }).ToList();
 

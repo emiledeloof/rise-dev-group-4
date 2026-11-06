@@ -1,0 +1,23 @@
+.status-tag {
+    gap: var(--space-xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* solid burgundy badge, the light bulma tag was almost white on the cream page */
+.status-tag-cancelled {
+    background-color: var(--color-accent);
+    color: var(--color-surface);
+}
+
+/* pill with a light tint and a thin line so it reads as a stamp and not as a btn */
+.status-tag-paid {
+    border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+    border-radius: 999px;
+    background-color: var(--color-primary-tint);
+    color: var(--color-primary);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: default;
+}

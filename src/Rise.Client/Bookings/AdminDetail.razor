@@ -36,21 +36,7 @@
                 <p class="booking-detail-muted booking-detail-created">Booked on @Format.Date(_booking.CreatedAt)</p>
             </div>
             <span class="booking-detail-status">
-                @if (_booking.Status == BookingStatus.Cancelled)
-                {
-                    <span class="tag is-danger is-medium booking-detail-cancelled-tag">
-                        <i class="fas fa-ban" aria-hidden="true"></i>
-                        <span>Cancelled</span>
-                    </span>
-                }
-                else if (_booking.Status == BookingStatus.Paid)
-                {
-                    <span class="tag is-primary is-light is-medium">Paid</span>
-                }
-                else
-                {
-                    <span class="tag is-warning is-light is-medium">Pending</span>
-                }
+                <BookingStatusTag Status="@_booking.Status" />
             </span>
         </header>
 
@@ -306,6 +292,10 @@
                         <span class="booking-detail-total-amount">@Format.Amount(_booking.TotalAmount)</span>
                     </div>
                 </section>
+
+                <Button Variant="ButtonVariant.Primary" IsFullWidth="true" Href="@($"admin/bookings/{_booking.Id}/bill")" Class="booking-detail-bill-open">
+                    Final bill
+                </Button>
 
                 @if (_booking.Cancellation is null)
                 {

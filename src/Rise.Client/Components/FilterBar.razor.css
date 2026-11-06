@@ -1,0 +1,13 @@
+/* mobile first, 1 column on phones */
+.filter-bar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 641px) {
+    .filter-bar {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}

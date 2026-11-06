@@ -1,6 +1,8 @@
 using System.Globalization;
 using Ardalis.Result;
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
+using Rise.Client.I18nText;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 
@@ -9,8 +11,9 @@ namespace Rise.Client.Rooms;
 /// <summary>
 /// room detail page, shows what the room offers, opened from the search results
 /// </summary>
-public partial class Detail
+public partial class Detail : LocalizedComponentBase
 {
+
     /// <summary>
     /// id of the room from the url, eg /rooms/3
     /// </summary>
@@ -53,7 +56,7 @@ public partial class Detail
     private string BackUrl => HasSearchDates
         ? $"search/results?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}{(Adults.HasValue ? $"&adults={Adults}" : "")}{(Rooms.HasValue ? $"&rooms={Rooms}" : "")}"
         : "search";
-    private string BackText => HasSearchDates ? "Back to available rooms" : "Search rooms";
+    private string BackText => HasSearchDates ? Text["BackToAvailableRooms"] : Text["SearchRooms"];
 
     // dates of the url grouped in a stay period, to reuse its Nights calculation
     private SearchRequest.StayPeriod Stay => new()
@@ -64,13 +67,16 @@ public partial class Detail
         Rooms = Rooms ?? SearchRequest.StayPeriod.DefaultRooms,
     };
 
-    // dates of the stay card, eg 14 Oct – 17 Oct 2026, english month names like the date picker until the languages task
+    // dates of the stay card, eg 14 Oct – 17 Oct 2026
     private string StayDatesText =>
-        $"{CheckIn?.ToString("d MMM", CultureInfo.InvariantCulture)} – {CheckOut?.ToString("d MMM yyyy", CultureInfo.InvariantCulture)}";
+        $"{CheckIn?.ToString("d MMM", DateDisplayCulture)} – {CheckOut?.ToString("d MMM yyyy", DateDisplayCulture)}";
+
+    private static CultureInfo DateDisplayCulture =>
+        OperatingSystem.IsBrowser() ? CultureInfo.CurrentCulture : CultureInfo.InvariantCulture;
 
     // main btn of the stay card, same target as the back link, with a text that invites to book
     private string CtaUrl => BackUrl;
-    private string CtaText => HasSearchDates ? "See prices for your dates" : "Check availability";
+    private string CtaText => HasSearchDates ? Text["SeePricesForDates"] : Text["CheckAvailability"];
 
     // 1st photo is the static hero, null when the room has no photo
     private string? HeroPhoto => _room?.PhotoUrls.FirstOrDefault();
@@ -101,5 +107,10 @@ public partial class Detail
             _errorMessage = "Sorry, we could not load this room. Please try again later.";
 
         _isLoading = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTextAsync();
     }
 }

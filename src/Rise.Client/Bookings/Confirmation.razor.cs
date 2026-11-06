@@ -1,5 +1,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
+using Rise.Client.I18nText;
 using Rise.Shared.Bookings;
 
 namespace Rise.Client.Bookings;
@@ -8,8 +10,9 @@ namespace Rise.Client.Bookings;
 /// page Stripe sends the guest back to after paying, eg /booking/confirmation?session_id=cs_test_...
 /// Stripe calls the webhook around the same time, so the booking can still be unpaid on the first load
 /// </summary>
-public partial class Confirmation : ComponentBase, IDisposable
+public partial class Confirmation : LocalizedComponentBase, IDisposable
 {
+
     // how many times the page asks again while the webhook hasn't marked the payment as paid
     private const int MaxPollAttempts = 10;
 
@@ -33,8 +36,12 @@ public partial class Confirmation : ComponentBase, IDisposable
     // true while the page is still waiting for the webhook
     private bool isPolling;
 
-    private decimal paymentAmount => booking?.Payments.FirstOrDefault()?.Amount ?? 0;
+    // sum of the rooms, the payment can differ after a refund or a 2nd payment
+    private decimal Total => booking?.Rooms.Sum(x => x.Total) ?? 0;
     private bool IsPaid => booking?.Payments.Any(x => x.PaidAt is not null) == true;
+
+    // the server only sends a VAT-exclusive amount when VAT applied at booking time, so then the prices include VAT
+    private bool IncludesVat => booking?.Rooms.Any(x => x.TotalExclVat is not null) == true;
     private int numberOfNights => booking is null
         ? 0
         : booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
@@ -45,6 +52,8 @@ public partial class Confirmation : ComponentBase, IDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadTextAsync();
+
         if (string.IsNullOrWhiteSpace(SessionId))
         {
             errorMessage = "The Stripe Checkout Session is missing from the URL.";

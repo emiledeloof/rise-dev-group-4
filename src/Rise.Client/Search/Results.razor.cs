@@ -3,14 +3,23 @@ using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 using Rise.Client.Bookings;
 using Rise.Client.Components;
+using Rise.Client.Common;
+using System.Globalization;
 
 namespace Rise.Client.Search;
 
 /// <summary>
 /// results page of the stay search, shows the rooms free for the chosen dates, guests and rooms
 /// </summary>
-public partial class Results
+public partial class Results : LocalizedComponentBase
 {
+    private static CultureInfo DateDisplayCulture =>
+        OperatingSystem.IsBrowser() ? CultureInfo.CurrentCulture : CultureInfo.InvariantCulture;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTextAsync();
+    }
     /// <summary>
     /// arrival date read from the url, eg ?checkIn=2026-10-14
     /// SupplyParameterFromQuery fills it automatically from the query string
@@ -165,7 +174,7 @@ public partial class Results
         {
             var room = _rooms.First(r => r.Id == s.Key);
             var rate = room.Rates.First(x => x.Id == s.Value);
-            return new DraftRoom(room.Id, room.Name, rate.Id, rate.Name, rate.Description, rate.PricePerNight, rate.TotalPrice, CancellationPolicyText.Of(rate));
+            return new DraftRoom(room.Id, room.Name, rate.Id, rate.Name, rate.Description, rate.PricePerNight, rate.TotalPrice, CancellationPolicyText.Of(rate), rate.TotalPriceExclVat);
         });
 
         Draft.SetRooms(CheckIn!.Value, CheckOut!.Value, Stay.Adults, rooms);
@@ -191,7 +200,7 @@ public partial class Results
             // the room and the rate behind the 2 ids of the selection
             var room = _rooms.First(r => r.Id == s.Key);
             var rate = room.Rates.First(x => x.Id == s.Value);
-            return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice);
+            return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice, rate.TotalPriceExclVat);
         }).ToList();
 
     // url of the detail page of a room, keeps the dates, guests and rooms so its back btn returns to these results

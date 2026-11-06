@@ -35,7 +35,7 @@ public class RatesPageShould : BunitContext
         rows[0].TextContent.ShouldContain("Double Room");
         rows[0].TextContent.ShouldContain("€90.00");
 
-        var selects = cut.FindAll(".rate-filter select");
+        var selects = cut.FindAll(".select-field select");
         selects.Count.ShouldBe(3);
         selects[0].QuerySelectorAll("option").Select(option => option.TextContent)
             .ShouldBe(["All rooms", "Double Room", "Single Room"]);
@@ -112,14 +112,14 @@ public class RatesPageShould : BunitContext
         await cut.Find(".pagination-next").ClickAsync();
         _rateService.IndexRequests[^1].Skip.ShouldBe(10);
 
-        await cut.FindAll(".rate-filter select")[0].ChangeAsync("Double Room");
+        await cut.FindAll(".select-field select")[0].ChangeAsync("Double Room");
 
         var filteredRequest = _rateService.IndexRequests[^1];
         filteredRequest.RoomName.ShouldBe("Double Room");
         filteredRequest.Policy.ShouldBeNull();
         filteredRequest.Skip.ShouldBe(0);
 
-        await cut.FindAll(".rate-filter select")[1].ChangeAsync("2026-10-01 - 2026-10-31");
+        await cut.FindAll(".select-field select")[1].ChangeAsync("2026-10-01 - 2026-10-31");
         var dateFilteredRequest = _rateService.IndexRequests[^1];
         dateFilteredRequest.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
         dateFilteredRequest.EndDate.ShouldBe(new DateOnly(2026, 10, 31));
@@ -165,7 +165,7 @@ public class RatesPageShould : BunitContext
 
         cut.Find(".rate-create-panel form").Submit();
 
-        cut.Find(".rate-filter .help").TextContent.ShouldContain("Select a room type.");
+        cut.Find(".select-field .help").TextContent.ShouldContain("Select a room type.");
         _rateService.CreateRequests.ShouldBeEmpty();
     }
 

@@ -18,7 +18,7 @@ public class RateServiceIndexShould
             .Options;
         var dbContext = new ApplicationDbContext(options);
 
-        var doubleRoom = new Room("101", DoubleRoom, 2);
+        var doubleRoom = new Room("101", DoubleRoom, 2, new RoomType("Standard"));
         doubleRoom.AddRate("Flexible", 120m, "Flexible cancellation");
         // * new rates are refundable by default, this one is not
         var nonRefundable = doubleRoom.AddRate("Non-refundable", 90m, "No refund");
@@ -27,10 +27,10 @@ public class RateServiceIndexShould
         nonRefundable.IsActive = false;
         doubleRoom.AddRate("Deleted rate", 70m, "Archived policy").IsDeleted = true;
 
-        var singleRoom = new Room("102", SingleRoom, 1);
+        var singleRoom = new Room("102", SingleRoom, 1, new RoomType("Standard"));
         singleRoom.AddRate("Standard", 75m);
 
-        var deletedRoom = new Room("103", "Deleted Room", 2) { IsDeleted = true };
+        var deletedRoom = new Room("103", "Deleted Room", 2, new RoomType("Standard")) { IsDeleted = true };
         deletedRoom.AddRate("Archived", 50m, "Deleted room policy");
 
         dbContext.Rooms.AddRange(doubleRoom, singleRoom, deletedRoom);
@@ -62,7 +62,7 @@ public class RateServiceIndexShould
             .Options;
         await using var dbContext = new ApplicationDbContext(options);
 
-        var room = new Room("101", DoubleRoom, 2);
+        var room = new Room("101", DoubleRoom, 2, new RoomType("Standard"));
         room.AddRate("Autumn", 120m, validFrom: new DateOnly(2026, 10, 1), validTo: new DateOnly(2026, 10, 31));
         room.AddRate("Autumn special", 100m, validFrom: new DateOnly(2026, 10, 1), validTo: new DateOnly(2026, 10, 31));
         room.AddRate("Any dates", 90m);
@@ -91,7 +91,7 @@ public class RateServiceIndexShould
             .Options;
         await using var dbContext = new ApplicationDbContext(options);
 
-        var room = new Room("101", DoubleRoom, 2);
+        var room = new Room("101", DoubleRoom, 2, new RoomType("Standard"));
         room.AddRate("Until October", 120m, validTo: new DateOnly(2026, 10, 31));
         room.AddRate("From October", 100m, validFrom: new DateOnly(2026, 10, 1));
         dbContext.Rooms.Add(room);

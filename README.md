@@ -43,7 +43,7 @@ With the placeholder Stripe key everything works except **Pay now**. To test pay
 ## Team Members
 
 - Matti
-- Maelle
+- Maëlle
 - Martim
 - Nil
 - Tom

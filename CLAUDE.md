@@ -73,3 +73,8 @@ xUnit + Shouldly everywhere; NSubstitute is available.
 ## Requirements
 - The website should provide a luxiorios feeling to the customer 
 - Build the Website mobilefirst, everything has to be responsive, a pwa mode is planed in the future
+
+## Git
+- make small and logical commits and push them on your own so the PR reviewer can see the story of creating the feature
+Before any git or GitHub action (commit, push, branch, PR), read and follow the `github-workflow` skill (`.claude/skills/github-workflow/SKILL.md`).
+

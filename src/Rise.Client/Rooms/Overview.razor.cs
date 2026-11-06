@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
+using Rise.Client.I18nText;
 using Rise.Shared.Rooms;
 
 namespace Rise.Client.Rooms;
@@ -6,8 +8,9 @@ namespace Rise.Client.Rooms;
 /// <summary>
 /// overview of all the rooms, a showcase of the first ones then a list of every room with a link to its detail page
 /// </summary>
-public partial class Overview
+public partial class Overview : LocalizedComponentBase
 {
+
     // max nb of rooms asked to the api, the max of the list validator
     // TODO: paging once the hotel has more than 20 rooms
     private const int MaxRooms = 20;
@@ -23,7 +26,7 @@ public partial class Overview
     // what every guest gets, same facts as the estate section of the landing page
     private static readonly ExperienceItem[] ExperienceList =
     [
-        new("fa-seedling", "Gardens & vineyards", "2.4 hectares of gardens and three small vineyards right outside your door."),
+        new("fa-seedling", "Gardens & vineyards", "2.4 hectares of gardens and two small vineyards right outside your door."),
         new("fa-mountain", "Granite wood", "A wood with granite rocks and caves, where the statue of Mary was found."),
         new("fa-mug-hot", "Breakfast on the terrace", "Start the day slowly on the terrace, among the vines."),
         new("fa-umbrella-beach", "Close to the coast", "The beaches and the coast are a short drive away."),
@@ -63,6 +66,8 @@ public partial class Overview
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
+        await LoadTextAsync();
+
         var result = await RoomService.GetListAsync(new RoomRequest.List { Take = MaxRooms });
 
         if (!result.IsSuccess)

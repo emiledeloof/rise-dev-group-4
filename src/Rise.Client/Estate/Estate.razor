@@ -1,0 +1,89 @@
+@inherits LocalizedComponentBase
+@page "/estate"
+@* Static, curated accommodation and destination information. Replace with published estate content when an API is available. *@
+
+<PageTitle>@Text["EstatePageTitle"]</PageTitle>
+
+<section class="estate-hero">
+    <img class="estate-hero-photo" src="images/home/hero-1-house.jpg" alt="" aria-hidden="true" />
+    <div class="estate-hero-content">
+        <span class="eyebrow estate-hero-eyebrow">Stazzu La Vigna di Maria</span>
+        <h1>@Text["EstateHeroTitle"]</h1>
+        <p>
+            @Text["EstateHeroText"]
+        </p>
+        <div class="estate-hero-actions">
+            <Button Href="search" Class="estate-hero-cta">@Text["CheckAvailability"]</Button>
+            <a class="estate-hero-link" href="estate#surroundings">@Text["EstateExploreSurroundings"] <i class="fas fa-arrow-down" aria-hidden="true"></i></a>
+        </div>
+    </div>
+</section>
+
+<section class="estate-section">
+    <div class="estate-inner estate-story">
+        <div class="estate-story-copy">
+            <span class="eyebrow">@Text["EstateStoryEyebrow"]</span>
+            <h2>@Text["EstateStoryTitle"]</h2>
+            <p>
+                @Text["EstateStoryText1"]
+            </p>
+            <p>
+                @Text["EstateStoryText2"]
+            </p>
+        </div>
+        <div class="estate-story-photo">
+            <PhotoCarousel Photos="@EstatePhotos" Alt="@Text["EstatePhotosAlt"]" Zoomable="true" />
+        </div>
+    </div>
+</section>
+
+<section class="estate-section estate-section-alt">
+    <div class="estate-inner">
+        <div class="estate-heading">
+            <span class="eyebrow">@Text["EstateDetailsEyebrow"]</span>
+            <h2>@Text["EstateDetailsTitle"]</h2>
+            <p>@Text["EstateDetailsText"]</p>
+        </div>
+        <ul class="estate-highlights">
+            @foreach (var highlight in Highlights)
+            {
+                <li class="estate-highlight">
+                    <span class="estate-highlight-icon"><i class="fas @highlight.Icon" aria-hidden="true"></i></span>
+                    <h3>@Text[highlight.TitleKey]</h3>
+                    <p>@Text[highlight.DescriptionKey]</p>
+                </li>
+            }
+        </ul>
+    </div>
+</section>
+
+<section class="estate-section" id="surroundings">
+    <div class="estate-inner">
+        <div class="estate-heading">
+            <span class="eyebrow">@Text["EstateSurroundingsEyebrow"]</span>
+            <h2>@Text["EstateSurroundingsTitle"]</h2>
+            <p>
+                @Text["EstateSurroundingsText"]
+            </p>
+        </div>
+        <div class="estate-places">
+            @foreach (var place in Places)
+            {
+                <article class="estate-place">
+                    <span class="estate-place-icon"><i class="fas @place.Icon" aria-hidden="true"></i></span>
+                    <h3>@Text[place.TitleKey]</h3>
+                    <p>@Text[place.DescriptionKey]</p>
+                </article>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="estate-closing">
+    <div class="estate-inner">
+        <span class="eyebrow estate-closing-eyebrow">@Text["EstateClosingEyebrow"]</span>
+        <h2>@Text["EstateClosingTitle"]</h2>
+        <p>@Text["EstateClosingText"]</p>
+        <Button Href="search" Class="estate-closing-cta">@Text["CheckAvailability"]</Button>
+    </div>
+</section>

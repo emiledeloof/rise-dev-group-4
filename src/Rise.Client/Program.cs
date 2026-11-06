@@ -2,12 +2,15 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
+using Rise.Client.Billing;
+using Rise.Client.Common;
 using Rise.Client.Bookings;
 using Rise.Client.Guests;
 using Rise.Client.Identity;
 using Rise.Client.Invoice;
 using Rise.Shared.Invoice;
 using Rise.Client.Rooms;
+using Rise.Shared.Billing;
 using Rise.Shared.Bookings;
 using Rise.Shared.Guests;
 using Rise.Shared.Rooms;
@@ -15,6 +18,8 @@ using Rise.Client.Rates;
 using Rise.Shared.Rates;
 using Rise.Shared.RatePricing;
 using Rise.Client.RatePricing;
+using Toolbelt.Blazor.I18nText;
+using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Rise.Client.RoomTypes;
 using Rise.Shared.RoomTypes;
 
@@ -35,6 +40,13 @@ try
 
     // register the cookie handler
     builder.Services.AddTransient<CookieHandler>();
+
+    // register i18n localization
+    builder.Services.AddI18nText(options =>
+    {
+        options.PersistenceLevel = PersistanceLevel.SessionAndLocal;
+    });
+    builder.Services.AddScoped<IAppTextProvider, AppTextProvider>();
 
     // set up authorization
     builder.Services.AddAuthorizationCore();
@@ -59,6 +71,12 @@ try
 
     // booking creation, checkout, confirmation are public; the admin list needs the auth cookie — CookieHandler is ignored on anonymous endpoints
     builder.Services.AddHttpClient<IBookingService, BookingService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
+    // the final bill is admin only, so send the auth cookie along
+    builder.Services.AddHttpClient<IBillingService, BillingService>(client =>
     {
         client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();
@@ -90,6 +108,12 @@ try
 
     // the room type endpoints need the admin role, so send the auth cookie along
     builder.Services.AddHttpClient<IRoomTypeService, RoomTypeService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
+    // the admin room endpoints need the admin role, so send the auth cookie along
+    builder.Services.AddHttpClient<IRoomAdminService, RoomAdminService>(client =>
     {
         client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();
