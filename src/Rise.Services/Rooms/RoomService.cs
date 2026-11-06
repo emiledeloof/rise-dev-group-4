@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rise.Persistence;
+using Rise.Shared.Common;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 using Rise.Services.Bookings;
@@ -142,26 +143,8 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
         if (rooms.Count < targetRooms)
             return false;
 
-        return GetCombinations(rooms.ToList(), targetRooms)
+        return Combinatorics.GetCombinations(rooms, targetRooms)
             .Any(combo => combo.Sum(r => r.MaxGuests) >= targetAdults);
-    }
-
-    private static List<List<T>> GetCombinations<T>(List<T> list, int length)
-    {
-        if (length == 0)
-            return [[]];
-
-        var result = new List<List<T>>();
-        for (var i = 0; i <= list.Count - length; i++)
-        {
-            var head = list[i];
-            var tail = list.Skip(i + 1).ToList();
-            foreach (var sub in GetCombinations(tail, length - 1))
-            {
-                result.Add([head, .. sub]);
-            }
-        }
-        return result;
     }
 
     /// <summary>
@@ -250,7 +233,7 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
             if (availableRoomsForCandidate.Count >= reqRooms)
             {
                 // find combinations that meet the adult capacity requirement
-                var validCombos = GetCombinations(availableRoomsForCandidate, reqRooms)
+                var validCombos = Combinatorics.GetCombinations(availableRoomsForCandidate, reqRooms)
                     .Where(combo => combo.Sum(r => r.MaxGuests) >= reqAdults)
                     .ToList();
 

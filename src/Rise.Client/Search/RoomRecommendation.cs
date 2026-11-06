@@ -1,3 +1,4 @@
+using Rise.Shared.Common;
 using Rise.Shared.Rooms;
 
 namespace Rise.Client.Search;
@@ -32,7 +33,7 @@ public class RecommendedCombination
             return null;
 
         // generate all combinations of targetRooms distinct rooms
-        var combinations = GetCombinations(availableRooms.ToList(), targetRooms);
+        var combinations = Combinatorics.GetCombinations(availableRooms, targetRooms);
 
         // filter combinations that can accommodate all targetGuests and where all rooms have at least 1 rate
         var valid = combinations
@@ -53,23 +54,5 @@ public class RecommendedCombination
             .OrderBy(c => c.TotalPrice)
             .ThenBy(c => c.TotalCapacity - targetGuests)
             .First();
-    }
-
-    private static List<List<T>> GetCombinations<T>(List<T> list, int length)
-    {
-        if (length == 0)
-            return [[]];
-
-        var result = new List<List<T>>();
-        for (var i = 0; i <= list.Count - length; i++)
-        {
-            var head = list[i];
-            var tail = list.Skip(i + 1).ToList();
-            foreach (var sub in GetCombinations(tail, length - 1))
-            {
-                result.Add([head, .. sub]);
-            }
-        }
-        return result;
     }
 }
