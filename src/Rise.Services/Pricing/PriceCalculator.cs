@@ -21,11 +21,18 @@ public static class PriceCalculator
     }
 
     /// <summary>
+    /// Rounds an amount to cents, half a cent goes up like on a bill, eg 16.665 gives 16.67.
+    /// Every calculated amount uses it, so prices, VAT and refunds round the same way.
+    /// </summary>
+    public static decimal RoundToCents(decimal amount)
+        => Math.Round(amount, 2, MidpointRounding.AwayFromZero);
+
+    /// <summary>
     /// Applies VAT to a nightly price and rounds the result to the currency precision.
     /// </summary>
     public static decimal InclusiveOfVat(decimal price, bool isVatEnabled, decimal vatPercentage)
         => isVatEnabled && vatPercentage > 0m
-            ? Math.Round(price * (1m + vatPercentage / 100m), 2, MidpointRounding.AwayFromZero)
+            ? RoundToCents(price * (1m + vatPercentage / 100m))
             : price;
 
     /// <summary>
@@ -33,7 +40,7 @@ public static class PriceCalculator
     /// </summary>
     public static decimal VatIncluded(decimal grossAmount, decimal vatPercentage)
         => vatPercentage > 0m
-            ? Math.Round(grossAmount - grossAmount / (1m + vatPercentage / 100m), 2, MidpointRounding.AwayFromZero)
+            ? RoundToCents(grossAmount - grossAmount / (1m + vatPercentage / 100m))
             : 0m;
 
     /// <summary>

@@ -1,5 +1,6 @@
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
+using Rise.Domain.Rooms;
 using Rise.Services.Bookings;
 using Rise.Shared.Bookings;
 
@@ -59,9 +60,28 @@ public class BookingStatusRuleShould
     public void BeCancelledWhenTheBookingIsCancelled()
     {
         var booking = CreateBooking();
+        var room = AddRoom(booking, "101");
         booking.AddPayment(100m).MarkAsPaid(DateTime.UtcNow);
-        booking.Cancel(DateTime.UtcNow, "Guest is ill", 0m);
+        booking.CancelRooms([new RoomCancellation(room, 0m)], DateTime.UtcNow, "Guest is ill");
 
         BookingStatusRule.For(booking).ShouldBe(BookingStatus.Cancelled);
+    }
+
+    [Fact]
+    public void StayPaidWhenOnlyARoomIsCancelled()
+    {
+        var booking = CreateBooking();
+        var room = AddRoom(booking, "101");
+        AddRoom(booking, "102");
+        booking.AddPayment(100m).MarkAsPaid(DateTime.UtcNow);
+        booking.CancelRooms([new RoomCancellation(room, 0m)], DateTime.UtcNow, "Guest is ill");
+
+        BookingStatusRule.For(booking).ShouldBe(BookingStatus.Paid);
+    }
+
+    private static BookingRoom AddRoom(Booking booking, string roomNumber)
+    {
+        var room = new Room(roomNumber, "Twin Room", 2, new RoomType("Standard"));
+        return booking.AddRoom(room, room.AddRate("Standard", 100m));
     }
 }

@@ -70,6 +70,8 @@ public class FakeBookingService : IBookingService
             TotalAmount = i * 100m,
             RoomNumbers = [$"10{i}"],
             Status = i == 1 ? "Paid" : "Pending",
+            RoomCount = 1,
+            CancelledRoomCount = 0,
         }).ToList(),
         TotalCount = 3,
     });
@@ -112,7 +114,7 @@ public class FakeBookingService : IBookingService
     }
 
     /// <summary>
-    /// what CancelAsync sends back, a cancelled booking with a refund of 360 by default
+    /// what CancelAsync sends back, all rooms cancelled with a refund of 360 by default
     /// </summary>
     public Result<BookingResponse.Cancel> CancelAnswer { get; set; } = Result.Success(new BookingResponse.Cancel
     {
@@ -120,6 +122,8 @@ public class FakeBookingService : IBookingService
         BookingNumber = "20261004-SVM-000007",
         CancelledAt = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc),
         RefundAmount = 360m,
+        CancelledRoomCount = 2,
+        RemainingRoomCount = 0,
     });
 
     /// <summary>

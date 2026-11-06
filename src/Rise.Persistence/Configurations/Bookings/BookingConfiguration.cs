@@ -12,11 +12,14 @@ internal class BookingConfiguration : EntityConfiguration<Booking>
     public override void Configure(EntityTypeBuilder<Booking> builder)
     {
         base.Configure(builder);
+
+        // ! derived from Rooms, without this EF sees a 2nd relationship to BookingRoom
+        builder.Ignore(x => x.ActiveRooms);
+
         builder.Property(x => x.BookingNumber).IsRequired().HasMaxLength(20);
         builder.HasIndex(x => x.BookingNumber).IsUnique();
         builder.Property(x => x.CheckIn).IsRequired();
         builder.Property(x => x.CheckOut).IsRequired();
-        builder.Property(x => x.CancellationReason).HasMaxLength(500);
 
         // * composite index on the stay dates, used by the availability search in RoomService
         // not unique, several bookings can start or end the same day

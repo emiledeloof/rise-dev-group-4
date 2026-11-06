@@ -39,7 +39,9 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
 
     public async Task<Result<BillingDto.Bill>> AddLineAsync(BillingRequest.AddLine request, CancellationToken ctx = default)
     {
+        // ! the rooms are needed, IsCancelled is derived from them
         var booking = await dbContext.Bookings
+            .Include(x => x.Rooms)
             .SingleOrDefaultAsync(x => x.Id == request.BookingId && !x.IsDeleted, ctx);
 
         if (booking is null)
@@ -103,10 +105,12 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
 
     /// <summary>
     /// The line only counts when it belongs to the booking from the route, a line of another booking is not found.
+    /// ! the rooms are needed, IsCancelled is derived from them
     /// </summary>
     private Task<BillLine?> FindLineAsync(int bookingId, int lineId, CancellationToken ctx)
         => dbContext.BillLines
             .Include(x => x.Booking)
+                .ThenInclude(x => x.Rooms)
             .SingleOrDefaultAsync(x => x.Id == lineId
                 && !x.IsDeleted
                 && x.Booking.Id == bookingId
@@ -119,20 +123,7 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
     {
         var nights = booking.CheckOut.DayNumber - booking.CheckIn.DayNumber;
 
-        var accommodation = booking.Rooms
-            .Where(x => !x.IsDeleted)
-            .Select(x => new BillingDto.AccommodationLine
-            {
-                RoomNumber = x.Room.RoomNumber,
-                RoomName = x.Room.Name,
-                RateName = x.RateName,
-                Nights = nights,
-                PricePerNight = x.PricePerNight,
-                VatPercentage = x.VatPercentage,
-                Total = PriceCalculator.Total(x.PricePerNight, nights),
-            })
-            .OrderBy(x => x.RoomNumber)
-            .ToList();
+        var accommodation = ToAccommodationLines(booking, nights);
 
         var otherServices = booking.BillLines
             .Where(x => !x.IsDeleted)
@@ -149,7 +140,8 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
             .ToList();
 
         // VAT per pct on the sum of its lines, so rounding happens once per group and not once per line
-        var vatGroups = accommodation.Select(x => (x.VatPercentage, x.Total))
+        // a cancelled room only carries VAT on its fee, one without a fee adds nothing
+        var vatGroups = accommodation.Where(x => x.ChargedAmount > 0).Select(x => (x.VatPercentage, Total: x.ChargedAmount))
             .Concat(otherServices.Select(x => (x.VatPercentage, x.Total)))
             .GroupBy(x => x.VatPercentage)
             .OrderBy(x => x.Key)
@@ -168,11 +160,13 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
             .ToList();
 
         var payments = booking.Payments.Where(x => !x.IsDeleted).ToList();
-        var accommodationTotal = accommodation.Sum(x => x.Total);
+        var accommodationTotal = accommodation.Where(x => !x.IsCancelled).Sum(x => x.Total);
+        var cancellationFeesTotal = accommodation.Sum(x => x.CancellationFee);
         var otherServicesTotal = otherServices.Sum(x => x.Total);
-        var total = accommodationTotal + otherServicesTotal;
+        var total = accommodationTotal + cancellationFeesTotal + otherServicesTotal;
         var vatAmount = vatGroups.Sum(x => x.VatAmount);
         var paidAmount = booking.PaidAmount;
+        var refundedAmount = booking.RefundedAmount;
 
         return new BillingDto.Bill
         {
@@ -186,6 +180,7 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
             Accommodation = accommodation,
             OtherServices = otherServices,
             AccommodationTotal = accommodationTotal,
+            CancellationFeesTotal = cancellationFeesTotal,
             OtherServicesTotal = otherServicesTotal,
             VatGroups = vatGroups,
             NetAmount = total - vatAmount,
@@ -205,16 +200,53 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
                 })
                 .ToList(),
             PaidAmount = paidAmount,
-            // a cancelled booking owes nothing, the refund decision is shown instead
-            OutstandingBalance = booking.IsCancelled ? 0m : total - paidAmount,
-            Cancellation = booking.CancelledAt is { } cancelledAt
-                ? new BillingDto.Cancellation
-                {
-                    CancelledAt = cancelledAt,
-                    Reason = booking.CancellationReason!,
-                    RefundAmount = booking.RefundAmount ?? 0,
-                }
-                : null,
+            RefundedAmount = refundedAmount,
+            // a fully cancelled booking owes nothing, the refund decision is shown instead
+            OutstandingBalance = booking.IsCancelled ? 0m : total - (paidAmount - refundedAmount),
         };
+    }
+
+    /// <summary>
+    /// The rooms with what each one costs. The fee of a cancelled room is what the hotel keeps of it:
+    /// its price minus the refund, but never more than what was paid on top of the rooms still booked.
+    /// So an unpaid room or a deposit that goes to the remaining rooms gives no fee, like checkout doesn't charge cancelled rooms.
+    /// The free lines stay out of this, adding a minibar line must not lower the fee.
+    /// </summary>
+    private static List<BillingDto.AccommodationLine> ToAccommodationLines(Booking booking, int nights)
+    {
+        var rooms = booking.Rooms.Where(x => !x.IsDeleted).OrderBy(x => x.Room.RoomNumber).ToList();
+        var activeTotal = rooms.Where(x => !x.IsCancelled).Sum(x => PriceCalculator.Total(x.PricePerNight, nights));
+        var paidAboveActiveRooms = Math.Max(booking.PaidAmount - booking.RefundedAmount - activeTotal, 0m);
+
+        var lines = new List<BillingDto.AccommodationLine>();
+        foreach (var room in rooms)
+        {
+            var total = PriceCalculator.Total(room.PricePerNight, nights);
+            var refund = room.RefundAmount ?? 0m;
+            var fee = room.IsCancelled ? Math.Min(total - refund, paidAboveActiveRooms) : 0m;
+            paidAboveActiveRooms -= fee;
+
+            lines.Add(new BillingDto.AccommodationLine
+            {
+                RoomNumber = room.Room.RoomNumber,
+                RoomName = room.Room.Name,
+                RateName = room.RateName,
+                Nights = nights,
+                PricePerNight = room.PricePerNight,
+                VatPercentage = room.VatPercentage,
+                Total = total,
+                CancellationFee = fee,
+                Cancellation = room.CancelledAt is { } cancelledAt
+                    ? new BillingDto.Cancellation
+                    {
+                        CancelledAt = cancelledAt,
+                        Reason = room.CancellationReason!,
+                        RefundAmount = refund,
+                    }
+                    : null,
+            });
+        }
+
+        return lines;
     }
 }
