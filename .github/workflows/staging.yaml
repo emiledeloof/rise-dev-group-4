@@ -44,7 +44,7 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.version }}
-          ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:latest
 
   deploy-test-env:
     name: Deploy to Test environment
