@@ -34,7 +34,7 @@ public class StripeWebhookServiceShould
 
         if (withRoom)
         {
-            var room = new Room("101", "Single Room", 1);
+            var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
             var rate = room.AddRate("Standard", 79m);
             booking.AddRoom(room, rate);
             dbContext.Rooms.Add(room);
