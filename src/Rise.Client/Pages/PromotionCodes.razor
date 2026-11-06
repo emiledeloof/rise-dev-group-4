@@ -2,6 +2,7 @@
 @layout AdminLayout
 @attribute [Authorize(Roles = AppRoles.Administrator)]
 @using System.ComponentModel.DataAnnotations
+@using Rise.Shared.PromotionCodes
 @using Rise.Shared.Identity
 
 <PageTitle>Promotion codes</PageTitle>
@@ -24,13 +25,13 @@
                 <div class="promotion-code-fields">
                     <div class="promotion-code-field">
                         <label for="promotion-code">Code</label>
-                        <InputText id="promotion-code" class="input" @bind-Value="_model.Code" />
+                        <InputText id="promotion-code" @bind-Value="_model.Code" />
                         <ValidationMessage For="() => _model.Code" />
                     </div>
 
                     <div class="promotion-code-field">
                         <label for="discount-type">Discount type</label>
-                        <InputSelect id="discount-type" class="input" @bind-Value="_model.DiscountType">
+                        <InputSelect id="discount-type" @bind-Value="_model.DiscountType">
                             <option value="Percentage">Percentage</option>
                             <option value="Fixed">Fixed amount</option>
                         </InputSelect>
@@ -38,16 +39,16 @@
 
                     <div class="promotion-code-field">
                         <label for="discount-value">Value</label>
-                        <InputNumber id="discount-value" class="input" @bind-Value="_model.Value" />
+                        <InputNumber id="discount-value" @bind-Value="_model.Value" />
                         <ValidationMessage For="() => _model.Value" />
                     </div>
 
                     <div class="promotion-code-field">
                         <label for="valid-from">Valid from–to</label>
                         <div class="promotion-code-date-range">
-                            <InputDate id="valid-from" class="input" @bind-Value="_model.ValidFrom" />
+                            <InputDate id="valid-from" @bind-Value="_model.ValidFrom" />
                             <span aria-hidden="true">–</span>
-                            <InputDate id="valid-to" class="input" @bind-Value="_model.ValidTo" />
+                            <InputDate id="valid-to" @bind-Value="_model.ValidTo" />
                         </div>
                         <ValidationMessage For="() => _model.ValidFrom" />
                         <ValidationMessage For="() => _model.ValidTo" />
@@ -56,14 +57,13 @@
                     <div class="promotion-code-field promotion-code-field-full">
                         <label for="email-restriction">Restrict to one e-mail address <span>(optional)</span></label>
                         <InputText id="email-restriction"
-                                   class="input"
                                    @bind-Value="_model.EmailRestriction"
                                    placeholder="Leave empty for anyone" />
                     </div>
 
                     <div class="promotion-code-field promotion-code-field-full">
                         <label for="applies-to">Applies to</label>
-                        <InputSelect id="applies-to" class="input" @bind-Value="_model.AppliesTo">
+                        <InputSelect id="applies-to" @bind-Value="_model.AppliesTo">
                             <option value="NonRefundable">Non-refundable rate only</option>
                             <option value="AllRates">All rates</option>
                         </InputSelect>
@@ -83,9 +83,9 @@
                     <button class="button is-primary promotion-code-save" type="submit">Save promotion code</button>
                     <button class="button is-light" type="button" @onclick="CloseCreateForm">Cancel</button>
                 </div>
-                @if (_formMessage is not null)
+                @if (_errorMessage is not null)
                 {
-                    <p class="notification is-info is-light mt-3">@_formMessage</p>
+                    <p class="notification is-danger is-light mt-3">@_errorMessage</p>
                 }
             </section>
         </EditForm>
@@ -93,9 +93,12 @@
 </div>
 
 @code {
+    [Inject]
+    private IPromotionCodeService PromotionCodeService { get; set; } = default!;
+
     private bool IsCreateFormOpen { get; set; }
     private PromotionCodeFormModel _model = new();
-    private string? _formMessage;
+    private string? _errorMessage;
 
     private void ToggleCreateForm()
     {
@@ -106,7 +109,7 @@
         }
 
         _model = new PromotionCodeFormModel();
-        _formMessage = null;
+        _errorMessage = null;
         IsCreateFormOpen = true;
     }
 
@@ -114,12 +117,33 @@
     {
         IsCreateFormOpen = false;
         _model = new PromotionCodeFormModel();
-        _formMessage = null;
+        _errorMessage = null;
     }
 
-    private void SavePromotionCode()
+    private async Task SavePromotionCode()
     {
-        _formMessage = "The form is valid. Persistence will be connected in the next promotion-code slice.";
+        if (_model.ValidFrom is null || _model.ValidTo is null)
+            return;
+
+        var result = await PromotionCodeService.CreateAsync(new PromotionCodeRequest.Create
+        {
+            Code = _model.Code ?? string.Empty,
+            DiscountType = Enum.Parse<PromotionCodeDiscountType>(_model.DiscountType),
+            Value = _model.Value,
+            ValidFrom = DateOnly.FromDateTime(_model.ValidFrom.Value),
+            ValidTo = DateOnly.FromDateTime(_model.ValidTo.Value),
+            EmailRestriction = _model.EmailRestriction,
+            AppliesTo = Enum.Parse<PromotionCodeAppliesTo>(_model.AppliesTo),
+            IsActive = _model.IsActive,
+        });
+
+        if (result.IsSuccess)
+        {
+            CloseCreateForm();
+            return;
+        }
+
+        _errorMessage = string.Join(" ", result.Errors);
     }
 
     private sealed class PromotionCodeFormModel
