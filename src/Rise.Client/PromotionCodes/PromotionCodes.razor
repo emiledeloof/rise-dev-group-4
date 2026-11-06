@@ -1,0 +1,98 @@
+@page "/admin/promotion-codes"
+@layout AdminLayout
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Shared.Identity
+@using Rise.Shared.PromotionCodes
+
+<PageTitle>Promotion codes</PageTitle>
+
+<div class="page promotion-codes-page">
+    <div class="promotion-codes-heading">
+        <h1 class="title">Promotion codes</h1>
+        <Button OnClick="ToggleCreateForm" Variant="ButtonVariant.Primary">
+            @(IsCreateFormOpen ? "Close" : "New promotion code")
+        </Button>
+    </div>
+
+    @if (IsCreateFormOpen)
+    {
+        <EditForm EditContext="_editContext" OnValidSubmit="SavePromotionCode">
+            <FluentValidationValidator />
+            <section class="promotion-code-form box" aria-labelledby="promotion-code-form-title">
+                <h2 id="promotion-code-form-title">@(string.IsNullOrWhiteSpace(_model.Code) ? "New promotion code" : _model.Code)</h2>
+
+                <div class="promotion-code-fields">
+                    <div class="promotion-code-field">
+                        <label for="promotion-code">Code</label>
+                        <InputText id="promotion-code" @bind-Value="_model.Code" />
+                        <ValidationMessage For="() => _model.Code" />
+                    </div>
+
+                    <div class="promotion-code-field">
+                        <label for="discount-type">Discount type</label>
+                        <InputSelect id="discount-type" @bind-Value="_model.DiscountType">
+                            <option value="@PromotionCodeDiscountType.Percentage">Percentage</option>
+                            <option value="@PromotionCodeDiscountType.Fixed">Fixed amount</option>
+                        </InputSelect>
+                        <ValidationMessage For="() => _model.DiscountType" />
+                    </div>
+
+                    <div class="promotion-code-field">
+                        <label for="discount-value">Value</label>
+                        <InputNumber id="discount-value" @bind-Value="_model.Value" />
+                        <ValidationMessage For="() => _model.Value" />
+                    </div>
+
+                    <div class="promotion-code-field">
+                        <label for="valid-from">Valid from–to</label>
+                        <div class="promotion-code-date-range">
+                            <InputDate id="valid-from" @bind-Value="_model.ValidFrom" />
+                            <span aria-hidden="true">–</span>
+                            <InputDate id="valid-to" @bind-Value="_model.ValidTo" />
+                        </div>
+                        <ValidationMessage For="() => _model.ValidFrom" />
+                        <ValidationMessage For="() => _model.ValidTo" />
+                    </div>
+
+                    <div class="promotion-code-field promotion-code-field-full">
+                        <label for="email-restriction">Restrict to one e-mail address <span>(optional)</span></label>
+                        <InputText id="email-restriction"
+                                   @bind-Value="_model.EmailRestriction"
+                                   placeholder="Leave empty for anyone" />
+                        <ValidationMessage For="() => _model.EmailRestriction" />
+                    </div>
+
+                    <div class="promotion-code-field promotion-code-field-full">
+                        <label for="applies-to">Applies to</label>
+                        <InputSelect id="applies-to" @bind-Value="_model.AppliesTo">
+                            <option value="@PromotionCodeAppliesTo.NonRefundable">Non-refundable rate only</option>
+                            <option value="@PromotionCodeAppliesTo.AllRates">All rates</option>
+                        </InputSelect>
+                        <ValidationMessage For="() => _model.AppliesTo" />
+                    </div>
+                </div>
+
+                <label class="promotion-code-active">
+                    <InputCheckbox @bind-Value="_model.IsActive" />
+                    <span>Active</span>
+                </label>
+
+                <p class="promotion-code-notice">
+                    Discounts and <strong>promotion codes</strong> are calculated on the amount excluding VAT.
+                </p>
+
+                <div class="promotion-code-actions">
+                    <button class="button is-primary promotion-code-save" type="submit" disabled="@_isSaving">
+                        @(_isSaving ? "Saving..." : "Save promotion code")
+                    </button>
+                    <button class="button is-light" type="button" @onclick="CloseCreateForm">Cancel</button>
+                </div>
+                @if (_errorMessage is not null)
+                {
+                    <p class="notification is-danger is-light mt-3">@_errorMessage</p>
+                }
+            </section>
+        </EditForm>
+    }
+</div>
+
