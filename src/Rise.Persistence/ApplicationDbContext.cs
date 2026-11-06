@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Admins;
 using Rise.Domain.Bookings;
 using Rise.Domain.Guests;
+using Rise.Domain.Promotions;
 using Rise.Domain.Rooms;
 using Rise.Domain.Settings;
 
@@ -32,6 +33,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> opts) :
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<BillLine> BillLines => Set<BillLine>();
     public DbSet<GeneralSettings> GeneralSettings => Set<GeneralSettings>();
+    public DbSet<PromotionCode> PromotionCodes => Set<PromotionCode>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

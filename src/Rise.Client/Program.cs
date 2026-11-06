@@ -22,6 +22,8 @@ using Toolbelt.Blazor.I18nText;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Rise.Client.RoomTypes;
 using Rise.Shared.RoomTypes;
+using Rise.Client.PromotionCodes;
+using Rise.Shared.PromotionCodes;
 
 try
 {
@@ -108,6 +110,11 @@ try
 
     // the room type endpoints need the admin role, so send the auth cookie along
     builder.Services.AddHttpClient<IRoomTypeService, RoomTypeService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
+    builder.Services.AddHttpClient<IPromotionCodeService, PromotionCodeService>(client =>
     {
         client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();

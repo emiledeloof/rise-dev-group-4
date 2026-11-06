@@ -18,6 +18,8 @@ using Rise.Services.RatePricing;
 using Rise.Shared.RatePricing;
 using Rise.Services.RoomTypes;
 using Rise.Shared.RoomTypes;
+using Rise.Services.PromotionCodes;
+using Rise.Shared.PromotionCodes;
 
 namespace Rise.Services;
 
@@ -35,6 +37,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoomService, RoomService>();
         services.AddScoped<IRatePricingService, RatePricingService>();
         services.AddScoped<IRoomTypeService, RoomTypeService>();
+        services.AddScoped<IPromotionCodeService, PromotionCodeService>();
         services.AddScoped<IRoomAdminService, RoomAdminService>();
         services.AddTransient<DbSeeder>();
 
