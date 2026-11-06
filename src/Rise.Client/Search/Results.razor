@@ -27,12 +27,42 @@
     }
     else if (_rooms.Count == 0)
     {
-        @* no free room for these dates, the guest can go back and pick other dates *@
-        @* short message, eg no rooms are available for these dates *@
-        <p>@Text["NoRoomsAvailable"]</p>
+        @* no free room for these dates, suggest alternatives if available *@
+        <div class="no-availability-container">
+            <p class="no-availability-msg">@Text["NoRoomsAvailable"]</p>
 
-        @* btn back to the search page to change the dates *@
-        <Button Variant="ButtonVariant.Secondary" Href="search" Class="back-btn mt-3">@Text["ChangeDates"]</Button>
+            @if (_alternativePeriods.Count > 0)
+            {
+                <div class="alternative-periods-section">
+                    <h2 class="alternative-periods-title">@Text["AlternativeDatesTitle"]</h2>
+                    <p class="alternative-periods-desc">@Text["AlternativeDatesSubtitle"]</p>
+
+                    <div class="alternative-periods-grid">
+                        @foreach (var alt in _alternativePeriods)
+                        {
+                            <div class="alternative-period-card">
+                                <div class="alternative-period-dates">
+                                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                                    <strong>@alt.CheckIn.ToString("d MMM", DateDisplayCulture) – @alt.CheckOut.ToString("d MMM yyyy", DateDisplayCulture)</strong>
+                                    <span class="alternative-period-nights">· @alt.Nights @(alt.Nights == 1 ? Text["Night"] : Text["Nights"])</span>
+                                </div>
+                                <div class="alternative-period-price">
+                                    <span>@Text["From"] <strong>€@alt.PriceFrom.ToString("0")</strong></span>
+                                </div>
+                                <Button Variant="ButtonVariant.Primary"
+                                        Class="alternative-select-btn"
+                                        OnClick="() => SelectAlternativePeriod(alt)">
+                                    @Text["SelectTheseDates"]
+                                </Button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @* btn back to the search page to change the dates *@
+            <Button Variant="ButtonVariant.Secondary" Href="search" Class="back-btn mt-4">@Text["ChangeDates"]</Button>
+        </div>
     }
     else
     {

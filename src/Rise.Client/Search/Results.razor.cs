@@ -63,6 +63,7 @@ public partial class Results : LocalizedComponentBase
 
     // free rooms from the api, null while the page is still loading
     private IReadOnlyList<RoomDto.Available>? _rooms;
+    private IReadOnlyList<RoomResponse.AlternativeStayPeriodDto> _alternativePeriods = [];
     private int? _totalCapacity;
     private int? _totalRooms;
 
@@ -123,11 +124,13 @@ public partial class Results : LocalizedComponentBase
         {
             _errorMessage = "Sorry, we could not load the rooms. Please try again later.";
             _rooms = [];
+            _alternativePeriods = [];
             return;
         }
 
         // all good, keep the rooms so the page can show them
         _rooms = result.Value.Rooms.ToList();
+        _alternativePeriods = result.Value.AlternativePeriods?.ToList() ?? [];
         _totalCapacity = result.Value.TotalCapacity > 0 ? result.Value.TotalCapacity : null;
         _totalRooms = result.Value.TotalRooms > 0 ? result.Value.TotalRooms : null;
 
@@ -205,6 +208,12 @@ public partial class Results : LocalizedComponentBase
 
     // url of the detail page of a room, keeps the dates, guests and rooms so its back btn returns to these results
     private string DetailsUrlOf(int roomId) => $"rooms/{roomId}?checkIn={CheckIn:yyyy-MM-dd}&checkOut={CheckOut:yyyy-MM-dd}&adults={Stay.Adults}&rooms={Stay.Rooms}";
+
+    // navigates to the results page with the alternative stay period dates
+    private void SelectAlternativePeriod(RoomResponse.AlternativeStayPeriodDto alternative)
+    {
+        Navigation.NavigateTo($"/search/results?checkIn={alternative.CheckIn:yyyy-MM-dd}&checkOut={alternative.CheckOut:yyyy-MM-dd}&adults={Stay.Adults}&rooms={Stay.Rooms}");
+    }
 
     // rate chosen for a room, null when the room is not in the selection
     // TryGetValue gives true and the value when the key is there, false otherwise
