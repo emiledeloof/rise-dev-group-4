@@ -74,6 +74,32 @@
     text-align: right;
 }
 
+/* price paid on top, its VAT label and the informational excl. VAT amount under it, muted */
+.booking-room-pricing {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.booking-room-price-label,
+.booking-room-excl-vat {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.booking-room-excl-vat {
+    margin-top: var(--space-xs);
+}
+
+.booking-total-row {
+    border-top: 1px solid var(--color-border);
+    font-weight: 600;
+}
+
+.booking-total-row dt {
+    color: var(--color-text);
+}
+
 .cancellation-note {
     margin: var(--space-sm) 0 0;
     padding-top: var(--space-sm);
@@ -94,5 +120,9 @@
 
     .booking-detail-row dd {
         text-align: left;
+    }
+
+    .booking-room-pricing {
+        align-items: flex-start;
     }
 }

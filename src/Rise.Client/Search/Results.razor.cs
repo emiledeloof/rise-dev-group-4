@@ -174,7 +174,7 @@ public partial class Results : LocalizedComponentBase
         {
             var room = _rooms.First(r => r.Id == s.Key);
             var rate = room.Rates.First(x => x.Id == s.Value);
-            return new DraftRoom(room.Id, room.Name, rate.Id, rate.Name, rate.Description, rate.PricePerNight, rate.TotalPrice, CancellationPolicyText.Of(rate));
+            return new DraftRoom(room.Id, room.Name, rate.Id, rate.Name, rate.Description, rate.PricePerNight, rate.TotalPrice, CancellationPolicyText.Of(rate), rate.TotalPriceExclVat);
         });
 
         Draft.SetRooms(CheckIn!.Value, CheckOut!.Value, Stay.Adults, rooms);
@@ -200,7 +200,7 @@ public partial class Results : LocalizedComponentBase
             // the room and the rate behind the 2 ids of the selection
             var room = _rooms.First(r => r.Id == s.Key);
             var rate = room.Rates.First(x => x.Id == s.Value);
-            return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice);
+            return new SelectedRoom(room.Name, rate.Name, rate.TotalPrice, rate.TotalPriceExclVat);
         }).ToList();
 
     // url of the detail page of a room, keeps the dates, guests and rooms so its back btn returns to these results

@@ -65,7 +65,14 @@
                                     @* cancellation policy of the rate at booking time, always there so no if *@
                                     <p class="overview-rate-policy">@room.CancellationText</p>
                                 </div>
-                                <span class="overview-room-price">@Format.Amount(room.TotalPrice)</span>
+                                @* the price paid is the prominent one, the excl. VAT amount from the server is only informational *@
+                                <div class="overview-room-pricing">
+                                    <span class="overview-room-price">@Format.Amount(room.TotalPrice)</span>
+                                    @if (room.TotalPriceExclVat is { } exclVat)
+                                    {
+                                        <span class="overview-room-price-label">@Text["InclVat"]</span>
+                                    }
+                                </div>
                             </li>
                         }
                     </ul>
@@ -98,10 +105,9 @@
             @* total and pay btn, on the right on big screens, under the details on phones *@
             <aside class="overview-summary" aria-label="Total">
                 <p class="overview-total">
-                    <span>@Text["Total"]</span>
-                    <span>@Format.Amount(Draft.Total)</span>
+                    <span class="overview-total-label">@(Draft.IncludesVat ? Text["TotalInclVat"] : Text["Total"])</span>
+                    <span class="overview-total-amount">@Format.Amount(Draft.Total)</span>
                 </p>
-                <p class="overview-muted">@Text["PricesIncludeVat"]</p>
                 <Button IsFullWidth="true" IsLoading="_isPaying" OnClick="PayAsync" Class="pay-btn">@Text["PayNow"]</Button>
             </aside>
         </div>

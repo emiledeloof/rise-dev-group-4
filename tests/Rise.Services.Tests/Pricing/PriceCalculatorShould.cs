@@ -58,4 +58,17 @@ public class PriceCalculatorShould
     {
         PriceCalculator.VatIncluded(gross, vatPercentage).ShouldBe(expected);
     }
+
+    /// <summary>
+    /// 79.99 at 21 % for 10 nights is paid 96.79 x 10 = 967.90, the price without VAT comes from that total
+    /// so search, confirmation and bill show the same 799.92 and not 79.99 x 10 = 799.90
+    /// </summary>
+    [Theory]
+    [InlineData(122, 22, 100)]
+    [InlineData(967.90, 21, 799.92)]
+    [InlineData(100, 0, 100)]
+    public void TakeTheVatOffATotalLikeTheBill(decimal gross, decimal vatPercentage, decimal expected)
+    {
+        PriceCalculator.ExclusiveOfVat(gross, vatPercentage).ShouldBe(expected);
+    }
 }

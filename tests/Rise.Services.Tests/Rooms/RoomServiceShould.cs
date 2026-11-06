@@ -256,6 +256,29 @@ public class RoomServiceShould
         cheapestRate.TotalPrice.ShouldBe(261.60m);
         doubleRoom.PricePerNight.ShouldBe(130.80m);
         doubleRoom.TotalPrice.ShouldBe(261.60m);
+        // 109 x 2 nights without VAT, only informational
+        cheapestRate.TotalPriceExclVat.ShouldBe(218m);
+    }
+
+    /// <summary>
+    /// no VAT-exclusive amount is sent when VAT is disabled or 0, the prices are the stored ones
+    /// </summary>
+    [Theory]
+    [InlineData(false, 20)]
+    [InlineData(true, 0)]
+    public async Task NotSendAVatExclusiveTotalWhenVatDoesNotApply(bool isVatEnabled, int vatPercentage)
+    {
+        await using var dbContext = await CreateSeededDbContextAsync($"{nameof(NotSendAVatExclusiveTotalWhenVatDoesNotApply)}{isVatEnabled}{vatPercentage}");
+        var settings = await dbContext.GeneralSettings.SingleAsync();
+        settings.Update(isVatEnabled, vatPercentage);
+        await dbContext.SaveChangesAsync();
+
+        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+
+        result.IsSuccess.ShouldBeTrue();
+        var rates = result.Value.Rooms.SelectMany(room => room.Rates).ToList();
+        rates.ShouldAllBe(rate => rate.TotalPriceExclVat == null);
+        rates.First().TotalPrice.ShouldBe(218m);
     }
 
     /// <summary>

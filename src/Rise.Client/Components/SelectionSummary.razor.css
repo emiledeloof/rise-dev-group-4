@@ -17,9 +17,8 @@
     font-size: 1.25rem;
 }
 
-/* nb of nights and vat note, small and grey */
-.selection-summary-meta,
-.selection-summary-vat {
+/* nb of nights, small and grey */
+.selection-summary-meta {
     font-size: 0.8125rem;
     color: var(--color-text-muted);
 }
@@ -39,15 +38,17 @@
 }
 
 /*
-  one picked room on 2 rows
+  one picked room on 2 rows, plus a 3rd one when VAT applies
   room name and price on the 1st row, rate name under the room name
+  the excl. VAT info takes the full width so its text can wrap on small screens
 */
 .selection-summary-room {
     display: grid;
     grid-template-columns: 1fr auto;
     grid-template-areas:
         "name price"
-        "rate price";
+        "rate price"
+        "excl excl";
     column-gap: var(--space-sm);
     padding-bottom: var(--space-xs);
     border-bottom: 1px solid var(--color-border);
@@ -65,10 +66,37 @@
     color: var(--color-text-muted);
 }
 
-.selection-summary-price {
+/* price paid, with its small "incl. VAT" label under it, aligned right */
+.selection-summary-pricing {
     grid-area: price;
     align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+}
+
+.selection-summary-price {
     font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.selection-summary-price-label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+/* excl. VAT amount, muted, only informational, not an extra charge */
+.selection-summary-excl-vat {
+    grid-area: excl;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    column-gap: var(--space-xs);
+    margin-top: var(--space-xs);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-align: right;
 }
 
 /* total of the stay, the main number of the box, in the title font */
@@ -76,6 +104,7 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+    gap: var(--space-sm);
     margin-top: var(--space-xs);
     font-family: var(--font-title);
     font-size: 1.5rem;

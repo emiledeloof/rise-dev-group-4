@@ -35,4 +35,11 @@ public static class PriceCalculator
         => vatPercentage > 0m
             ? Math.Round(grossAmount - grossAmount / (1m + vatPercentage / 100m), 2, MidpointRounding.AwayFromZero)
             : 0m;
+
+    /// <summary>
+    /// Price without the VAT it holds, eg 122 at 22 % gives 100.
+    /// Worked out from the gross amount like the bill, so every screen shows the same number.
+    /// </summary>
+    public static decimal ExclusiveOfVat(decimal grossAmount, decimal vatPercentage)
+        => grossAmount - VatIncluded(grossAmount, vatPercentage);
 }

@@ -39,8 +39,8 @@ public class BillingServiceShould
         var guest = new Guest("Jan Janssens", "jan@example.com", "+32 470 12 34 56",
             new GuestAddress("Koningstraat 12", null, "Belgium"));
         var booking = new Booking("20261001-SVM-000001", guest, new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12), 2);
-        booking.AddRoom(twin, twinRate, 122m, 22m);
-        booking.AddRoom(single, singleRate, 110m, 10m);
+        booking.AddRoom(twin, twinRate, 122m, vatPercentage: 22m);
+        booking.AddRoom(single, singleRate, 110m, vatPercentage: 10m);
 
         tweak?.Invoke(booking);
 
