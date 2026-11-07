@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Rooms;
 using Rise.Persistence;
+using Rise.Shared.Common;
 using Rise.Shared.RoomTypes;
 
 namespace Rise.Services.RoomTypes;
@@ -38,6 +39,37 @@ public class RoomTypeService(ApplicationDbContext dbContext) : IRoomTypeService
     }
 
     /// <summary>
+    /// one room type with its amenities and bed configurations, not found when it does not exist or is deleted
+    /// </summary>
+    public async Task<Result<RoomTypeDto.Edit>> GetForEditAsync(int roomTypeId, CancellationToken ctx = default)
+    {
+        var row = await dbContext.RoomTypes
+            .AsNoTracking()
+            .Where(t => t.Id == roomTypeId && !t.IsDeleted)
+            .Select(t => new
+            {
+                t.Id,
+                t.Name,
+                t.Description,
+                AmenityIds = t.Amenities.Where(a => !a.IsDeleted).Select(a => a.Id).ToList(),
+                Beds = t.Translations.Select(x => new { x.Language, x.BedConfiguration }).ToList(),
+            })
+            .SingleOrDefaultAsync(ctx);
+
+        if (row is null)
+            return Result.NotFound($"Room type with id '{roomTypeId}' was not found.");
+
+        return Result.Success(new RoomTypeDto.Edit
+        {
+            Id = row.Id,
+            Name = row.Name,
+            Description = row.Description,
+            AmenityIds = row.AmenityIds,
+            BedConfigurations = row.Beds.ToDictionary(b => b.Language, b => b.BedConfiguration),
+        });
+    }
+
+    /// <summary>
     /// adds a room type, conflict when an other type already has the name
     /// </summary>
     public async Task<Result<RoomTypeResponse.Create>> CreateAsync(RoomTypeRequest.Create request, CancellationToken ctx = default)
@@ -46,6 +78,10 @@ public class RoomTypeService(ApplicationDbContext dbContext) : IRoomTypeService
             return Result.Conflict($"A room type named '{request.Name.Trim()}' already exists.");
 
         var roomType = new RoomType(request.Name, request.Description);
+        var characteristicsError = await ApplyCharacteristicsAsync(roomType, request, ctx);
+        if (characteristicsError is not null)
+            return Result.Invalid(new ValidationError(characteristicsError));
+
         dbContext.RoomTypes.Add(roomType);
         await dbContext.SaveChangesAsync(ctx);
 
@@ -59,12 +95,13 @@ public class RoomTypeService(ApplicationDbContext dbContext) : IRoomTypeService
     }
 
     /// <summary>
-    /// changes the name and description, not found when the type does not exist or is deleted
+    /// changes the name, description, amenities and beds, not found when the type does not exist or is deleted
     /// </summary>
     public async Task<Result> EditAsync(RoomTypeRequest.Edit request, CancellationToken ctx = default)
     {
-        // ! tracked on purpose, entity framework must follow the type to save the changes
+        // ! tracked on purpose, entity framework must follow the type and its amenities to save the changes
         var roomType = await dbContext.RoomTypes
+            .Include(t => t.Amenities)
             .FirstOrDefaultAsync(t => t.Id == request.RoomTypeId && !t.IsDeleted, ctx);
 
         if (roomType is null)
@@ -73,6 +110,10 @@ public class RoomTypeService(ApplicationDbContext dbContext) : IRoomTypeService
         // the type itself keeps its name, only the other types count
         if (await NameIsTakenAsync(request.Name, roomType.Id, ctx))
             return Result.Conflict($"A room type named '{request.Name.Trim()}' already exists.");
+
+        var characteristicsError = await ApplyCharacteristicsAsync(roomType, request, ctx);
+        if (characteristicsError is not null)
+            return Result.Invalid(new ValidationError(characteristicsError));
 
         roomType.Name = request.Name;
         roomType.Description = request.Description;
@@ -106,6 +147,33 @@ public class RoomTypeService(ApplicationDbContext dbContext) : IRoomTypeService
         Log.Information("Room type {RoomTypeId} deleted", roomTypeId);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// sets the ticked amenities and the beds of every language on the type
+    /// the form only shows the active amenities, so the inactive ones already assigned are kept, reactivating them shows them again
+    /// returns the error when an id is unknown, deleted, or an inactive amenity the type did not have yet, null when all went well
+    /// </summary>
+    private async Task<string?> ApplyCharacteristicsAsync(RoomType roomType, RoomTypeRequest.Form request, CancellationToken ctx)
+    {
+        var requestedIds = request.AmenityIds.Distinct().ToList();
+        var assigned = roomType.Amenities.Where(a => !a.IsDeleted).ToList();
+        var assignedIds = assigned.Select(a => a.Id).ToList();
+
+        var requested = await dbContext.Amenities
+            .Where(a => requestedIds.Contains(a.Id) && !a.IsDeleted && (a.IsActive || assignedIds.Contains(a.Id)))
+            .ToListAsync(ctx);
+
+        if (requested.Count != requestedIds.Count)
+            return "One of the amenities does not exist or is inactive.";
+
+        var keptInactive = assigned.Where(a => !a.IsActive);
+        roomType.ReplaceAmenities(requested.Concat(keptInactive));
+
+        foreach (var language in Languages.Supported)
+            roomType.SetBedConfiguration(language, request.BedConfigurations.GetValueOrDefault(language));
+
+        return null;
     }
 
     /// <summary>
