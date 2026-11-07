@@ -6,6 +6,7 @@ using Rise.Domain.Rooms;
 using Rise.Domain.Settings;
 using Rise.Persistence;
 using Rise.Services.Rooms;
+using Rise.Services.Tests.Fakers;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 
@@ -41,12 +42,18 @@ public class RoomServiceShould
         doubleRoom.AddPhoto("https://example.com/double-1.jpg");
         doubleRoom.AddPhoto("https://example.com/double-2.jpg");
         doubleRoom.SizeInSquareMeters = 25;
-        doubleRoom.BedType = "Double bed";
         doubleRoom.View = "Garden view";
         doubleRoom.Policies = "A baby cot is available on request.";
+        // the beds and amenities belong to the room type, english and dutch, no french on purpose
+        doubleRoom.RoomType.SetBedConfiguration("en", "Double bed");
+        doubleRoom.RoomType.SetBedConfiguration("nl", "Tweepersoonsbed");
         // added out of alphabetical order on purpose, the service must sort them by name
-        doubleRoom.AddAmenity(new Amenity("Wi-Fi", "fa-wifi"));
-        doubleRoom.AddAmenity(new Amenity("Hairdryer", "fa-wind"));
+        var wifi = new Amenity("Wi-Fi", "fa-wifi");
+        wifi.SetName("nl", "Wifi");
+        var hairdryer = new Amenity("Hairdryer", "fa-wind");
+        hairdryer.SetName("nl", "Haardroger");
+        doubleRoom.RoomType.AddAmenity(wifi);
+        doubleRoom.RoomType.AddAmenity(hairdryer);
 
         // no photo, characteristics or amenities on purpose, to check the dto gets empty values
         var singleRoom = new Room("101", SingleRoom, 1, new RoomType("Standard"), "Cosy room with a single bed.");
@@ -78,7 +85,7 @@ public class RoomServiceShould
     // names of the free rooms, easier to check than the full dtos
     private static async Task<List<string>> FreeRoomNamesAsync(ApplicationDbContext dbContext, SearchRequest.StayPeriod stay)
     {
-        var result = await new RoomService(dbContext).GetAvailableAsync(stay);
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(stay);
         result.IsSuccess.ShouldBeTrue();
         return result.Value.Rooms.Select(r => r.Name).ToList();
     }
@@ -135,7 +142,7 @@ public class RoomServiceShould
                 room.AddRate("November offer", 89m, validFrom: new DateOnly(2026, 11, 1), validTo: new DateOnly(2026, 11, 30));
             });
 
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 22));
 
         result.IsSuccess.ShouldBeTrue();
         var rates = result.Value.Rooms.Single(room => room.Name == DoubleRoom).Rates;
@@ -232,7 +239,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(FillTheRoomDetails));
 
         // act
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 22));
 
         // assert, Single finds the one room with that name
         var rooms = result.Value.Rooms.ToList();
@@ -257,7 +264,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(FillTheTotalPriceOfTheStay));
 
         // act, oct 20 to 23 is 3 nights
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 23));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 23));
 
         // assert, 109 x 3 for the double room and 79 x 3 for the single one
         var rooms = result.Value.Rooms.ToList();
@@ -274,7 +281,7 @@ public class RoomServiceShould
         settings.Update(true, 20m);
         await dbContext.SaveChangesAsync();
 
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 22));
 
         result.IsSuccess.ShouldBeTrue();
         var doubleRoom = result.Value.Rooms.Single(room => room.Name == DoubleRoom);
@@ -300,7 +307,7 @@ public class RoomServiceShould
         settings.Update(isVatEnabled, vatPercentage);
         await dbContext.SaveChangesAsync();
 
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 22));
 
         result.IsSuccess.ShouldBeTrue();
         var rates = result.Value.Rooms.SelectMany(room => room.Rates).ToList();
@@ -318,7 +325,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnAllRatesCheapestFirst));
 
         // act, oct 20 to 23 is 3 nights
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 23));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 23));
 
         // assert, 2 rates for the double room, sorted even though the expensive one was added first
         var rates = result.Value.Rooms.Single(r => r.Name == DoubleRoom).Rates.ToList();
@@ -338,7 +345,7 @@ public class RoomServiceShould
                 room.Rates.Single(rate => rate.Name == "Non-refundable").IsActive = false;
             });
 
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 23));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 23));
 
         var doubleRoom = result.Value.Rooms.Single(room => room.Name == DoubleRoom);
         doubleRoom.PricePerNight.ShouldBe(139m);
@@ -359,7 +366,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomDetail));
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, DoubleRoom));
 
         // assert
         result.IsSuccess.ShouldBeTrue();
@@ -378,7 +385,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNotFoundForAnUnknownRoom));
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(9999);
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(9999);
 
         // assert
         result.Status.ShouldBe(ResultStatus.NotFound);
@@ -395,7 +402,7 @@ public class RoomServiceShould
             (room, _) => room.IsDeleted = true);
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, DoubleRoom));
 
         // assert
         result.Status.ShouldBe(ResultStatus.NotFound);
@@ -411,7 +418,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomPhotosInOrder));
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, DoubleRoom));
 
         // assert
         result.Value.PhotoUrls.ShouldBe(new[] { "https://example.com/double-1.jpg", "https://example.com/double-2.jpg" });
@@ -427,7 +434,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNoPhotosForARoomWithout));
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, SingleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, SingleRoom));
 
         // assert
         result.Value.PhotoUrls.ShouldBeEmpty();
@@ -443,11 +450,11 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomCharacteristics));
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, DoubleRoom));
 
         // assert
         result.Value.SizeInSquareMeters.ShouldBe(25);
-        result.Value.BedType.ShouldBe("Double bed");
+        result.Value.BedConfiguration.ShouldBe("Double bed");
         result.Value.View.ShouldBe("Garden view");
     }
 
@@ -461,11 +468,11 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNoCharacteristicsForARoomWithout));
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, SingleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, SingleRoom));
 
         // assert
         result.Value.SizeInSquareMeters.ShouldBeNull();
-        result.Value.BedType.ShouldBeNull();
+        result.Value.BedConfiguration.ShouldBeNull();
         result.Value.View.ShouldBeNull();
     }
 
@@ -479,7 +486,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomPolicies));
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, DoubleRoom));
 
         // assert
         result.Value.Policies.ShouldBe("A baby cot is available on request.");
@@ -495,7 +502,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNoPoliciesForARoomWithout));
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, SingleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, SingleRoom));
 
         // assert
         result.Value.Policies.ShouldBeNull();
@@ -511,7 +518,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheRoomAmenitiesSortedByName));
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, DoubleRoom));
 
         // assert
         result.Value.Amenities.Select(a => a.Name).ShouldBe(new[] { "Hairdryer", "Wi-Fi" });
@@ -526,13 +533,64 @@ public class RoomServiceShould
     {
         // arrange, the hairdryer is deleted
         await using var dbContext = await CreateSeededDbContextAsync(nameof(IgnoreDeletedAmenities),
-            (room, _) => room.Amenities.Single(a => a.Name == "Hairdryer").IsDeleted = true);
+            (room, _) => room.RoomType.Amenities.Single(a => a.DefaultName == "Hairdryer").IsDeleted = true);
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, DoubleRoom));
 
         // assert
         result.Value.Amenities.ShouldHaveSingleItem().Name.ShouldBe("Wi-Fi");
+    }
+
+    /// <summary>
+    /// an inactive amenity stays assigned to the type but the guest does not see it
+    /// </summary>
+    [Fact]
+    public async Task IgnoreInactiveAmenities()
+    {
+        // arrange, the hairdryer is deactivated by the admin
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(IgnoreInactiveAmenities),
+            (room, _) => room.RoomType.Amenities.Single(a => a.DefaultName == "Hairdryer").Deactivate());
+
+        // act
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.Value.Amenities.ShouldHaveSingleItem().Name.ShouldBe("Wi-Fi");
+    }
+
+    /// <summary>
+    /// the beds and amenity names come in the language of the guest, sorted in that language
+    /// </summary>
+    [Fact]
+    public async Task ReturnTheCharacteristicsInTheGuestLanguage()
+    {
+        // arrange
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnTheCharacteristicsInTheGuestLanguage));
+
+        // act
+        var result = await new RoomService(dbContext, new FakeLanguageProvider("nl")).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.Value.BedConfiguration.ShouldBe("Tweepersoonsbed");
+        result.Value.Amenities.Select(a => a.Name).ShouldBe(new[] { "Haardroger", "Wifi" });
+    }
+
+    /// <summary>
+    /// a text without translation in the language of the guest is shown in English, never left out
+    /// </summary>
+    [Fact]
+    public async Task FallBackToEnglishForAMissingTranslation()
+    {
+        // arrange, nothing is translated in french
+        await using var dbContext = await CreateSeededDbContextAsync(nameof(FallBackToEnglishForAMissingTranslation));
+
+        // act
+        var result = await new RoomService(dbContext, new FakeLanguageProvider("fr")).GetDetailAsync(IdOf(dbContext, DoubleRoom));
+
+        // assert
+        result.Value.BedConfiguration.ShouldBe("Double bed");
+        result.Value.Amenities.Select(a => a.Name).ShouldBe(new[] { "Hairdryer", "Wi-Fi" });
     }
 
     /// <summary>
@@ -545,7 +603,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ReturnNoAmenitiesForARoomWithout));
 
         // act
-        var result = await new RoomService(dbContext).GetDetailAsync(IdOf(dbContext, SingleRoom));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetDetailAsync(IdOf(dbContext, SingleRoom));
 
         // assert
         result.Value.Amenities.ShouldBeEmpty();
@@ -561,7 +619,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ListAllRoomsWithTheirCheapestRate));
 
         // act
-        var result = await new RoomService(dbContext).GetListAsync(new RoomRequest.List());
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetListAsync(new RoomRequest.List());
 
         // assert, 109 and not 139 for the double room, the expensive rate was added first
         result.IsSuccess.ShouldBeTrue();
@@ -583,7 +641,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ListThePhotosOfEachRoomInOrder));
 
         // act
-        var result = await new RoomService(dbContext).GetListAsync(new RoomRequest.List());
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetListAsync(new RoomRequest.List());
 
         // assert
         var rooms = result.Value.Rooms.ToList();
@@ -602,7 +660,7 @@ public class RoomServiceShould
         await using var dbContext = await CreateSeededDbContextAsync(nameof(ListAtMostTheRequestedNumberOfRooms));
 
         // act
-        var result = await new RoomService(dbContext).GetListAsync(new RoomRequest.List { Take = 1 });
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetListAsync(new RoomRequest.List { Take = 1 });
 
         // assert
         result.Value.Rooms.Count().ShouldBe(1);
@@ -620,7 +678,7 @@ public class RoomServiceShould
             (room, _) => room.IsDeleted = true);
 
         // act
-        var result = await new RoomService(dbContext).GetListAsync(new RoomRequest.List());
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetListAsync(new RoomRequest.List());
 
         // assert
         result.Value.Rooms.Select(r => r.Name).ShouldBe(new[] { SingleRoom });
@@ -642,7 +700,7 @@ public class RoomServiceShould
             });
 
         // act, oct 20 to 22 is 2 nights
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 22));
 
         // assert, the room is there and each rate carries its min nb of nights
         var doubleRoom = result.Value.Rooms.Single(r => r.Name == DoubleRoom);
@@ -660,7 +718,7 @@ public class RoomServiceShould
             (room, _) => room.Rates.Single(r => r.Name == "Non-refundable").MinNights = 5);
 
         // act, 2 nights
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 22));
 
         // assert
         var rates = result.Value.Rooms.Single(r => r.Name == DoubleRoom).Rates;
@@ -678,7 +736,7 @@ public class RoomServiceShould
             (room, _) => room.Rates.Single(r => r.Name == "Fully refundable").MinNights = 2);
 
         // act, 3 nights
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 23));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 23));
 
         // assert
         var rates = result.Value.Rooms.Single(r => r.Name == DoubleRoom).Rates.ToList();
@@ -697,7 +755,7 @@ public class RoomServiceShould
             (room, _) => room.Rates.Single(r => r.Name == "Non-refundable").MinNights = 5);
 
         // act, 2 nights
-        var result = await new RoomService(dbContext).GetAvailableAsync(Stay(20, 22));
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(Stay(20, 22));
 
         // assert, 139 x 2
         var doubleRoom = result.Value.Rooms.Single(r => r.Name == DoubleRoom);
@@ -737,7 +795,7 @@ public class RoomServiceShould
         var stay = Stay(15, 18);
 
         // act
-        var result = await new RoomService(dbContext).GetAvailableAsync(stay);
+        var result = await new RoomService(dbContext, new FakeLanguageProvider()).GetAvailableAsync(stay);
 
         // assert
         result.IsSuccess.ShouldBeTrue();
