@@ -1,0 +1,28 @@
+@inherits InputBase<string>
+@* dropdown of Font Awesome icons in the look of SelectField, the chosen icon is shown inside the field, styles in IconSelect.razor.css *@
+
+<div class="icon-select">
+    <SelectField Label="@Label" Validation="Validation">
+        <span class="icon-select-preview" aria-hidden="true">
+            @if (!string.IsNullOrWhiteSpace(CurrentValue))
+            {
+                <i class="fas @CurrentValue"></i>
+            }
+        </span>
+        <select @attributes="AdditionalAttributes"
+                class="icon-select-input @CssClass"
+                value="@CurrentValueAsString"
+                @onchange="e => CurrentValueAsString = e.Value?.ToString()">
+            <option value="">@Placeholder</option>
+            @if (IsUnknown)
+            {
+                @* * an icon typed in before the list existed stays selectable, otherwise the form would drop it *@
+                <option value="@CurrentValue">@CurrentValue</option>
+            }
+            @foreach (var option in Options)
+            {
+                <option value="@option.Value">@option.Label</option>
+            }
+        </select>
+    </SelectField>
+</div>
