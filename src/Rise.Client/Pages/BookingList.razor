@@ -12,13 +12,27 @@
 
     @* outside the loading branch, so it stays available when a filter finds nothing *@
     <FilterBar>
+        @* a short first choice, the detailed statuses only show up once payment or cancellation is chosen *@
         <SelectField Label="Show">
-            <select @bind="_cancellationFilter" @bind:after="ApplyFilterAsync">
-                <option value="@BookingCancellationFilters.All">All bookings</option>
-                <option value="@BookingCancellationFilters.NotCancelled">Not cancelled</option>
-                <option value="@BookingCancellationFilters.OnlyCancelled">Only cancelled</option>
+            <select class="booking-filter-category" @bind="_category" @bind:after="ApplyCategoryAsync">
+                <option value="@AllCategory">All bookings</option>
+                <option value="@PaymentCategory">Payment status</option>
+                <option value="@CancellationCategory">Cancellation status</option>
             </select>
         </SelectField>
+        @if (CategoryValues.Count > 0)
+        {
+            <SelectField Label="@(_category == PaymentCategory ? "Payment status" : "Cancellation status")">
+                <select class="booking-filter-status" @bind="_statusFilter" @bind:after="ApplyFilterAsync">
+                    @* nothing chosen yet, the list shows all bookings *@
+                    <option value="@BookingStatusFilters.All">Any status</option>
+                    @foreach (var filter in CategoryValues)
+                    {
+                        <option value="@filter">@FilterLabel(filter)</option>
+                    }
+                </select>
+            </SelectField>
+        }
     </FilterBar>
 
     @if (_bookings is null)
@@ -77,6 +91,8 @@
                                     {
                                         <span class="tag is-danger is-light booking-list-partial">@booking.CancelledRoomCount of @booking.RoomCount rooms cancelled</span>
                                     }
+                                    @* status of the cancelled part, next to the status of the ongoing part *@
+                                    <RefundStatusTag Status="@booking.RefundStatus" />
                                 </span>
                                 <i class="fas fa-chevron-right booking-row-chevron" aria-hidden="true"></i>
                             </div>

@@ -19,6 +19,7 @@ public static class TestAdminDetails
         BookingNumber = "20261004-SVM-000007",
         CreatedAt = new DateTime(2026, 10, 4, 9, 15, 0, DateTimeKind.Utc),
         Status = "Paid",
+        RefundStatus = BookingRefundStatus.None,
         CheckIn = new DateOnly(2026, 10, 17),
         CheckOut = new DateOnly(2026, 10, 20),
         Nights = 3,
@@ -27,6 +28,8 @@ public static class TestAdminDetails
         PaidAmount = 720m,
         ActiveAmount = 720m,
         RefundedAmount = 0m,
+        RefundPaidAmount = 0m,
+        RefundOpenAmount = 0m,
         RefundableAmount = 720m,
         Guest = new BookingDto.AdminGuestDto
         {
@@ -65,8 +68,10 @@ public static class TestAdminDetails
     {
         var booking = Full();
         booking.Status = "Cancelled";
+        booking.RefundStatus = refund > 0 ? BookingRefundStatus.RefundPending : BookingRefundStatus.NoRefund;
         booking.ActiveAmount = 0m;
         booking.RefundedAmount = refund;
+        booking.RefundOpenAmount = refund;
         booking.RefundableAmount = booking.PaidAmount - refund;
         booking.Rooms[0].Cancellation = Cancellation(new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc), refund);
         booking.Rooms[1].Cancellation = Cancellation(new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc), 0m);
@@ -80,11 +85,31 @@ public static class TestAdminDetails
     {
         var booking = Full();
         booking.Adults = 2;
+        booking.RefundStatus = BookingRefundStatus.RefundPending;
         booking.ActiveAmount = 300m;
         booking.RefundedAmount = 210m;
+        booking.RefundOpenAmount = 210m;
         booking.RefundableAmount = 510m;
         booking.Rooms[1].Cancellation = Cancellation(new DateTime(2026, 10, 5, 8, 0, 0, DateTimeKind.Utc), 210m);
         booking.Rooms[1].RefundReferenceDate = new DateOnly(2026, 10, 5);
+        return booking;
+    }
+
+    /// <summary>
+    /// <see cref="PartlyCancelled"/> where the refund of room 103 was paid back on 8 oct with 200 instead of 210
+    /// </summary>
+    public static BookingDto.AdminDetail PartlyCancelledAndRefunded()
+    {
+        var booking = PartlyCancelled();
+        booking.RefundStatus = BookingRefundStatus.Refunded;
+        booking.RefundedAmount = 200m;
+        booking.RefundPaidAmount = 200m;
+        booking.RefundOpenAmount = 0m;
+        booking.RefundableAmount = 520m;
+        var cancellation = booking.Rooms[1].Cancellation!;
+        cancellation.RefundPaidOn = new DateOnly(2026, 10, 8);
+        cancellation.RefundPaidAmount = 200m;
+        cancellation.RefundNote = "Bank transfer";
         return booking;
     }
 

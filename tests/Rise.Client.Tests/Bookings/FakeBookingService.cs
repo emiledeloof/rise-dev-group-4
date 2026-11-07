@@ -72,6 +72,7 @@ public class FakeBookingService : IBookingService
             Status = i == 1 ? "Paid" : "Pending",
             RoomCount = 1,
             CancelledRoomCount = 0,
+            RefundStatus = BookingRefundStatus.None,
         }).ToList(),
         TotalCount = 3,
     });
@@ -135,6 +136,39 @@ public class FakeBookingService : IBookingService
     {
         CancelRequests.Add(request);
         return Task.FromResult(CancelAnswer);
+    }
+
+    /// <summary>
+    /// what RecordRefundAsync and UndoRefundAsync send back, a success by default
+    /// </summary>
+    public Result<BookingResponse.Refund> RefundAnswer { get; set; } = Result.Success(new BookingResponse.Refund
+    {
+        BookingId = 7,
+        BookingRoomId = 23,
+        RefundStatus = BookingRefundStatus.Refunded,
+        RefundOpenAmount = 0m,
+    });
+
+    /// <summary>
+    /// every refund payment the page recorded
+    /// </summary>
+    public List<BookingRequest.RecordRefund> RecordRefundRequests { get; } = [];
+
+    /// <summary>
+    /// every refund payment the page undid
+    /// </summary>
+    public List<BookingRequest.UndoRefund> UndoRefundRequests { get; } = [];
+
+    public Task<Result<BookingResponse.Refund>> RecordRefundAsync(BookingRequest.RecordRefund request, CancellationToken ctx = default)
+    {
+        RecordRefundRequests.Add(request);
+        return Task.FromResult(RefundAnswer);
+    }
+
+    public Task<Result<BookingResponse.Refund>> UndoRefundAsync(BookingRequest.UndoRefund request, CancellationToken ctx = default)
+    {
+        UndoRefundRequests.Add(request);
+        return Task.FromResult(RefundAnswer);
     }
 
     public Result<BookingResponse.Matrix>? MatrixAnswer { get; set; }

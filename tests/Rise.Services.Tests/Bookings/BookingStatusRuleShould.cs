@@ -79,6 +79,54 @@ public class BookingStatusRuleShould
         BookingStatusRule.For(booking).ShouldBe(BookingStatus.Paid);
     }
 
+    [Theory]
+    [InlineData(0, 0, 0, BookingRefundStatus.None)]
+    [InlineData(2, 0, 0, BookingRefundStatus.NoRefund)]
+    [InlineData(2, 2, 1, BookingRefundStatus.RefundPending)]
+    [InlineData(2, 2, 0, BookingRefundStatus.Refunded)]
+    [InlineData(2, 1, 0, BookingRefundStatus.Refunded)]
+    public void LetAnOpenRefundWinOverAPaidOne(int cancelledRooms, int roomsWithRefund, int openRefunds, string expected)
+    {
+        BookingStatusRule.RefundStatusFor(cancelledRooms, roomsWithRefund, openRefunds).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void HaveNoRefundStatusWithoutCancelledRooms()
+    {
+        var booking = CreateBooking();
+        AddRoom(booking, "101");
+
+        BookingStatusRule.RefundStatusFor(booking).ShouldBe(BookingRefundStatus.None);
+    }
+
+    [Fact]
+    public void HaveAPendingRefundUntilItIsPaid()
+    {
+        var booking = CreateBooking();
+        var room = AddRoom(booking, "101");
+        AddRoom(booking, "102");
+        booking.AddPayment(200m).MarkAsPaid(DateTime.UtcNow);
+        booking.CancelRooms([new RoomCancellation(room, 50m)], DateTime.UtcNow, "Guest is ill");
+
+        BookingStatusRule.RefundStatusFor(booking).ShouldBe(BookingRefundStatus.RefundPending);
+
+        booking.RecordRefundPayment(room, DateOnly.FromDateTime(DateTime.UtcNow), 50m);
+
+        BookingStatusRule.RefundStatusFor(booking).ShouldBe(BookingRefundStatus.Refunded);
+        BookingStatusRule.For(booking).ShouldBe(BookingStatus.Paid);
+    }
+
+    [Fact]
+    public void HaveNoRefundWhenNothingIsRefunded()
+    {
+        var booking = CreateBooking();
+        var room = AddRoom(booking, "101");
+        booking.AddPayment(100m).MarkAsPaid(DateTime.UtcNow);
+        booking.CancelRooms([new RoomCancellation(room, 0m)], DateTime.UtcNow, "Guest is ill");
+
+        BookingStatusRule.RefundStatusFor(booking).ShouldBe(BookingRefundStatus.NoRefund);
+    }
+
     private static BookingRoom AddRoom(Booking booking, string roomNumber)
     {
         var room = new Room(roomNumber, "Twin Room", 2, new RoomType("Standard"));

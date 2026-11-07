@@ -755,4 +755,183 @@ public class AdminDetailShould : BunitContext
 
         cut.FindAll(".booking-detail-paid-after-cancel").ShouldBeEmpty();
     }
+
+    // ── refund payments ─────────────────────────────────────────────────────
+
+    [Fact]
+    public void ShowTheBookingAndTheRefundStatusSideBySide()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+
+        var cut = RenderPage();
+
+        var status = cut.Find(".booking-detail-status");
+        status.QuerySelector(".tag.is-primary")!.TextContent.Trim().ShouldBe("Paid");
+        status.QuerySelector(".refund-tag-pending")!.TextContent.Trim().ShouldBe("Refund pending");
+    }
+
+    [Fact]
+    public void ShowNoRefundStatusWithoutCancelledRooms()
+    {
+        var cut = RenderPage();
+
+        cut.FindAll(".refund-tag").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void OfferToMarkAnOpenRefundAsPaid()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-refund-payment.is-open").TextContent.ShouldContain("Not paid back yet");
+        cut.Find(".booking-detail-refund-mark").TextContent.Trim().ShouldBe("Mark refund as paid");
+        cut.Find(".booking-detail-price-refunds-open").TextContent.ShouldBe("€210.00");
+        cut.Find(".booking-detail-cancellation .booking-detail-refund-note").TextContent.ShouldContain("€210.00 still has to be paid back");
+    }
+
+    [Fact]
+    public void NotOfferARefundPaymentWithoutRefund()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(Cancelled(0m));
+
+        var cut = RenderPage();
+
+        cut.FindAll(".booking-detail-refund-payment").ShouldBeEmpty();
+        cut.Find(".booking-detail-status .refund-tag-none").TextContent.Trim().ShouldBe("No refund");
+    }
+
+    [Fact]
+    public void PrefillTheRefundFormWithTodayAndTheDecidedRefund()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-refund-mark").Click();
+
+        cut.Find("#booking-refund-paid-on").GetAttribute("value").ShouldBe(DateTime.Today.ToString("yyyy-MM-dd"));
+        cut.Find("#booking-refund-amount").GetAttribute("value").ShouldBe("210");
+        cut.FindAll(".booking-refund-amount-hint").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void RecordTheRefundPaymentWithAnotherAmountAndANote()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+        var cut = RenderPage();
+        cut.Find(".booking-detail-refund-mark").Click();
+
+        cut.Find("#booking-refund-amount").Change("200");
+        cut.Find("#booking-refund-note").Change("Bank transfer");
+        cut.Find(".booking-refund-amount-hint").TextContent.ShouldBe("The decided refund was €210.00.");
+        cut.Find(".booking-detail-refund-payment form").Submit();
+
+        var request = _bookingService.RecordRefundRequests.ShouldHaveSingleItem();
+        request.BookingId.ShouldBe(7);
+        request.BookingRoomId.ShouldBe(23);
+        request.Amount.ShouldBe(200m);
+        request.Note.ShouldBe("Bank transfer");
+        request.PaidOn.ShouldBe(DateOnly.FromDateTime(DateTime.Today));
+        cut.Find(".booking-detail-cancel-success").TextContent.ShouldContain("The refund of €200.00 for room 103 is recorded as paid.");
+        cut.FindAll(".booking-detail-refund-payment form").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void NotRecordARefundPaymentWithoutAmount()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+        var cut = RenderPage();
+        cut.Find(".booking-detail-refund-mark").Click();
+
+        cut.Find("#booking-refund-amount").Change("0");
+        cut.Find(".booking-detail-refund-payment form").Submit();
+
+        _bookingService.RecordRefundRequests.ShouldBeEmpty();
+        cut.Find(".booking-detail-refund-payment .help.is-danger").TextContent.ShouldBe("Please enter the amount that was paid back.");
+    }
+
+    [Fact]
+    public void ShowWhyTheRefundPaymentWasRefused()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+        _bookingService.RefundAnswer = Result.Conflict("The refund of room 103 is already paid.");
+        var cut = RenderPage();
+        cut.Find(".booking-detail-refund-mark").Click();
+
+        cut.Find(".booking-detail-refund-payment form").Submit();
+
+        cut.Find(".booking-refund-error").TextContent.ShouldBe("The refund of room 103 is already paid.");
+        cut.FindAll(".booking-detail-refund-payment form").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void CloseTheRefundFormWithoutSaving()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelled());
+        var cut = RenderPage();
+        cut.Find(".booking-detail-refund-mark").Click();
+
+        cut.FindAll(".booking-refund-actions button")[0].Click();
+
+        cut.FindAll(".booking-detail-refund-payment form").ShouldBeEmpty();
+        _bookingService.RecordRefundRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void ShowThePaidRefund()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelledAndRefunded());
+
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-refund-paid-amount").TextContent.ShouldBe("€200.00");
+        cut.Find(".booking-detail-refund-paid-on").TextContent.ShouldBe("08 Oct 2026");
+        cut.Find(".booking-detail-refund-paid-note").TextContent.ShouldBe("Bank transfer");
+        cut.Find(".booking-detail-status .refund-tag-refunded").TextContent.Trim().ShouldBe("Refunded");
+        cut.Find(".booking-detail-price-refunds-paid").TextContent.ShouldBe("€200.00");
+        cut.Find(".booking-detail-price-refunds-open").TextContent.ShouldBe("€0.00");
+        cut.FindAll(".booking-detail-refund-mark").ShouldBeEmpty();
+        cut.FindAll(".booking-detail-cancellation .booking-detail-refund-note").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void AskBeforeUndoingARefundPayment()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelledAndRefunded());
+        var cut = RenderPage();
+
+        cut.Find(".booking-detail-refund-undo").Click();
+
+        cut.Find(".booking-detail-refund-undo-confirm").TextContent.ShouldContain("Mark this refund as open again?");
+        _bookingService.UndoRefundRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void UndoTheRefundPaymentOnceConfirmed()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelledAndRefunded());
+        var cut = RenderPage();
+        cut.Find(".booking-detail-refund-undo").Click();
+
+        cut.Find(".booking-detail-refund-undo-confirm-button").Click();
+
+        var request = _bookingService.UndoRefundRequests.ShouldHaveSingleItem();
+        request.BookingId.ShouldBe(7);
+        request.BookingRoomId.ShouldBe(23);
+        cut.Find(".booking-detail-cancel-success").TextContent.ShouldContain("The refund of room 103 is open again.");
+    }
+
+    [Fact]
+    public void ShowWhyUndoingTheRefundPaymentFailed()
+    {
+        _bookingService.AdminDetailAnswer = Result.Success(TestAdminDetails.PartlyCancelledAndRefunded());
+        _bookingService.RefundAnswer = Result.Conflict("The refund of room 103 is not paid.");
+        var cut = RenderPage();
+        cut.Find(".booking-detail-refund-undo").Click();
+
+        cut.Find(".booking-detail-refund-undo-confirm-button").Click();
+
+        cut.Find(".booking-refund-error").TextContent.ShouldBe("The refund of room 103 is not paid.");
+    }
 }

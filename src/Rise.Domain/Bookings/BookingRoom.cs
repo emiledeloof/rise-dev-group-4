@@ -55,6 +55,33 @@ public class BookingRoom : Entity
     public bool IsCancelled => CancelledAt is not null;
 
     /// <summary>
+    /// Day the admin paid the refund back, set by <see cref="Booking.RecordRefundPayment"/>, null while it is still open.
+    /// </summary>
+    public DateOnly? RefundPaidOn { get; private set; }
+
+    /// <summary>
+    /// What was actually paid back, can differ from <see cref="RefundAmount"/> when the admin agreed on another amount.
+    /// </summary>
+    public decimal? RefundPaidAmount { get; private set; }
+
+    /// <summary>
+    /// Optional note on the refund payment, eg the Stripe refund id or "bank transfer".
+    /// </summary>
+    public string? RefundNote { get; private set; }
+
+    public bool IsRefundPaid => RefundPaidOn is not null;
+
+    /// <summary>
+    /// True when a refund was decided for this cancelled room but not paid back yet.
+    /// </summary>
+    public bool HasOpenRefund => IsCancelled && RefundAmount > 0 && !IsRefundPaid;
+
+    /// <summary>
+    /// The refund that counts: the amount paid back once paid, otherwise the decided amount, 0 for a room that isn't cancelled.
+    /// </summary>
+    public decimal EffectiveRefund => RefundPaidAmount ?? RefundAmount ?? 0m;
+
+    /// <summary>
     /// Price of this room for the whole stay, the most that can be refunded for it.
     /// </summary>
     public decimal TotalPrice => PricePerNight * Booking.Nights;
@@ -95,5 +122,25 @@ public class BookingRoom : Entity
         CancelledAt = cancelledAt;
         CancellationReason = reason;
         RefundAmount = refundAmount;
+    }
+
+    /// <summary>
+    /// Only called by <see cref="Booking.RecordRefundPayment"/>, which checks the rules first.
+    /// </summary>
+    internal void MarkRefundPaid(DateOnly paidOn, decimal amount, string? note)
+    {
+        RefundPaidOn = paidOn;
+        RefundPaidAmount = amount;
+        RefundNote = note;
+    }
+
+    /// <summary>
+    /// Only called by <see cref="Booking.UndoRefundPayment"/>, the refund is open again.
+    /// </summary>
+    internal void UndoRefundPaid()
+    {
+        RefundPaidOn = null;
+        RefundPaidAmount = null;
+        RefundNote = null;
     }
 }

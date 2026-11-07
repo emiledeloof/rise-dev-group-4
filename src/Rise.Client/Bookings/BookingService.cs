@@ -73,10 +73,38 @@ public class BookingService(HttpClient httpClient) : IBookingService
         var response = await httpClient.PostAsJsonAsync(
             $"/api/bookings/{request.BookingId}/cancel", request, cancellationToken);
 
+        return await ReadCommandResultAsync<BookingResponse.Cancel>(response, cancellationToken);
+    }
+
+    public async Task<Result<BookingResponse.Refund>> RecordRefundAsync(
+        BookingRequest.RecordRefund request,
+        CancellationToken ctx = default)
+    {
+        var response = await httpClient.PostAsJsonAsync(
+            $"/api/bookings/{request.BookingId}/rooms/{request.BookingRoomId}/refund", request, ctx);
+
+        return await ReadCommandResultAsync<BookingResponse.Refund>(response, ctx);
+    }
+
+    public async Task<Result<BookingResponse.Refund>> UndoRefundAsync(
+        BookingRequest.UndoRefund request,
+        CancellationToken ctx = default)
+    {
+        var response = await httpClient.DeleteAsync(
+            $"/api/bookings/{request.BookingId}/rooms/{request.BookingRoomId}/refund", ctx);
+
+        return await ReadCommandResultAsync<BookingResponse.Refund>(response, ctx);
+    }
+
+    /// <summary>
+    /// reads the Result of a command that changes a booking, any answer without a Result becomes an error
+    /// </summary>
+    private static async Task<Result<T>> ReadCommandResultAsync<T>(HttpResponseMessage response, CancellationToken ctx)
+    {
         // only these codes hold a Result body, a 401 or a 503 has none
         var result = response.StatusCode is HttpStatusCode.OK or HttpStatusCode.BadRequest
             or HttpStatusCode.NotFound or HttpStatusCode.Conflict
-            ? await response.Content.ReadFromJsonAsync<Result<BookingResponse.Cancel>>(cancellationToken: cancellationToken)
+            ? await response.Content.ReadFromJsonAsync<Result<T>>(cancellationToken: ctx)
             : null;
 
         // a FastEndpoints validation error is a 400 without a Result, it would be read as a success
