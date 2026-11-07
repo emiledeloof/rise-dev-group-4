@@ -73,8 +73,17 @@ public static class BookingStatusFilters
     public const string Refunded = "Refunded";
 
     /// <summary>
+    /// Values about the money of the booking, the "Payment status" group of the filter.
+    /// </summary>
+    public static readonly IReadOnlyList<string> PaymentValues = [Pending, Paid, RefundPending, Refunded];
+
+    /// <summary>
+    /// Values about the cancelled rooms, the "Cancellation status" group of the filter.
+    /// </summary>
+    public static readonly IReadOnlyList<string> CancellationValues = [NotCancelled, PartiallyCancelled, Cancelled];
+
+    /// <summary>
     /// All values, in the order of the filter on the booking list.
     /// </summary>
-    public static readonly IReadOnlyList<string> Values =
-        [All, NotCancelled, Pending, Paid, PartiallyCancelled, Cancelled, RefundPending, Refunded];
+    public static readonly IReadOnlyList<string> Values = [All, .. PaymentValues, .. CancellationValues];
 }
