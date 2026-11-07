@@ -1,14 +1,17 @@
 @page "/admin/room-types"
 @layout AdminLayout
 @attribute [Authorize(Roles = AppRoles.Administrator)]
+@using Rise.Shared.Amenities
+@using Rise.Shared.Common
 @using Rise.Shared.Identity
 @using Rise.Shared.RoomTypes
 
 <PageTitle>Room types</PageTitle>
+<UnsavedChangesGuard @ref="_guard" IsDirty="IsDirty" />
 <div class="page">
     <div class="room-type-heading">
         <h1 class="title">Room types</h1>
-        <Button OnClick="OpenCreateForm">New room type</Button>
+        <Button OnClick="OpenCreateFormAsync">New room type</Button>
     </div>
 
     @if (_roomTypes is null)
@@ -56,8 +59,8 @@
                                     }
                                     else
                                     {
-                                        <Button Variant="ButtonVariant.Secondary" OnClick="() => OpenEditForm(roomType)">Edit</Button>
-                                        <Button Variant="ButtonVariant.Danger" OnClick="() => AskDelete(roomType)">Delete</Button>
+                                        <Button Variant="ButtonVariant.Secondary" OnClick="() => OpenEditFormAsync(roomType)" Class="room-type-edit">Edit</Button>
+                                        <Button Variant="ButtonVariant.Danger" OnClick="() => AskDeleteAsync(roomType)">Delete</Button>
                                     }
                                 </td>
                             </tr>
@@ -88,14 +91,74 @@
                         <ValidationMessage For="() => _formModel.Description" class="help is-danger" />
                     </label>
 
+                    @* ---------- what the guest sees on the room page ---------- *@
+                    <fieldset class="room-type-characteristics">
+                        <legend>Characteristics</legend>
+                        <p class="room-type-help">The ticked amenities are shown to guests on the room page, in their language.</p>
+
+                        @if (ActiveAmenities.Count == 0)
+                        {
+                            <p class="room-type-muted room-type-no-amenities">No active amenities yet. <a href="/admin/amenities">Add amenities</a></p>
+                        }
+                        else
+                        {
+                            <div class="room-type-amenities">
+                                @foreach (var amenity in ActiveAmenities)
+                                {
+                                    var id = amenity.Id;
+                                    <label class="room-type-amenity" @key="id">
+                                        <input type="checkbox" value="@id" checked="@_formModel.AmenityIds.Contains(id)"
+                                               @onchange="e => ToggleAmenity(id, e.Value is true)" />
+                                        <i class="fas @amenity.Icon" aria-hidden="true"></i>
+                                        <span>@NameOf(amenity)</span>
+                                    </label>
+                                }
+                            </div>
+                        }
+
+                        @if (InactiveAssignedNames.Count > 0)
+                        {
+                            <p class="room-type-help room-type-inactive">
+                                Also assigned but inactive, so hidden from guests: @string.Join(", ", InactiveAssignedNames).
+                            </p>
+                        }
+
+                        <label class="room-type-field room-type-bed">
+                            <span>Bed configuration (English)</span>
+                            @* ! plain input, InputText cannot bind to a dictionary entry *@
+                            <input id="room-type-bed-en" maxlength="100" placeholder="e.g. California king bed"
+                                   value="@_formModel.BedConfigurations.GetValueOrDefault(Languages.Default)"
+                                   @oninput="e => _formModel.BedConfigurations[Languages.Default] = e.Value?.ToString()" />
+                        </label>
+
+                        <details class="room-type-translations">
+                            <summary>Bed configuration in other languages</summary>
+                            <div class="room-type-translation-grid">
+                                @foreach (var language in Languages.Supported.Skip(1))
+                                {
+                                    var lang = language;
+                                    <label class="room-type-field">
+                                        <span>@Languages.Names[lang]</span>
+                                        <input id="room-type-bed-@lang" lang="@lang" maxlength="100"
+                                               value="@_formModel.BedConfigurations.GetValueOrDefault(lang)"
+                                               @oninput="e => _formModel.BedConfigurations[lang] = e.Value?.ToString()" />
+                                    </label>
+                                }
+                            </div>
+                            <p class="room-type-help">An empty language shows the English text to the guest.</p>
+                        </details>
+                        <ValidationMessage For="() => _formModel.BedConfigurations" class="help is-danger" />
+                        <ValidationMessage For="() => _formModel.AmenityIds" class="help is-danger" />
+                    </fieldset>
+
                     @if (_formError is not null)
                     {
                         <p class="notification is-danger is-light">@_formError</p>
                     }
 
                     <div class="room-type-form-actions">
-                        <Button Type="submit" IsDisabled="_isSaving">Save</Button>
-                        <Button Variant="ButtonVariant.Secondary" OnClick="CloseForm">Cancel</Button>
+                        <Button Type="submit" IsLoading="_isSaving" Class="room-type-save">Save</Button>
+                        <Button Variant="ButtonVariant.Secondary" OnClick="CancelFormAsync" Class="room-type-cancel">Cancel</Button>
                     </div>
                 </EditForm>
             </section>
