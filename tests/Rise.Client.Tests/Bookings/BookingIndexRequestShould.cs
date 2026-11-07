@@ -6,39 +6,44 @@ namespace Rise.Client.Bookings;
 public class BookingIndexRequestShould
 {
     [Fact]
-    public void IncludeTheCancellationFilterInTheQueryString()
+    public void IncludeTheStatusFilterInTheQueryString()
     {
         var query = new BookingRequest.Index
         {
             Skip = 10,
             Take = 10,
-            CancellationFilter = BookingCancellationFilters.OnlyCancelled,
+            Status = BookingStatusFilters.Cancelled,
         }.ToString();
 
         query.ShouldContain("&Skip=10");
         query.ShouldContain("&Take=10");
-        query.ShouldContain("&CancellationFilter=OnlyCancelled");
+        query.ShouldContain("&Status=Cancelled");
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData(BookingCancellationFilters.All)]
-    [InlineData(BookingCancellationFilters.NotCancelled)]
-    [InlineData(BookingCancellationFilters.OnlyCancelled)]
+    [InlineData(BookingStatusFilters.All)]
+    [InlineData(BookingStatusFilters.NotCancelled)]
+    [InlineData(BookingStatusFilters.Pending)]
+    [InlineData(BookingStatusFilters.Paid)]
+    [InlineData(BookingStatusFilters.PartiallyCancelled)]
+    [InlineData(BookingStatusFilters.Cancelled)]
+    [InlineData(BookingStatusFilters.RefundPending)]
+    [InlineData(BookingStatusFilters.Refunded)]
     public void AcceptAKnownOrEmptyFilter(string? filter)
     {
-        var result = new BookingRequest.Index.Validator().Validate(new BookingRequest.Index { CancellationFilter = filter });
+        var result = new BookingRequest.Index.Validator().Validate(new BookingRequest.Index { Status = filter });
 
         result.IsValid.ShouldBeTrue();
     }
 
     [Theory]
-    [InlineData("Refunded")]
-    [InlineData("onlycancelled")]
+    [InlineData("Refund")]
+    [InlineData("cancelled")]
     public void RejectAnUnknownFilter(string filter)
     {
-        var result = new BookingRequest.Index.Validator().Validate(new BookingRequest.Index { CancellationFilter = filter });
+        var result = new BookingRequest.Index.Validator().Validate(new BookingRequest.Index { Status = filter });
 
         result.IsValid.ShouldBeFalse();
     }

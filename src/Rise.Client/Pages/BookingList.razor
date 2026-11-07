@@ -13,10 +13,11 @@
     @* outside the loading branch, so it stays available when a filter finds nothing *@
     <FilterBar>
         <SelectField Label="Show">
-            <select @bind="_cancellationFilter" @bind:after="ApplyFilterAsync">
-                <option value="@BookingCancellationFilters.All">All bookings</option>
-                <option value="@BookingCancellationFilters.NotCancelled">Not cancelled</option>
-                <option value="@BookingCancellationFilters.OnlyCancelled">Only cancelled</option>
+            <select @bind="_statusFilter" @bind:after="ApplyFilterAsync">
+                @foreach (var filter in BookingStatusFilters.Values)
+                {
+                    <option value="@filter">@FilterLabel(filter)</option>
+                }
             </select>
         </SelectField>
     </FilterBar>
@@ -77,6 +78,8 @@
                                     {
                                         <span class="tag is-danger is-light booking-list-partial">@booking.CancelledRoomCount of @booking.RoomCount rooms cancelled</span>
                                     }
+                                    @* status of the cancelled part, next to the status of the ongoing part *@
+                                    <RefundStatusTag Status="@booking.RefundStatus" />
                                 </span>
                                 <i class="fas fa-chevron-right booking-row-chevron" aria-hidden="true"></i>
                             </div>
