@@ -11,7 +11,7 @@ namespace Rise.Client.Rooms;
 /// <summary>
 /// room detail page, shows what the room offers, opened from the search results
 /// </summary>
-public partial class Detail : LocalizedComponentBase
+public partial class Detail : LocalizedComponentBase, IDisposable
 {
 
     /// <summary>
@@ -83,7 +83,7 @@ public partial class Detail : LocalizedComponentBase
 
     // at least 1 characteristic filled in, otherwise the empty state is shown
     private bool HasCharacteristics =>
-        _room is not null && (_room.SizeInSquareMeters is not null || _room.BedType is not null || _room.View is not null);
+        _room is not null && (_room.SizeInSquareMeters is not null || _room.BedConfiguration is not null || _room.View is not null);
 
     // the other photos go in the slider of the gallery
     private IReadOnlyList<string> GalleryPhotos => _room?.PhotoUrls.Skip(1).ToList() ?? [];
@@ -95,6 +95,19 @@ public partial class Detail : LocalizedComponentBase
     {
         _isLoading = true;
         _room = null;
+        await LoadRoomAsync();
+    }
+
+    // the amenities and beds come from the api in the language of the guest, so a new language needs a new call
+    private void HandleLanguageChanged(object? sender, EventArgs e)
+        => _ = InvokeAsync(async () =>
+        {
+            await LoadRoomAsync();
+            StateHasChanged();
+        });
+
+    private async Task LoadRoomAsync()
+    {
         _errorMessage = null;
 
         var result = await RoomService.GetDetailAsync(RoomId);
@@ -112,5 +125,11 @@ public partial class Detail : LocalizedComponentBase
     protected override async Task OnInitializedAsync()
     {
         await LoadTextAsync();
+        TextProvider.LanguageChanged += HandleLanguageChanged;
     }
+
+    /// <summary>
+    /// stops listening to the language changes when the guest leaves the page
+    /// </summary>
+    public void Dispose() => TextProvider.LanguageChanged -= HandleLanguageChanged;
 }

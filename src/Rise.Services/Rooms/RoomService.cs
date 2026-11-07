@@ -3,7 +3,9 @@ using Rise.Persistence;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 using Rise.Services.Bookings;
+using Rise.Services.Common;
 using Rise.Services.Pricing;
+using Rise.Shared.Amenities;
 using Rise.Domain.Rooms;
 using Rise.Domain.Settings;
 
@@ -12,7 +14,7 @@ namespace Rise.Services.Rooms;
 /// <summary>
 /// room features, reads the rooms and bookings from the db
 /// </summary>
-public class RoomService(ApplicationDbContext dbContext) : IRoomService
+public class RoomService(ApplicationDbContext dbContext, ILanguageProvider languageProvider) : IRoomService
 {
     // starting point of every query, the rooms that are not deleted, read only
     private IQueryable<Room> ActiveRooms => dbContext.Rooms.AsNoTracking().Where(r => !r.IsDeleted);
@@ -138,34 +140,57 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
     /// </summary>
     public async Task<Result<RoomDto.Detail>> GetDetailAsync(int roomId, CancellationToken ctx = default)
     {
-        var room = await ActiveRooms
+        var row = await ActiveRooms
             .Where(r => r.Id == roomId)
-            .Select(r => new RoomDto.Detail
+            .Select(r => new
             {
-                Id = r.Id,
-                Name = r.Name,
-                Description = r.Description,
-                MaxGuests = r.MaxGuests,
-                // RoomPhoto has no position yet, the photos are added in display order so the id keeps that order
-                PhotoUrls = r.Photos
-                    .Where(p => !p.IsDeleted)
-                    .OrderBy(p => p.Id)
-                    .Select(p => p.Url)
+                Detail = new RoomDto.Detail
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    Description = r.Description,
+                    MaxGuests = r.MaxGuests,
+                    // RoomPhoto has no position yet, the photos are added in display order so the id keeps that order
+                    PhotoUrls = r.Photos
+                        .Where(p => !p.IsDeleted)
+                        .OrderBy(p => p.Id)
+                        .Select(p => p.Url)
+                        .ToList(),
+                    SizeInSquareMeters = r.SizeInSquareMeters,
+                    View = r.View,
+                    Policies = r.Policies,
+                },
+                // the beds and amenities belong to the room type, shared by all its rooms
+                // all languages are read, the one of the guest is picked below with the default language as fallback
+                Beds = r.RoomType.Translations
+                    .Select(t => new { t.Language, t.BedConfiguration })
                     .ToList(),
-                SizeInSquareMeters = r.SizeInSquareMeters,
-                BedType = r.BedType,
-                View = r.View,
-                Policies = r.Policies,
-                Amenities = r.Amenities
-                    .Where(a => !a.IsDeleted)
-                    .OrderBy(a => a.Name)
-                    .Select(a => new AmenityDto.Index { Name = a.Name, Icon = a.Icon })
-                    .ToList()
+                // an inactive amenity stays assigned to the type but is hidden from the guest
+                Amenities = r.RoomType.Amenities
+                    .Where(a => !a.IsDeleted && a.IsActive)
+                    .Select(a => new
+                    {
+                        a.Icon,
+                        Names = a.Translations.Select(t => new { t.Language, t.Name }).ToList(),
+                    })
+                    .ToList(),
             })
             .SingleOrDefaultAsync(ctx);
 
-        if (room is null)
+        if (row is null)
             return Result.NotFound($"Room with ID '{roomId}' was not found.");
+
+        var language = languageProvider.Language;
+        var room = row.Detail;
+        room.BedConfiguration = Translations.Pick(row.Beds, b => b.Language, b => b.BedConfiguration, language);
+        room.Amenities = row.Amenities
+            .Select(a => new AmenityDto.Index
+            {
+                Name = Translations.Pick(a.Names, n => n.Language, n => n.Name, language)!,
+                Icon = a.Icon,
+            })
+            .OrderBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
 
         return Result.Success(room);
     }

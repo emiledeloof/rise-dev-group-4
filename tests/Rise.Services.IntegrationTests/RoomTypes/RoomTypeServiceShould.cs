@@ -166,4 +166,130 @@ public class RoomTypeServiceShould(PostgresFixture database) : IAsyncLifetime
         await using var assertContext = database.CreateDbContext();
         (await assertContext.RoomTypes.AnyAsync(t => !t.IsDeleted)).ShouldBeTrue();
     }
+
+    [Fact]
+    public async Task SaveTheTickedAmenitiesAndTheBedConfiguration()
+    {
+        var roomType = new RoomType("Deluxe Room");
+        var wifi = new Amenity("Wi-Fi", "fa-wifi");
+        var bathtub = new Amenity("Bathtub", "fa-bath");
+        roomType.AddAmenity(bathtub);
+        await ArrangeAsync(roomType, wifi);
+
+        await using (var dbContext = database.CreateDbContext())
+        {
+            var result = await new RoomTypeService(dbContext).EditAsync(new RoomTypeRequest.Edit
+            {
+                RoomTypeId = roomType.Id,
+                Name = "Deluxe Room",
+                AmenityIds = [wifi.Id],
+                BedConfigurations = new() { ["en"] = "King bed", ["nl"] = "Kingsize bed", ["fr"] = "" },
+            });
+
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        await using var assertContext = database.CreateDbContext();
+        var edit = (await new RoomTypeService(assertContext).GetForEditAsync(roomType.Id)).Value;
+        edit.AmenityIds.ShouldBe([wifi.Id]);
+        edit.BedConfigurations.Count.ShouldBe(2);
+        edit.BedConfigurations["nl"].ShouldBe("Kingsize bed");
+    }
+
+    [Fact]
+    public async Task CreateARoomTypeWithItsCharacteristics()
+    {
+        var wifi = new Amenity("Wi-Fi", "fa-wifi");
+        await ArrangeAsync(wifi);
+
+        int id;
+        await using (var dbContext = database.CreateDbContext())
+        {
+            var result = await new RoomTypeService(dbContext).CreateAsync(new RoomTypeRequest.Create
+            {
+                Name = "Deluxe Room",
+                AmenityIds = [wifi.Id],
+                BedConfigurations = new() { ["en"] = "King bed" },
+            });
+            id = result.Value.Id;
+        }
+
+        await using var assertContext = database.CreateDbContext();
+        var saved = await assertContext.RoomTypes.Include(t => t.Amenities).SingleAsync(t => t.Id == id);
+        saved.Amenities.ShouldHaveSingleItem().DefaultName.ShouldBe("Wi-Fi");
+        saved.BedConfigurationIn("en").ShouldBe("King bed");
+    }
+
+    [Fact]
+    public async Task KeepAnInactiveAmenityTheFormDoesNotShow()
+    {
+        var roomType = new RoomType("Deluxe Room");
+        var bathtub = new Amenity("Bathtub", "fa-bath");
+        bathtub.Deactivate();
+        roomType.AddAmenity(bathtub);
+        await ArrangeAsync(roomType);
+
+        await using (var dbContext = database.CreateDbContext())
+        {
+            // the form only lists active amenities, so the bathtub is never sent
+            var result = await new RoomTypeService(dbContext).EditAsync(new RoomTypeRequest.Edit
+            {
+                RoomTypeId = roomType.Id,
+                Name = "Deluxe Room",
+                AmenityIds = [],
+            });
+
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        await using var assertContext = database.CreateDbContext();
+        var saved = await assertContext.RoomTypes.Include(t => t.Amenities).SingleAsync();
+        saved.Amenities.ShouldHaveSingleItem().DefaultName.ShouldBe("Bathtub");
+    }
+
+    [Fact]
+    public async Task RefuseAnUnknownAmenity()
+    {
+        var roomType = new RoomType("Deluxe Room");
+        await ArrangeAsync(roomType);
+
+        await using var dbContext = database.CreateDbContext();
+        var result = await new RoomTypeService(dbContext).EditAsync(new RoomTypeRequest.Edit
+        {
+            RoomTypeId = roomType.Id,
+            Name = "Deluxe Room",
+            AmenityIds = [4242],
+        });
+
+        result.Status.ShouldBe(ResultStatus.Invalid);
+    }
+
+    [Fact]
+    public async Task RefuseToAddAnInactiveAmenity()
+    {
+        var roomType = new RoomType("Deluxe Room");
+        var bathtub = new Amenity("Bathtub", "fa-bath");
+        bathtub.Deactivate();
+        await ArrangeAsync(roomType, bathtub);
+
+        await using var dbContext = database.CreateDbContext();
+        var result = await new RoomTypeService(dbContext).EditAsync(new RoomTypeRequest.Edit
+        {
+            RoomTypeId = roomType.Id,
+            Name = "Deluxe Room",
+            AmenityIds = [bathtub.Id],
+        });
+
+        result.Status.ShouldBe(ResultStatus.Invalid);
+    }
+
+    [Fact]
+    public async Task ReturnNotFoundForTheEditFormOfAnUnknownRoomType()
+    {
+        await using var dbContext = database.CreateDbContext();
+
+        var result = await new RoomTypeService(dbContext).GetForEditAsync(42);
+
+        result.Status.ShouldBe(ResultStatus.NotFound);
+    }
 }

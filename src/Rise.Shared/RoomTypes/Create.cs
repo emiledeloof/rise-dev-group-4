@@ -1,3 +1,5 @@
+using Rise.Shared.Common;
+
 namespace Rise.Shared.RoomTypes;
 
 /// <summary>
@@ -19,6 +21,16 @@ public static partial class RoomTypeRequest
         /// what the type offers, can stay empty
         /// </summary>
         public string? Description { get; set; }
+
+        /// <summary>
+        /// ids of the active amenities the admin ticked, the inactive ones already assigned are kept by the server
+        /// </summary>
+        public List<int> AmenityIds { get; set; } = [];
+
+        /// <summary>
+        /// beds per language code, eg 2 single beds, an empty text means no translation
+        /// </summary>
+        public Dictionary<string, string?> BedConfigurations { get; set; } = [];
     }
 
     /// <summary>
@@ -41,6 +53,16 @@ public static partial class RoomTypeRequest
             RuleFor(x => x.Description)
                 .MaximumLength(1000)
                 .WithMessage("Description cannot exceed 1000 characters.");
+
+            RuleFor(x => x.AmenityIds)
+                .Must(ids => ids.All(id => id > 0) && ids.Distinct().Count() == ids.Count)
+                .WithMessage("The amenities are not valid.");
+
+            RuleFor(x => x.BedConfigurations)
+                .Must(beds => beds.Keys.All(Languages.IsSupported))
+                .WithMessage("Only the languages of the site can be used.")
+                .Must(beds => beds.Values.All(bed => bed is null || bed.Trim().Length <= 100))
+                .WithMessage("A bed configuration cannot exceed 100 characters.");
         }
     }
 

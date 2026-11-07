@@ -1,0 +1,22 @@
+.icon-select {
+    min-width: 0;
+}
+
+/* the chosen icon sits inside the field, on the left of the text */
+.icon-select-preview {
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    display: inline-flex;
+    width: 1.25rem;
+    justify-content: center;
+    color: var(--color-primary-dark);
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+/* ! a stronger selector than the one of SelectField, otherwise its padding wins and the text runs under the icon */
+.icon-select select.icon-select-input {
+    min-height: 44px;
+    padding-left: 2.5rem;
+}

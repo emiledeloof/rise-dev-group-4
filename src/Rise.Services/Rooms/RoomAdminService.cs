@@ -21,8 +21,7 @@ public class RoomAdminService(ApplicationDbContext dbContext) : IRoomAdminServic
                 Id = r.Id,
                 RoomNumber = r.RoomNumber,
                 MaxGuests = r.MaxGuests,
-                // ? translated to sql, a room without type gives null here instead of an exception
-                RoomTypeName = r.RoomType!.Name,
+                RoomTypeName = r.RoomType.Name,
             })
             .ToListAsync(ctx);
 

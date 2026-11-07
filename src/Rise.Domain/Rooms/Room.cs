@@ -38,16 +38,6 @@ public class Room : Entity
         set => _sizeInSquareMeters = value is null ? null : Guard.Against.NegativeOrZero(value.Value);
     }
 
-    private string? _bedType;
-    /// <summary>
-    /// e.g. California king bed or 2 single beds, null when unknown
-    /// </summary>
-    public string? BedType
-    {
-        get => _bedType;
-        set => _bedType = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    }
-
     private string? _view;
     /// <summary>
     /// e.g. Garden view, null when unknown
@@ -71,12 +61,7 @@ public class Room : Entity
     /// <summary>
     /// type of the room, several rooms can share the same type, for example two deluxe rooms 104 and 105
     /// </summary>
-    // ? nullable for now so the existing rooms and the code of the team keep working
-    // TODO: make the type required once the rooms are managed in the admin and the rates are linked to the room type
-    public RoomType? RoomType { get; private set; }
-
-    private readonly List<Amenity> _amenities = [];
-    public IReadOnlyList<Amenity> Amenities => _amenities.AsReadOnly();
+    public RoomType RoomType { get; private set; } = default!;
 
     private readonly List<RoomPhoto> _photos = [];
     public IReadOnlyList<RoomPhoto> Photos => _photos.AsReadOnly();
@@ -102,17 +87,6 @@ public class Room : Entity
         // ! a new room always has a type
         RoomType = Guard.Against.Null(roomType);
         Description = description;
-    }
-
-    /// <summary>
-    /// links an amenity to the room, adding the same amenity twice does nothing
-    /// </summary>
-    public void AddAmenity(Amenity amenity)
-    {
-        Guard.Against.Null(amenity);
-
-        if (!_amenities.Contains(amenity))
-            _amenities.Add(amenity);
     }
 
     /// <summary>

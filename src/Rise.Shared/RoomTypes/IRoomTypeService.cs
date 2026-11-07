@@ -11,12 +11,17 @@ public interface IRoomTypeService
     Task<Result<RoomTypeResponse.Index>> GetIndexAsync(CancellationToken ctx = default);
 
     /// <summary>
+    /// one room type with its amenities and bed configurations for the edit form, NotFound when unknown or deleted
+    /// </summary>
+    Task<Result<RoomTypeDto.Edit>> GetForEditAsync(int roomTypeId, CancellationToken ctx = default);
+
+    /// <summary>
     /// adds a room type, conflict when the name is already used
     /// </summary>
     Task<Result<RoomTypeResponse.Create>> CreateAsync(RoomTypeRequest.Create request, CancellationToken ctx = default);
 
     /// <summary>
-    /// changes the name and description of a room type
+    /// changes the name, description, amenities and bed configurations of a room type
     /// </summary>
     Task<Result> EditAsync(RoomTypeRequest.Edit request, CancellationToken ctx = default);
 

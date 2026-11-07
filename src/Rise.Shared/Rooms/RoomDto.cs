@@ -1,3 +1,5 @@
+using Rise.Shared.Amenities;
+
 namespace Rise.Shared.Rooms;
 
 /// <summary>
@@ -85,8 +87,8 @@ public static class RoomDto
         // floor area in m², null when unknown
         public int? SizeInSquareMeters { get; set; }
 
-        // eg California king bed, null when unknown
-        public string? BedType { get; set; }
+        // beds of the room type in the language of the guest, eg California king bed, null when unknown
+        public string? BedConfiguration { get; set; }
 
         // eg Garden view, null when unknown
         public string? View { get; set; }
@@ -94,7 +96,7 @@ public static class RoomDto
         // occupancy, pet and cot rules written by the hotel, null when there are none
         public string? Policies { get; set; }
 
-        // what the room offers, sorted by name, empty when the room has none
+        // active amenities of the room type in the language of the guest, sorted by name, empty when none
         public IReadOnlyList<AmenityDto.Index> Amenities { get; set; } = [];
     }
 }

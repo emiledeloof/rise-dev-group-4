@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Admins;
 using Rise.Domain.Bookings;
+using Rise.Domain.Common;
 using Rise.Domain.Guests;
 using Rise.Domain.Rooms;
 
@@ -105,11 +106,11 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         for (var i = 1; i <= 4; i++)
             deluxeBathtub.AddPhoto($"images/rooms/deluxe-room-bathtub-{i}.jpg");
 
-        // characteristics and amenities taken from the texts above
+        // characteristics and amenities taken from the texts above, the beds belong to the room type
         // TODO: size and view from the client, left empty so the page shows no made up values
-        standard.BedType = "2 single beds";
-        deluxe.BedType = "California king bed";
-        deluxeBathtub.BedType = "California king bed";
+        SetBeds(standardType, "2 single beds", "2 eenpersoonsbedden", "2 lits simples", "2 Einzelbetten", "2 letti singoli", "2 łóżka pojedyncze");
+        foreach (var deluxeKind in new[] { deluxeType, deluxeBathtubType })
+            SetBeds(deluxeKind, "California king bed", "Californian kingsize bed", "Lit California King", "California-King-Bett", "Letto California King", "Łóżko California King");
 
         // pet and cot rules, only what the texts above say, the page already shows the max nb of guests
         // TODO: pet policy and cots for the deluxe rooms from the client
@@ -117,30 +118,45 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         deluxe.Policies = "Non-smoking room.";
         deluxeBathtub.Policies = "Non-smoking room.";
 
-        // shared amenities, icons from Font Awesome (see css/app.css)
-        var wifi = new Amenity("Wi-Fi", "fa-wifi");
-        var airConditioning = new Amenity("Air conditioning", "fa-snowflake");
-        var heating = new Amenity("Central heating", "fa-temperature-high");
-        var tv = new Amenity("Flat-screen TV", "fa-tv");
-        var fridge = new Amenity("Fridge", "fa-temperature-low");
-        var coffeeMachine = new Amenity("Coffee machine", "fa-mug-hot");
-        var teaMaker = new Amenity("Tea maker", "fa-mug-saucer");
-        var shower = new Amenity("Shower", "fa-shower");
-        var bathtub = new Amenity("Bathtub", "fa-bath");
-        var hairdryer = new Amenity("Hairdryer", "fa-wind");
-        var bathrobes = new Amenity("Bathrobes", "fa-shirt");
-        var iron = new Amenity("Iron", "fa-shirt");
-        var nonSmoking = new Amenity("Non-smoking", "fa-ban-smoking");
+        // shared amenities, icons from Font Awesome (see css/app.css), names in en, nl, fr, de, it, pl
+        var wifi = CreateAmenity("fa-wifi", "Wi-Fi", "Wifi", "Wi-Fi", "WLAN", "Wi-Fi", "Wi-Fi");
+        var airConditioning = CreateAmenity("fa-snowflake", "Air conditioning", "Airconditioning", "Climatisation", "Klimaanlage", "Aria condizionata", "Klimatyzacja");
+        var heating = CreateAmenity("fa-temperature-high", "Central heating", "Centrale verwarming", "Chauffage central", "Zentralheizung", "Riscaldamento centralizzato", "Centralne ogrzewanie");
+        var tv = CreateAmenity("fa-tv", "Flat-screen TV", "Flatscreen-tv", "Télévision à écran plat", "Flachbild-TV", "TV a schermo piatto", "Telewizor z płaskim ekranem");
+        var fridge = CreateAmenity("fa-temperature-low", "Fridge", "Koelkast", "Réfrigérateur", "Kühlschrank", "Frigorifero", "Lodówka");
+        var coffeeMachine = CreateAmenity("fa-mug-hot", "Coffee machine", "Koffiezetapparaat", "Machine à café", "Kaffeemaschine", "Macchina da caffè", "Ekspres do kawy");
+        var teaMaker = CreateAmenity("fa-mug-saucer", "Tea maker", "Waterkoker", "Bouilloire", "Wasserkocher", "Bollitore", "Czajnik");
+        var shower = CreateAmenity("fa-shower", "Shower", "Douche", "Douche", "Dusche", "Doccia", "Prysznic");
+        var bathtub = CreateAmenity("fa-bath", "Bathtub", "Bad", "Baignoire", "Badewanne", "Vasca da bagno", "Wanna");
+        var hairdryer = CreateAmenity("fa-wind", "Hairdryer", "Haardroger", "Sèche-cheveux", "Haartrockner", "Asciugacapelli", "Suszarka do włosów");
+        var bathrobes = CreateAmenity("fa-shirt", "Bathrobes", "Badjassen", "Peignoirs", "Bademäntel", "Accappatoi", "Szlafroki");
+        var iron = CreateAmenity("fa-shirt", "Iron", "Strijkijzer", "Fer à repasser", "Bügeleisen", "Ferro da stiro", "Żelazko");
+        var nonSmoking = CreateAmenity("fa-ban-smoking", "Non-smoking", "Rookvrij", "Non-fumeur", "Nichtraucher", "Non fumatori", "Dla niepalących");
 
         foreach (var amenity in new[] { wifi, airConditioning, tv, fridge, coffeeMachine, teaMaker, shower, hairdryer, nonSmoking })
-            standard.AddAmenity(amenity);
+            standardType.AddAmenity(amenity);
         foreach (var amenity in new[] { wifi, airConditioning, heating, tv, fridge, coffeeMachine, teaMaker, shower, hairdryer, bathrobes, nonSmoking })
-            deluxe.AddAmenity(amenity);
+            deluxeType.AddAmenity(amenity);
         foreach (var amenity in new[] { wifi, airConditioning, heating, tv, fridge, coffeeMachine, teaMaker, bathtub, hairdryer, bathrobes, iron, nonSmoking })
-            deluxeBathtub.AddAmenity(amenity);
+            deluxeBathtubType.AddAmenity(amenity);
 
         dbContext.Rooms.AddRange(standard, deluxe, deluxeBathtub);
         await dbContext.SaveChangesAsync();
+    }
+
+    // the texts are given in the order of Language.Supported: en, nl, fr, de, it, pl
+    private static Amenity CreateAmenity(string icon, params string[] names)
+    {
+        var amenity = new Amenity(names[0], icon);
+        for (var i = 1; i < names.Length; i++)
+            amenity.SetName(Language.Supported[i], names[i]);
+        return amenity;
+    }
+
+    private static void SetBeds(RoomType roomType, params string[] bedConfigurations)
+    {
+        for (var i = 0; i < bedConfigurations.Length; i++)
+            roomType.SetBedConfiguration(Language.Supported[i], bedConfigurations[i]);
     }
 
     private async Task GuestsAsync()

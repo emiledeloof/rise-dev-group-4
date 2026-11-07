@@ -1,6 +1,8 @@
 using Ardalis.Result;
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
 using Rise.Client.Search;
+using Rise.Shared.Amenities;
 using Rise.Shared.Rooms;
 using Shouldly;
 using Xunit.Abstractions;
@@ -267,7 +269,7 @@ public class DetailPageShould : BunitContext
             Id = 1,
             Name = "Double Room",
             MaxGuests = 2,
-            BedType = "Double bed",
+            BedConfiguration = "Double bed",
         });
 
         // act
@@ -349,7 +351,7 @@ public class DetailPageShould : BunitContext
     /// a room without amenities shows an empty state, not a practical made up list
     /// </summary>
     [Fact]
-    public void ShowAnEmptyStateWhenThereAreNoAmenities()
+    public void HideTheAmenitiesWhenThereAreNone()
     {
         // arrange
         _roomService.DetailAnswer = Result.Success(new RoomDto.Detail { Id = 1, Name = "Double Room", MaxGuests = 2 });
@@ -357,8 +359,34 @@ public class DetailPageShould : BunitContext
         // act
         var cut = RenderPage();
 
-        // assert
+        // assert, no title and no empty list, the guest sees no amenities block at all
         cut.FindAll(".room-detail-amenity").ShouldBeEmpty();
-        cut.Find(".room-detail-no-amenities").TextContent.ShouldBe("No amenities are listed for this room yet.");
+        cut.FindAll(".room-detail-amenities").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("Amenities</h3>");
+    }
+
+    /// <summary>
+    /// the amenities come translated from the api, so a new language loads the room again
+    /// </summary>
+    [Fact]
+    public void LoadTheAmenitiesAgainInTheNewLanguage()
+    {
+        // arrange
+        var cut = RenderPage();
+        _roomService.DetailAnswer = Result.Success(new RoomDto.Detail
+        {
+            Id = 1,
+            Name = "Double Room",
+            MaxGuests = 2,
+            BedConfiguration = "Tweepersoonsbed",
+            Amenities = [new AmenityDto.Index { Name = "Wifi", Icon = "fa-wifi" }],
+        });
+
+        // act
+        ((TestAppTextProvider)Services.GetRequiredService<IAppTextProvider>()).RaiseLanguageChanged();
+
+        // assert
+        cut.WaitForAssertion(() => cut.Find(".room-detail-amenity").TextContent.ShouldBe("Wifi"));
+        cut.Find(".room-detail-bed").TextContent.ShouldBe("Tweepersoonsbed");
     }
 }

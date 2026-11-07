@@ -611,18 +611,19 @@ namespace Rise.Persistence.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Icon")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -630,9 +631,6 @@ namespace Rise.Persistence.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("Amenity", (string)null);
                 });
@@ -719,10 +717,6 @@ namespace Rise.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("BedType")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -754,7 +748,7 @@ namespace Rise.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<int?>("RoomTypeId")
+                    b.Property<int>("RoomTypeId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("SizeInSquareMeters")
@@ -895,19 +889,19 @@ namespace Rise.Persistence.Migrations
                     b.ToTable("GeneralSettings", (string)null);
                 });
 
-            modelBuilder.Entity("RoomAmenity", b =>
+            modelBuilder.Entity("RoomTypeAmenity", b =>
                 {
                     b.Property<int>("AmenitiesId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("RoomId")
+                    b.Property<int>("RoomTypeId")
                         .HasColumnType("integer");
 
-                    b.HasKey("AmenitiesId", "RoomId");
+                    b.HasKey("AmenitiesId", "RoomTypeId");
 
-                    b.HasIndex("RoomId");
+                    b.HasIndex("RoomTypeId");
 
-                    b.ToTable("RoomAmenity");
+                    b.ToTable("RoomTypeAmenity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1057,6 +1051,36 @@ namespace Rise.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Rise.Domain.Rooms.Amenity", b =>
+                {
+                    b.OwnsMany("Rise.Domain.Rooms.AmenityTranslation", "Translations", b1 =>
+                        {
+                            b1.Property<int>("AmenityId")
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Language")
+                                .HasMaxLength(2)
+                                .HasColumnType("character varying(2)");
+
+                            b1.Property<string>("Name")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)");
+
+                            b1.HasKey("AmenityId", "Language");
+
+                            b1.HasIndex("Language", "Name")
+                                .IsUnique();
+
+                            b1.ToTable("AmenityTranslation", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("AmenityId");
+                        });
+
+                    b.Navigation("Translations");
+                });
+
             modelBuilder.Entity("Rise.Domain.Rooms.Rate", b =>
                 {
                     b.HasOne("Rise.Domain.Rooms.Room", "Room")
@@ -1073,7 +1097,8 @@ namespace Rise.Persistence.Migrations
                     b.HasOne("Rise.Domain.Rooms.RoomType", "RoomType")
                         .WithMany()
                         .HasForeignKey("RoomTypeId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("RoomType");
                 });
@@ -1089,7 +1114,34 @@ namespace Rise.Persistence.Migrations
                     b.Navigation("Room");
                 });
 
-            modelBuilder.Entity("RoomAmenity", b =>
+            modelBuilder.Entity("Rise.Domain.Rooms.RoomType", b =>
+                {
+                    b.OwnsMany("Rise.Domain.Rooms.RoomTypeTranslation", "Translations", b1 =>
+                        {
+                            b1.Property<int>("RoomTypeId")
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Language")
+                                .HasMaxLength(2)
+                                .HasColumnType("character varying(2)");
+
+                            b1.Property<string>("BedConfiguration")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)");
+
+                            b1.HasKey("RoomTypeId", "Language");
+
+                            b1.ToTable("RoomTypeTranslation", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("RoomTypeId");
+                        });
+
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("RoomTypeAmenity", b =>
                 {
                     b.HasOne("Rise.Domain.Rooms.Amenity", null)
                         .WithMany()
@@ -1097,9 +1149,9 @@ namespace Rise.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Rise.Domain.Rooms.Room", null)
+                    b.HasOne("Rise.Domain.Rooms.RoomType", null)
                         .WithMany()
-                        .HasForeignKey("RoomId")
+                        .HasForeignKey("RoomTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
