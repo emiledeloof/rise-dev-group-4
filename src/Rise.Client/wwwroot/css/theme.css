@@ -223,3 +223,10 @@ h1, h2, h3 {
         padding: var(--space-lg) var(--space-md);
     }
 }
+
+/* ---------- dialogs ---------- */
+
+/* the page behind an open Dialog (Components/Dialog.razor) does not scroll, here because scoped css cannot reach body */
+body:has(.dialog-layer) {
+    overflow: hidden;
+}
