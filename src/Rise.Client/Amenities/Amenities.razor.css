@@ -180,7 +180,7 @@
 /* 1 column on phones, 2 from tablets, 3 on wide screens */
 .amenity-names {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-sm) var(--space-md);
 }
 
@@ -211,7 +211,9 @@
 
 .amenity-field input,
 .amenity-field ::deep input {
+    box-sizing: border-box;
     width: 100%;
+    min-width: 0;
     min-height: 44px;
     padding: 0.55rem 0.75rem;
     border: 1px solid var(--color-border);
@@ -240,4 +242,9 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-sm);
+}
+
+/* ! a grid item cannot shrink below its content by default, the inputs would overflow into the next column */
+.amenity-names > .amenity-field {
+    min-width: 0;
 }
