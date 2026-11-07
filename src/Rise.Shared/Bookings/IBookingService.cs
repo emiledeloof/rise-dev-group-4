@@ -30,4 +30,14 @@ public interface IBookingService
     /// Cancels a booking and records the refund decision, the booking stays visible to the admin.
     /// </summary>
     Task<Result<BookingResponse.Cancel>> CancelAsync(BookingRequest.Cancel request, CancellationToken ctx = default);
+
+    /// <summary>
+    /// Records that the refund of a cancelled room was paid back by hand.
+    /// </summary>
+    Task<Result<BookingResponse.Refund>> RecordRefundAsync(BookingRequest.RecordRefund request, CancellationToken ctx = default);
+
+    /// <summary>
+    /// Undoes a refund payment recorded by mistake, the refund is open again.
+    /// </summary>
+    Task<Result<BookingResponse.Refund>> UndoRefundAsync(BookingRequest.UndoRefund request, CancellationToken ctx = default);
 }

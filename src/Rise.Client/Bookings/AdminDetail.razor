@@ -42,6 +42,8 @@
                 {
                     <span class="tag is-danger is-light is-medium booking-detail-partial-tag">@CancelledRooms.Count of @_booking.Rooms.Count rooms cancelled</span>
                 }
+                @* status of the cancelled part, next to the status of the ongoing part *@
+                <RefundStatusTag Status="@_booking.RefundStatus" IsMedium="true" />
             </span>
         </header>
 
@@ -80,6 +82,104 @@
                                             <dd class="booking-detail-refund">@(room.Cancellation.RefundAmount > 0 ? Format.Amount(room.Cancellation.RefundAmount) : "No refund")</dd>
                                         </div>
                                     </dl>
+
+                                    @* ---------- refund payment of this room, the admin pays it by hand and tracks it here ---------- *@
+                                    @if (room.Cancellation.RefundPaidOn is { } paidOn)
+                                    {
+                                        <div class="booking-detail-refund-payment is-paid">
+                                            <p class="booking-detail-refund-paid">
+                                                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                                <span>Paid back <strong class="booking-detail-refund-paid-amount">@Format.Amount(room.Cancellation.RefundPaidAmount ?? 0m)</strong> on <span class="booking-detail-refund-paid-on">@Format.Date(paidOn)</span></span>
+                                            </p>
+                                            @if (room.Cancellation.RefundNote is { } note)
+                                            {
+                                                <p class="booking-detail-muted booking-detail-refund-paid-note">@note</p>
+                                            }
+                                            @if (_undoRoomId == room.BookingRoomId)
+                                            {
+                                                <div class="booking-detail-refund-undo-confirm" role="group" aria-label="Undo the refund payment">
+                                                    <span>Mark this refund as open again?</span>
+                                                    <span class="booking-detail-refund-undo-actions">
+                                                        <button type="button" class="booking-detail-link-button" @onclick="() => _undoRoomId = null" disabled="@_isSavingRefund">Keep</button>
+                                                        <button type="button" class="booking-detail-link-button is-danger booking-detail-refund-undo-confirm-button" @onclick="() => UndoRefundAsync(room)" disabled="@_isSavingRefund">Undo payment</button>
+                                                    </span>
+                                                </div>
+                                                @if (_refundError is not null)
+                                                {
+                                                    <p class="help is-danger booking-refund-error" role="alert">@_refundError</p>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <button type="button" class="booking-detail-link-button booking-detail-refund-undo" @onclick="() => AskUndoRefund(room)">Undo</button>
+                                            }
+                                        </div>
+                                    }
+                                    else if (room.Cancellation.RefundAmount > 0)
+                                    {
+                                        <div class="booking-detail-refund-payment is-open">
+                                            @if (_refundForm?.BookingRoomId == room.BookingRoomId)
+                                            {
+                                                <EditForm Model="_refundForm" OnValidSubmit="RecordRefundAsync">
+                                                    <FluentValidationValidator />
+                                                    @* class on a div, scoped css doesn't reach the form element of EditForm *@
+                                                    <div class="booking-refund-form">
+                                                        <p class="booking-refund-form-title">Record the refund payment</p>
+
+                                                        <div class="booking-refund-form-fields">
+                                                            <div class="field">
+                                                                <label class="label is-required" for="booking-refund-paid-on">Paid on</label>
+                                                                <div class="control">
+                                                                    <InputDate @bind-Value="_refundForm.PaidOn" id="booking-refund-paid-on" class="input" max="@Today.ToString("yyyy-MM-dd")" />
+                                                                </div>
+                                                                <ValidationMessage For="() => _refundForm.PaidOn" class="help is-danger" />
+                                                            </div>
+                                                            <div class="field">
+                                                                <label class="label is-required" for="booking-refund-amount">Amount (€)</label>
+                                                                <div class="control">
+                                                                    <InputNumber @bind-Value="_refundForm.Amount" id="booking-refund-amount" class="input" min="0.01" max="@room.Total" step="0.01" inputmode="decimal" />
+                                                                </div>
+                                                                <ValidationMessage For="() => _refundForm.Amount" class="help is-danger" />
+                                                                @if (_refundForm.Amount != room.Cancellation.RefundAmount)
+                                                                {
+                                                                    <p class="help booking-refund-amount-hint">The decided refund was @Format.Amount(room.Cancellation.RefundAmount).</p>
+                                                                }
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="field">
+                                                            <label class="label" for="booking-refund-note">Note <span class="booking-detail-muted">(optional)</span></label>
+                                                            <div class="control">
+                                                                <InputText @bind-Value="_refundForm.Note" id="booking-refund-note" class="input" maxlength="@BookingRequest.RecordRefund.Validator.NoteMaxLength"
+                                                                           placeholder="e.g. Stripe refund re_… or bank transfer" />
+                                                            </div>
+                                                            <ValidationMessage For="() => _refundForm.Note" class="help is-danger" />
+                                                        </div>
+
+                                                        @if (_refundError is not null)
+                                                        {
+                                                            <p class="help is-danger booking-refund-error" role="alert">@_refundError</p>
+                                                        }
+
+                                                        <div class="booking-refund-actions">
+                                                            <Button Variant="ButtonVariant.Secondary" OnClick="CloseRefundForm" IsDisabled="_isSavingRefund">Cancel</Button>
+                                                            <Button Type="submit" Variant="ButtonVariant.Primary" IsLoading="_isSavingRefund" Class="booking-refund-confirm">Confirm payment</Button>
+                                                        </div>
+                                                    </div>
+                                                </EditForm>
+                                            }
+                                            else
+                                            {
+                                                <p class="booking-detail-refund-open">
+                                                    <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+                                                    <span>Not paid back yet</span>
+                                                </p>
+                                                <Button Variant="ButtonVariant.Primary" IsFullWidth="true" OnClick="() => OpenRefundForm(room)" Class="booking-detail-refund-mark">
+                                                    Mark refund as paid
+                                                </Button>
+                                            }
+                                        </div>
+                                    }
                                 </li>
                             }
                         </ul>
@@ -90,10 +190,13 @@
                                 <span>Total refunds</span>
                                 <span class="booking-detail-refunded-amount">@Format.Amount(_booking.RefundedAmount)</span>
                             </p>
-                            <p class="booking-detail-refund-note">
-                                <i class="fas fa-circle-info" aria-hidden="true"></i>
-                                The website does not refund automatically, pay the refund back to the guest yourself, e.g. in the Stripe dashboard.
-                            </p>
+                            @if (_booking.RefundOpenAmount > 0)
+                            {
+                                <p class="booking-detail-refund-note">
+                                    <i class="fas fa-circle-info" aria-hidden="true"></i>
+                                    @Format.Amount(_booking.RefundOpenAmount) still has to be paid back. The website does not refund automatically, pay the refund back to the guest yourself, e.g. in the Stripe dashboard, then mark it as paid here.
+                                </p>
+                            }
                         }
 
                         @* the guest can still finish an open Stripe checkout after a cancellation, for the old amount *@
@@ -322,8 +425,16 @@
                         @if (_booking.RefundedAmount > 0)
                         {
                             <div class="booking-detail-price-row">
-                                <span>Refunds recorded</span>
+                                <span>Refunds</span>
                                 <span class="booking-detail-price-refunds">@Format.Amount(_booking.RefundedAmount)</span>
+                            </div>
+                            <div class="booking-detail-price-row is-sub">
+                                <span>Paid back</span>
+                                <span class="booking-detail-price-refunds-paid">@Format.Amount(_booking.RefundPaidAmount)</span>
+                            </div>
+                            <div class="booking-detail-price-row is-sub @(_booking.RefundOpenAmount > 0 ? "is-open" : "")">
+                                <span>Still to pay back</span>
+                                <span class="booking-detail-price-refunds-open">@Format.Amount(_booking.RefundOpenAmount)</span>
                             </div>
                         }
                     }

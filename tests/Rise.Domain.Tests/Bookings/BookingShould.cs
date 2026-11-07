@@ -634,4 +634,180 @@ public class BookingShould
 
         booking.ActiveAmount.ShouldBe(a.TotalPrice);
     }
+
+    private static readonly DateOnly RefundPaidOn = new(2026, 10, 7);
+
+    [Fact]
+    public void RecordAPaidRefund()
+    {
+        var (booking, _, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(b, 40m)], CancelledAt, "Guest is ill");
+        b.HasOpenRefund.ShouldBeTrue();
+        booking.RefundOpenAmount.ShouldBe(40m);
+
+        booking.RecordRefundPayment(b, RefundPaidOn, 40m, "  Stripe re_123  ");
+
+        b.IsRefundPaid.ShouldBeTrue();
+        b.HasOpenRefund.ShouldBeFalse();
+        b.RefundPaidOn.ShouldBe(RefundPaidOn);
+        b.RefundPaidAmount.ShouldBe(40m);
+        b.RefundNote.ShouldBe("Stripe re_123");
+        booking.RefundPaidTotal.ShouldBe(40m);
+        booking.RefundOpenAmount.ShouldBe(0m);
+    }
+
+    [Fact]
+    public void CountThePaidAmountWhenItDiffersFromTheDecidedRefund()
+    {
+        var (booking, _, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(b, 40m)], CancelledAt, "Guest is ill");
+
+        booking.RecordRefundPayment(b, RefundPaidOn, 60m);
+
+        b.RefundAmount.ShouldBe(40m);
+        b.EffectiveRefund.ShouldBe(60m);
+        booking.RefundedAmount.ShouldBe(60m);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("   ")]
+    public void KeepNoNoteWhenItIsEmpty(string? note)
+    {
+        var (booking, _, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(b, 40m)], CancelledAt, "Guest is ill");
+
+        booking.RecordRefundPayment(b, RefundPaidOn, 40m, note);
+
+        b.RefundNote.ShouldBeNull();
+    }
+
+    [Fact]
+    public void NotRecordARefundForARoomThatIsNotCancelled()
+    {
+        var (booking, a, _) = CreatePaidBookingWithTwoRooms();
+
+        Action act = () => booking.RecordRefundPayment(a, RefundPaidOn, 10m);
+
+        act.ShouldThrow<InvalidOperationException>();
+        a.IsRefundPaid.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void NotRecordARefundWhenNoRefundWasDecided()
+    {
+        var (booking, _, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(b, 0m)], CancelledAt, "Guest is ill");
+
+        Action act = () => booking.RecordRefundPayment(b, RefundPaidOn, 10m);
+
+        act.ShouldThrow<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void NotRecordARefundTwice()
+    {
+        var (booking, _, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(b, 40m)], CancelledAt, "Guest is ill");
+        booking.RecordRefundPayment(b, RefundPaidOn, 40m);
+
+        Action act = () => booking.RecordRefundPayment(b, RefundPaidOn.AddDays(1), 30m);
+
+        act.ShouldThrow<InvalidOperationException>();
+        b.RefundPaidAmount.ShouldBe(40m);
+    }
+
+    [Fact]
+    public void NotRecordARefundOfAnotherBooking()
+    {
+        var (booking, _, _) = CreatePaidBookingWithTwoRooms();
+        var (other, _, otherRoom) = CreatePaidBookingWithTwoRooms();
+        other.CancelRooms([new RoomCancellation(otherRoom, 40m)], CancelledAt, "Guest is ill");
+
+        Action act = () => booking.RecordRefundPayment(otherRoom, RefundPaidOn, 40m);
+
+        act.ShouldThrow<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(80.01)]
+    public void NotRecordARefundOutsideThePriceOfTheRoom(decimal amount)
+    {
+        var (booking, _, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(b, 40m)], CancelledAt, "Guest is ill");
+
+        Action act = () => booking.RecordRefundPayment(b, RefundPaidOn, amount);
+
+        act.ShouldThrow<ArgumentException>();
+        b.IsRefundPaid.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void NotRecordMoreRefundsThanPaid()
+    {
+        var (booking, a, b) = CreatePaidBookingWithTwoRooms(paid: 100m);
+        booking.CancelRooms([new RoomCancellation(a, 60m), new RoomCancellation(b, 40m)], CancelledAt, "Guest is ill");
+
+        Action act = () => booking.RecordRefundPayment(b, RefundPaidOn, 40.01m);
+
+        act.ShouldThrow<ArgumentException>();
+        b.IsRefundPaid.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void NotRecordARefundWithATooLongNote()
+    {
+        var (booking, _, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(b, 40m)], CancelledAt, "Guest is ill");
+
+        Action act = () => booking.RecordRefundPayment(b, RefundPaidOn, 40m, new string('x', Booking.RefundNoteMaxLength + 1));
+
+        act.ShouldThrow<ArgumentException>();
+    }
+
+    [Fact]
+    public void OpenTheRefundAgainWhenThePaymentIsUndone()
+    {
+        var (booking, _, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(b, 40m)], CancelledAt, "Guest is ill");
+        booking.RecordRefundPayment(b, RefundPaidOn, 60m, "Bank transfer");
+
+        booking.UndoRefundPayment(b);
+
+        b.IsRefundPaid.ShouldBeFalse();
+        b.HasOpenRefund.ShouldBeTrue();
+        b.RefundPaidAmount.ShouldBeNull();
+        b.RefundNote.ShouldBeNull();
+        b.RefundAmount.ShouldBe(40m);
+        booking.RefundedAmount.ShouldBe(40m);
+    }
+
+    [Fact]
+    public void NotUndoARefundPaymentWhenTheRefundsWouldExceedThePaidAmount()
+    {
+        var (booking, a, b) = CreatePaidBookingWithTwoRooms(paid: 100m, adults: 1);
+        booking.CancelRooms([new RoomCancellation(a, 100m)], CancelledAt, "Guest is ill");
+        booking.RecordRefundPayment(a, RefundPaidOn, 60m);
+        booking.CancelRooms([new RoomCancellation(b, 40m)], CancelledAt, "Trip is off");
+
+        Action act = () => booking.UndoRefundPayment(a);
+
+        act.ShouldThrow<InvalidOperationException>();
+        a.IsRefundPaid.ShouldBeTrue();
+        a.RefundPaidAmount.ShouldBe(60m);
+        booking.RefundedAmount.ShouldBe(100m);
+    }
+
+    [Fact]
+    public void NotUndoARefundThatIsNotPaid()
+    {
+        var (booking, _, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(b, 40m)], CancelledAt, "Guest is ill");
+
+        Action act = () => booking.UndoRefundPayment(b);
+
+        act.ShouldThrow<InvalidOperationException>();
+    }
 }

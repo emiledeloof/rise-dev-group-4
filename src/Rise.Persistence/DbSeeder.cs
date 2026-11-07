@@ -214,8 +214,15 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
             [new RoomCancellation(cancelledBooking.Rooms[0], cancelledBooking.PaidAmount)],
             new DateTime(2026, 10, 12, 16, 5, 0, DateTimeKind.Utc),
             "Guest asked to cancel by phone, flight was cancelled");
+        // the admin already paid the refund back, so this booking shows as refunded
+        cancelledBooking.RecordRefundPayment(
+            cancelledBooking.Rooms[0],
+            new DateOnly(2026, 10, 13),
+            cancelledBooking.PaidAmount,
+            "Refunded in the Stripe dashboard");
 
         // Paid for 2 rooms with different policies, the refundable room is cancelled and the other one stays booked.
+        // its refund isn't paid back yet, so this booking shows as refund pending
         var partlyCancelledBooking = new Booking("20261008-0007", guests[0], new DateOnly(2027, 2, 12), new DateOnly(2027, 2, 15), 2);
         partlyCancelledBooking.AddRoom(rooms[0], rooms[0].Rates[0]);
         var cancelledRoom = partlyCancelledBooking.AddRoom(rooms[2], rooms[2].Rates[1]);

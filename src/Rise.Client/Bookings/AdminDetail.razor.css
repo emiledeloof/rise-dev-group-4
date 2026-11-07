@@ -670,7 +670,151 @@
     font-weight: 600;
 }
 
+/* ---------- refund payment per cancelled room ---------- */
+
+.booking-detail-refund-payment {
+    display: grid;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius);
+    background-color: var(--color-surface);
+    font-size: 0.875rem;
+}
+
+/* gold line, money still has to go back to the guest */
+.booking-detail-refund-payment.is-open {
+    border: 1px solid var(--color-gold);
+    border-left-width: 4px;
+}
+
+.booking-detail-refund-payment.is-paid {
+    border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+    border-left: 4px solid var(--color-primary);
+}
+
+.booking-detail-refund-open,
+.booking-detail-refund-paid {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+}
+
+.booking-detail-refund-open i {
+    margin-top: 0.2rem;
+    color: var(--color-gold);
+}
+
+.booking-detail-refund-paid i {
+    margin-top: 0.2rem;
+    color: var(--color-primary);
+}
+
+.booking-detail-refund-paid-note {
+    overflow-wrap: anywhere;
+}
+
+/* quiet text btn, undo is rare and must not compete with the main actions */
+.booking-detail-link-button {
+    justify-self: start;
+    padding: var(--space-xs) 0;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: 0.8125rem;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+}
+
+.booking-detail-link-button:hover {
+    color: var(--color-primary);
+}
+
+.booking-detail-link-button.is-danger {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.booking-detail-link-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.booking-detail-refund-undo-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs) var(--space-md);
+}
+
+.booking-detail-refund-undo-actions {
+    display: flex;
+    gap: var(--space-md);
+}
+
+.booking-refund-form {
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.booking-refund-form .field {
+    margin-bottom: 0;
+}
+
+.booking-refund-form-title {
+    font-family: var(--font-title);
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+
+.booking-refund-form-fields {
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.booking-refund-amount-hint {
+    color: var(--color-text-muted);
+}
+
+/* main action on top when stacked on phones, like the cancel dialog */
+.booking-refund-actions {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+}
+
+.booking-detail-price-row.is-sub {
+    padding-left: var(--space-md);
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+}
+
+.booking-detail-price-row.is-sub.is-open {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
 /* ---------- bigger screens ---------- */
+
+@media (min-width: 480px) {
+    .booking-refund-form-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .booking-refund-actions {
+        flex-direction: row;
+        justify-content: flex-end;
+    }
+
+    .booking-detail-refund-payment.is-open:not(:has(.booking-refund-form)) {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+    }
+}
 
 @media (min-width: 480px) {
     .booking-cancel-room-refund {

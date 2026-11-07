@@ -44,6 +44,10 @@ public static class BookingDto
         /// Nb of cancelled rooms.
         /// </summary>
         public required int CancelledRoomCount { get; set; }
+        /// <summary>
+        /// One of <see cref="BookingRefundStatus"/>, status of the cancelled part.
+        /// </summary>
+        public required string RefundStatus { get; set; }
     }
 
     public class Detail
@@ -104,6 +108,10 @@ public static class BookingDto
         /// "Cancelled" when all rooms are cancelled, else "Paid" when at least one payment is settled, otherwise "Pending".
         /// </summary>
         public required string Status { get; set; }
+        /// <summary>
+        /// One of <see cref="BookingRefundStatus"/>, status of the cancelled part.
+        /// </summary>
+        public required string RefundStatus { get; set; }
         public required DateOnly CheckIn { get; set; }
         public required DateOnly CheckOut { get; set; }
         public required int Nights { get; set; }
@@ -124,9 +132,17 @@ public static class BookingDto
         /// </summary>
         public required decimal PaidAmount { get; set; }
         /// <summary>
-        /// Sum of the refunds recorded on the cancelled rooms.
+        /// Sum of the refunds of the cancelled rooms, paid or open, a paid refund counts with the amount paid back.
         /// </summary>
         public required decimal RefundedAmount { get; set; }
+        /// <summary>
+        /// Sum of the refunds already paid back.
+        /// </summary>
+        public required decimal RefundPaidAmount { get; set; }
+        /// <summary>
+        /// Sum of the refunds decided but not paid back yet.
+        /// </summary>
+        public required decimal RefundOpenAmount { get; set; }
         /// <summary>
         /// What can still be refunded: paid minus already refunded, never below 0.
         /// </summary>
@@ -215,13 +231,25 @@ public static class BookingDto
     }
 
     /// <summary>
-    /// When and why the room was cancelled and the refund that was recorded.
+    /// When and why the room was cancelled, the refund that was decided and whether it was paid back.
     /// </summary>
     public class AdminRoomCancellationDto
     {
         public required DateTime CancelledAt { get; set; }
         public required string Reason { get; set; }
+        /// <summary>
+        /// Refund decided when cancelling, 0 means no refund.
+        /// </summary>
         public required decimal RefundAmount { get; set; }
+        /// <summary>
+        /// Day the refund was paid back, null while it is open.
+        /// </summary>
+        public DateOnly? RefundPaidOn { get; set; }
+        /// <summary>
+        /// What was actually paid back, null while it is open.
+        /// </summary>
+        public decimal? RefundPaidAmount { get; set; }
+        public string? RefundNote { get; set; }
     }
 
     public class AdminPaymentDto

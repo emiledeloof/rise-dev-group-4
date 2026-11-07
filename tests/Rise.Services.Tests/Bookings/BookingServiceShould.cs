@@ -439,7 +439,7 @@ public class BookingServiceShould
     {
         // arrange
         await using var dbContext = await CreateCancelledAndOpenBookingAsync(nameof(ReturnOnlyCancelledBookings));
-        var request = new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = BookingCancellationFilters.OnlyCancelled };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50, Status = BookingStatusFilters.Cancelled };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);
@@ -453,7 +453,7 @@ public class BookingServiceShould
     {
         // arrange
         await using var dbContext = await CreateCancelledAndOpenBookingAsync(nameof(ExcludeCancelledBookingsWhenFilteringNotCancelled));
-        var request = new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = BookingCancellationFilters.NotCancelled };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50, Status = BookingStatusFilters.NotCancelled };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);
@@ -465,12 +465,12 @@ public class BookingServiceShould
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData(BookingCancellationFilters.All)]
+    [InlineData(BookingStatusFilters.All)]
     public async Task IncludeCancelledBookingsWithoutFilter(string? filter)
     {
         // arrange
         await using var dbContext = await CreateCancelledAndOpenBookingAsync($"{nameof(IncludeCancelledBookingsWithoutFilter)}-{filter ?? "null"}");
-        var request = new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = filter };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50, Status = filter };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);
@@ -481,13 +481,13 @@ public class BookingServiceShould
     }
 
     [Theory]
-    [InlineData(BookingCancellationFilters.OnlyCancelled)]
-    [InlineData(BookingCancellationFilters.NotCancelled)]
+    [InlineData(BookingStatusFilters.Cancelled)]
+    [InlineData(BookingStatusFilters.NotCancelled)]
     public async Task CountOnlyFilteredBookings(string filter)
     {
         // arrange
         await using var dbContext = await CreateCancelledAndOpenBookingAsync($"{nameof(CountOnlyFilteredBookings)}-{filter}");
-        var request = new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = filter };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50, Status = filter };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);
@@ -507,7 +507,7 @@ public class BookingServiceShould
                 CancelAll(booking, "Guest asked to cancel by phone");
                 booking.IsDeleted = true;
             });
-        var request = new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = BookingCancellationFilters.OnlyCancelled };
+        var request = new BookingRequest.Index { Skip = 0, Take = 50, Status = BookingStatusFilters.Cancelled };
 
         // act
         var result = await CreateService(dbContext).GetIndexAsync(request);

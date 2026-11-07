@@ -658,7 +658,7 @@ public class BookingServiceCancelRoomsShould
 
     // the result of the admin list with the given cancellation filter
     private static async Task<BookingResponse.Index> IndexAsync(Seed seed, string filter)
-        => (await seed.Service.GetIndexAsync(new BookingRequest.Index { Skip = 0, Take = 50, CancellationFilter = filter })).Value;
+        => (await seed.Service.GetIndexAsync(new BookingRequest.Index { Skip = 0, Take = 50, Status = filter })).Value;
 
     /// <summary>
     /// a partly cancelled booking still has booked rooms, so it counts as not cancelled
@@ -672,7 +672,7 @@ public class BookingServiceCancelRoomsShould
         await seed.Service.CancelAsync(Request(seed.BookingId, adults: 2, (seed.SaverId, 30m)));
 
         // act
-        var result = await IndexAsync(seed, BookingCancellationFilters.NotCancelled);
+        var result = await IndexAsync(seed, BookingStatusFilters.NotCancelled);
 
         // assert
         result.TotalCount.ShouldBe(1);
@@ -688,7 +688,7 @@ public class BookingServiceCancelRoomsShould
         await seed.Service.CancelAsync(Request(seed.BookingId, adults: 2, (seed.SaverId, 30m)));
 
         // act
-        var result = await IndexAsync(seed, BookingCancellationFilters.OnlyCancelled);
+        var result = await IndexAsync(seed, BookingStatusFilters.Cancelled);
 
         // assert
         result.TotalCount.ShouldBe(0);
@@ -704,8 +704,8 @@ public class BookingServiceCancelRoomsShould
         await seed.Service.CancelAsync(Request(seed.BookingId, null, (seed.FlexibleId, 0m), (seed.SaverId, 0m)));
 
         // act
-        var onlyCancelled = await IndexAsync(seed, BookingCancellationFilters.OnlyCancelled);
-        var notCancelled = await IndexAsync(seed, BookingCancellationFilters.NotCancelled);
+        var onlyCancelled = await IndexAsync(seed, BookingStatusFilters.Cancelled);
+        var notCancelled = await IndexAsync(seed, BookingStatusFilters.NotCancelled);
 
         // assert
         onlyCancelled.TotalCount.ShouldBe(1);
@@ -727,8 +727,8 @@ public class BookingServiceCancelRoomsShould
         await seed.Service.CancelAsync(Request(seed.BookingId, null, (seed.FlexibleId, 0m)));
 
         // assert
-        (await IndexAsync(seed, BookingCancellationFilters.OnlyCancelled)).TotalCount.ShouldBe(1);
-        (await IndexAsync(seed, BookingCancellationFilters.NotCancelled)).TotalCount.ShouldBe(0);
+        (await IndexAsync(seed, BookingStatusFilters.Cancelled)).TotalCount.ShouldBe(1);
+        (await IndexAsync(seed, BookingStatusFilters.NotCancelled)).TotalCount.ShouldBe(0);
     }
 
     /// <summary>

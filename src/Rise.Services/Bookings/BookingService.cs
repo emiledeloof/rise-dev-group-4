@@ -276,6 +276,9 @@ public sealed class BookingService(
                             CancelledAt = cancelledAt,
                             Reason = x.CancellationReason!,
                             RefundAmount = x.RefundAmount ?? 0,
+                            RefundPaidOn = x.RefundPaidOn,
+                            RefundPaidAmount = x.RefundPaidAmount,
+                            RefundNote = x.RefundNote,
                         }
                         : null,
                 };
@@ -292,6 +295,7 @@ public sealed class BookingService(
             BookingNumber = booking.BookingNumber,
             CreatedAt = booking.CreatedAt,
             Status = BookingStatusRule.For(booking),
+            RefundStatus = BookingStatusRule.RefundStatusFor(booking),
             CheckIn = booking.CheckIn,
             CheckOut = booking.CheckOut,
             Nights = nights,
@@ -300,6 +304,8 @@ public sealed class BookingService(
             ActiveAmount = rooms.Where(x => x.Cancellation is null).Sum(x => x.Total),
             PaidAmount = paidAmount,
             RefundedAmount = refundedAmount,
+            RefundPaidAmount = booking.RefundPaidTotal,
+            RefundOpenAmount = booking.RefundOpenAmount,
             RefundableAmount = Math.Max(paidAmount - refundedAmount, 0m),
             Guest = new BookingDto.AdminGuestDto
             {
@@ -424,6 +430,136 @@ public sealed class BookingService(
         });
     }
 
+    /// <summary>
+    /// Records that the refund of a cancelled room was paid back by hand, so the booking no longer shows it as open.
+    /// ! nothing is paid here, the admin already paid it in Stripe or by bank transfer
+    /// </summary>
+    public async Task<Result<BookingResponse.Refund>> RecordRefundAsync(BookingRequest.RecordRefund request, CancellationToken ctx = default)
+    {
+        var booking = await LoadForRefundAsync(request.BookingId, ctx);
+        if (booking is null)
+        {
+            return Result.NotFound($"Booking with ID '{request.BookingId}' was not found.");
+        }
+
+        var bookingRoom = booking.Rooms.SingleOrDefault(x => x.Id == request.BookingRoomId && !x.IsDeleted);
+        if (bookingRoom is null)
+        {
+            return Result.NotFound($"Booking {booking.BookingNumber} has no room with ID '{request.BookingRoomId}'.");
+        }
+
+        // ! these checks repeat the rules of Booking.RecordRefundPayment so the admin gets a clear msg, the domain stays the backstop
+        // change a rule in both places
+        if (!bookingRoom.IsCancelled)
+        {
+            return Result.Conflict($"Room {bookingRoom.Room.RoomNumber} is not cancelled, there is no refund to pay.");
+        }
+
+        if (!(bookingRoom.RefundAmount > 0))
+        {
+            return Result.Conflict($"No refund was decided for room {bookingRoom.Room.RoomNumber}.");
+        }
+
+        if (bookingRoom.IsRefundPaid)
+        {
+            return Result.Conflict($"The refund of room {bookingRoom.Room.RoomNumber} is already paid.");
+        }
+
+        // the validator allows 1 day of slack for the time zone of the browser
+        if (request.PaidOn > DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1))
+        {
+            return Result.Invalid(new ValidationError("The payment date can't be in the future."));
+        }
+
+        if (request.Amount <= 0)
+        {
+            return Result.Invalid(new ValidationError("Please enter the amount that was paid back."));
+        }
+
+        if (request.Amount > bookingRoom.TotalPrice)
+        {
+            return Result.Invalid(new ValidationError(
+                $"The refund of room {bookingRoom.Room.RoomNumber} can't be more than its price ({Euro(bookingRoom.TotalPrice)})."));
+        }
+
+        var refundable = booking.PaidAmount - (booking.RefundedAmount - bookingRoom.EffectiveRefund);
+        if (request.Amount > refundable)
+        {
+            return Result.Invalid(new ValidationError(
+                $"The refunds can't be more than what was paid, at most {Euro(Math.Max(refundable, 0m))} can be paid back for this room."));
+        }
+
+        booking.RecordRefundPayment(bookingRoom, request.PaidOn, request.Amount, request.Note);
+
+        return await SaveRefundAsync(booking, bookingRoom, ctx);
+    }
+
+    /// <summary>
+    /// Undoes a refund payment recorded by mistake, the refund of the room is open again.
+    /// </summary>
+    public async Task<Result<BookingResponse.Refund>> UndoRefundAsync(BookingRequest.UndoRefund request, CancellationToken ctx = default)
+    {
+        var booking = await LoadForRefundAsync(request.BookingId, ctx);
+        if (booking is null)
+        {
+            return Result.NotFound($"Booking with ID '{request.BookingId}' was not found.");
+        }
+
+        var bookingRoom = booking.Rooms.SingleOrDefault(x => x.Id == request.BookingRoomId && !x.IsDeleted);
+        if (bookingRoom is null)
+        {
+            return Result.NotFound($"Booking {booking.BookingNumber} has no room with ID '{request.BookingRoomId}'.");
+        }
+
+        if (!bookingRoom.IsRefundPaid)
+        {
+            return Result.Conflict($"The refund of room {bookingRoom.Room.RoomNumber} is not paid.");
+        }
+
+        // ! repeats the rule of Booking.UndoRefundPayment so the admin gets a clear msg, change it in both places
+        // undoing puts the decided amount back, another room can have got the rest of the paid amount in the meantime
+        var refundsAfterUndo = booking.RefundedAmount - bookingRoom.EffectiveRefund + (bookingRoom.RefundAmount ?? 0m);
+        if (refundsAfterUndo > booking.PaidAmount)
+        {
+            return Result.Conflict(
+                $"The refund of room {bookingRoom.Room.RoomNumber} can't be opened again: the refunds would total "
+                + $"{Euro(refundsAfterUndo)}, more than the {Euro(booking.PaidAmount)} paid.");
+        }
+
+        booking.UndoRefundPayment(bookingRoom);
+
+        return await SaveRefundAsync(booking, bookingRoom, ctx);
+    }
+
+    private Task<Booking?> LoadForRefundAsync(int bookingId, CancellationToken ctx)
+        => dbContext.Bookings
+            .AsSplitQuery()
+            .Include(x => x.Rooms)
+                .ThenInclude(x => x.Room)
+            .Include(x => x.Payments)
+            .SingleOrDefaultAsync(x => x.Id == bookingId && !x.IsDeleted, ctx);
+
+    private async Task<Result<BookingResponse.Refund>> SaveRefundAsync(Booking booking, BookingRoom bookingRoom, CancellationToken ctx)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(ctx);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // somebody else changed this refund between loading and saving, eg a double click
+            return Result.Conflict($"The refund of room {bookingRoom.Room.RoomNumber} was changed in the meantime, please reload the booking.");
+        }
+
+        return Result.Success(new BookingResponse.Refund
+        {
+            BookingId = booking.Id,
+            BookingRoomId = bookingRoom.Id,
+            RefundStatus = BookingStatusRule.RefundStatusFor(booking),
+            RefundOpenAmount = booking.RefundOpenAmount,
+        });
+    }
+
     public async Task<Result<BookingDto.Detail>> GetDetailByCheckoutSessionAsync(
         string checkoutSessionId,
         CancellationToken ctx = default)
@@ -511,7 +647,7 @@ public sealed class BookingService(
     }
 
     /// <summary>
-    /// Returns a paginated list of the bookings for the admin overview, optionally filtered on cancellation.
+    /// Returns a paginated list of the bookings for the admin overview, optionally filtered on a status of <see cref="BookingStatusFilters"/>.
     /// Status is "Cancelled" when all rooms are cancelled, else "Paid" when at least one payment has been settled, otherwise "Pending".
     /// </summary>
     public async Task<Result<BookingResponse.Index>> GetIndexAsync(
@@ -520,13 +656,24 @@ public sealed class BookingService(
     {
         var query = dbContext.Bookings.Where(b => !b.IsDeleted);
 
-        // same rule as Booking.IsCancelled, a partly cancelled booking still has booked rooms so it counts as not cancelled
-        query = request.CancellationFilter switch
+        // same rules as Booking.IsCancelled and BookingStatusRule, a partly cancelled booking still has booked rooms so it counts as not cancelled
+        var notCancelled = query.Where(b =>
+            !b.Rooms.Any(r => !r.IsDeleted) || b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt == null));
+        query = request.Status switch
         {
-            BookingCancellationFilters.NotCancelled => query.Where(b =>
-                !b.Rooms.Any(r => !r.IsDeleted) || b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt == null)),
-            BookingCancellationFilters.OnlyCancelled => query.Where(b =>
+            BookingStatusFilters.NotCancelled => notCancelled,
+            BookingStatusFilters.Pending => notCancelled.Where(b => !b.Payments.AsQueryable().Any(BookingStatusRule.IsSettled)),
+            BookingStatusFilters.Paid => notCancelled.Where(b => b.Payments.AsQueryable().Any(BookingStatusRule.IsSettled)),
+            BookingStatusFilters.PartiallyCancelled => query.Where(b =>
+                b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt != null) && b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt == null)),
+            BookingStatusFilters.Cancelled => query.Where(b =>
                 b.Rooms.Any(r => !r.IsDeleted) && !b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt == null)),
+            // an open refund wins, like BookingStatusRule.RefundStatusFor
+            BookingStatusFilters.RefundPending => query.Where(b =>
+                b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt != null && r.RefundAmount > 0 && r.RefundPaidOn == null)),
+            BookingStatusFilters.Refunded => query.Where(b =>
+                b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt != null && r.RefundAmount > 0)
+                && !b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt != null && r.RefundAmount > 0 && r.RefundPaidOn == null)),
             _ => query,
         };
 
@@ -560,7 +707,14 @@ public sealed class BookingService(
                 GuestEmail = b.Guest.Email,
                 Rooms = b.Rooms
                     .Where(r => !r.IsDeleted)
-                    .Select(r => new { r.PricePerNight, r.Room.RoomNumber, IsCancelled = r.CancelledAt != null })
+                    .Select(r => new
+                    {
+                        r.PricePerNight,
+                        r.Room.RoomNumber,
+                        IsCancelled = r.CancelledAt != null,
+                        HasRefund = r.CancelledAt != null && r.RefundAmount > 0,
+                        IsRefundPaid = r.RefundPaidOn != null,
+                    })
                     .ToList(),
                 HasSettledPayment = b.Payments.AsQueryable().Any(BookingStatusRule.IsSettled),
             })
@@ -587,6 +741,10 @@ public sealed class BookingService(
                 Status = BookingStatusRule.For(isCancelled, x.HasSettledPayment),
                 RoomCount = x.Rooms.Count,
                 CancelledRoomCount = cancelledRoomCount,
+                RefundStatus = BookingStatusRule.RefundStatusFor(
+                    cancelledRoomCount,
+                    x.Rooms.Count(r => r.HasRefund),
+                    x.Rooms.Count(r => r.HasRefund && !r.IsRefundPaid)),
             };
         }).ToList();
 
