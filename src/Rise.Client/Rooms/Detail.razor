@@ -77,9 +77,9 @@ else
                             {
                                 <li class="room-detail-spec room-detail-size"><i class="fas fa-ruler-combined" aria-hidden="true"></i><span>@_room.SizeInSquareMeters m²</span></li>
                             }
-                            @if (_room.BedType is not null)
+                            @if (_room.BedConfiguration is not null)
                             {
-                                <li class="room-detail-spec room-detail-bed"><i class="fas fa-bed" aria-hidden="true"></i><span>@_room.BedType</span></li>
+                                <li class="room-detail-spec room-detail-bed"><i class="fas fa-bed" aria-hidden="true"></i><span>@_room.BedConfiguration</span></li>
                             }
                             @if (_room.View is not null)
                             {

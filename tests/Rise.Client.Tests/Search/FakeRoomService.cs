@@ -1,4 +1,5 @@
 using Ardalis.Result;
+using Rise.Shared.Amenities;
 using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 
@@ -65,7 +66,7 @@ public class FakeRoomService : IRoomService
         MaxGuests = 2,
         PhotoUrls = ["images/rooms/double-1.jpg", "images/rooms/double-2.jpg"],
         SizeInSquareMeters = 25,
-        BedType = "Double bed",
+        BedConfiguration = "Double bed",
         View = "Garden view",
         Policies = "A baby cot is available on request.",
         Amenities =

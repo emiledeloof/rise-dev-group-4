@@ -5,6 +5,7 @@ using Rise.Shared.Search;
 using Rise.Services.Bookings;
 using Rise.Services.Pricing;
 using Rise.Domain.Common;
+using Rise.Shared.Amenities;
 using Rise.Domain.Rooms;
 using Rise.Domain.Settings;
 
@@ -155,7 +156,7 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                     .ToList(),
                 SizeInSquareMeters = r.SizeInSquareMeters,
                 // the beds and amenities belong to the room type, shared by all its rooms
-                BedType = r.RoomType.Translations
+                BedConfiguration = r.RoomType.Translations
                     .Where(t => t.Language == Language.Default)
                     .Select(t => t.BedConfiguration)
                     .FirstOrDefault(),

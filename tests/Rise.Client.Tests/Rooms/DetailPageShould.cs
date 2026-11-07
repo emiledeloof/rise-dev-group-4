@@ -267,7 +267,7 @@ public class DetailPageShould : BunitContext
             Id = 1,
             Name = "Double Room",
             MaxGuests = 2,
-            BedType = "Double bed",
+            BedConfiguration = "Double bed",
         });
 
         // act

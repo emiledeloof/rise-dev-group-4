@@ -83,7 +83,7 @@ public partial class Detail : LocalizedComponentBase
 
     // at least 1 characteristic filled in, otherwise the empty state is shown
     private bool HasCharacteristics =>
-        _room is not null && (_room.SizeInSquareMeters is not null || _room.BedType is not null || _room.View is not null);
+        _room is not null && (_room.SizeInSquareMeters is not null || _room.BedConfiguration is not null || _room.View is not null);
 
     // the other photos go in the slider of the gallery
     private IReadOnlyList<string> GalleryPhotos => _room?.PhotoUrls.Skip(1).ToList() ?? [];
