@@ -742,7 +742,7 @@ namespace Rise.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<int?>("RoomTypeId")
+                    b.Property<int>("RoomTypeId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("SizeInSquareMeters")
@@ -1061,7 +1061,8 @@ namespace Rise.Persistence.Migrations
                     b.HasOne("Rise.Domain.Rooms.RoomType", "RoomType")
                         .WithMany()
                         .HasForeignKey("RoomTypeId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("RoomType");
                 });

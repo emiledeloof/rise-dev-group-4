@@ -35,7 +35,7 @@ internal class RoomConfiguration : EntityConfiguration<Room>
         // ! restrict, a type still used by a room must never disappear with it
         builder.HasOne(x => x.RoomType)
             .WithMany()
-            .IsRequired(false)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
         // Rates are referenced by bookings, so they can't be removed together with the room.
