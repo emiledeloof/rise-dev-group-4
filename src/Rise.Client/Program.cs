@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Rise.Client;
 using Rise.Client.Billing;
 using Rise.Client.Common;
+using Rise.Client.Amenities;
 using Rise.Client.Bookings;
 using Rise.Client.Guests;
 using Rise.Client.Identity;
@@ -22,6 +23,7 @@ using Toolbelt.Blazor.I18nText;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Rise.Client.RoomTypes;
 using Rise.Shared.RoomTypes;
+using Rise.Shared.Amenities;
 
 try
 {
@@ -108,6 +110,12 @@ try
 
     // the room type endpoints need the admin role, so send the auth cookie along
     builder.Services.AddHttpClient<IRoomTypeService, RoomTypeService>(client =>
+    {
+        client.BaseAddress = backendUrl;
+    }).AddHttpMessageHandler<CookieHandler>();
+
+    // the amenity endpoints need the admin role, so send the auth cookie along
+    builder.Services.AddHttpClient<IAmenityService, AmenityService>(client =>
     {
         client.BaseAddress = backendUrl;
     }).AddHttpMessageHandler<CookieHandler>();
