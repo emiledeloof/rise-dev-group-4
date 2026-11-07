@@ -2,6 +2,7 @@
 @layout AdminLayout
 @attribute [Authorize(Roles = AppRoles.Administrator)]
 @using Rise.Client.Common
+@using Rise.Shared.Billing
 @using Rise.Shared.Bookings
 @using Rise.Shared.Identity
 @* admin booking detail, opened from the booking list and the invoice list, styles in AdminDetail.razor.css *@
@@ -228,6 +229,11 @@
                                     <div>
                                         <p>@(payment.PaidAt is null ? "Awaiting payment" : $"Paid {Format.Date(payment.PaidAt.Value)}")</p>
                                         <p class="booking-detail-muted booking-detail-payment-info">
+                                            <span class="booking-detail-payment-method">@PaymentMethods.Label(payment.Method)</span>
+                                            @if (payment.Reference is not null)
+                                            {
+                                                <span>@payment.Reference</span>
+                                            }
                                             @if (payment.InvoiceNumber is not null)
                                             {
                                                 <span>@payment.InvoiceNumber</span>
