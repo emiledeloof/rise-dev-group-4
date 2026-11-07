@@ -16,6 +16,13 @@ public class RoomTypeService(HttpClient httpClient) : IRoomTypeService
         return await ResultReader.ReadAsync<RoomTypeResponse.Index>(response, ctx);
     }
 
+    /// <summary>get on the url of one type, for its edit form</summary>
+    public async Task<Result<RoomTypeDto.Edit>> GetForEditAsync(int roomTypeId, CancellationToken ctx = default)
+    {
+        var response = await httpClient.GetAsync($"{Url}/{roomTypeId}", ctx);
+        return await ResultReader.ReadAsync<RoomTypeDto.Edit>(response, ctx);
+    }
+
     /// <summary>post with the new type in the body</summary>
     public async Task<Result<RoomTypeResponse.Create>> CreateAsync(RoomTypeRequest.Create request, CancellationToken ctx = default)
     {
