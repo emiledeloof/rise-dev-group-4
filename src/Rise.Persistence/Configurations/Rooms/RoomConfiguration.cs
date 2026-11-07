@@ -18,13 +18,7 @@ internal class RoomConfiguration : EntityConfiguration<Room>
         // lookup by room name in RateService and sorts by name, low gain with few rooms
         builder.HasIndex(x => x.Name);
         builder.Property(x => x.MaxGuests).IsRequired();
-        builder.Property(x => x.BedType).HasMaxLength(100);
         builder.Property(x => x.View).HasMaxLength(100);
-
-        // Amenities are shared by the rooms, the RoomAmenity join table only links them.
-        builder.HasMany(x => x.Amenities)
-            .WithMany()
-            .UsingEntity("RoomAmenity");
 
         // Photos belong to the room, so they are removed together with the room.
         builder.HasMany(x => x.Photos)
