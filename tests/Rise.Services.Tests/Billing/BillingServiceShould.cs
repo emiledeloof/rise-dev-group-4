@@ -516,4 +516,176 @@ public class BillingServiceShould
         deleted.Status.ShouldBe(ResultStatus.Conflict);
         (await dbContext.BillLines.CountAsync(x => !x.IsDeleted)).ShouldBe(1);
     }
+
+    private static BillingRequest.RecordPayment Cash(int bookingId, decimal amount) => new()
+    {
+        BookingId = bookingId,
+        Amount = amount,
+        Method = PaymentMethods.Cash,
+        Reference = "Receipt 0042",
+    };
+
+    [Fact]
+    public async Task RecordACashPaymentAndLowerTheBalance()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(RecordACashPaymentAndLowerTheBalance), x =>
+        {
+            x.AddPayment(464m).MarkAsPaid(DateTime.UtcNow);
+            x.AddBillLine("Minibar", 2, 8m, 22m);
+        });
+        await using var _db = dbContext;
+
+        var result = await new BillingService(dbContext).RecordPaymentAsync(Cash(booking.Id, 16m));
+
+        result.IsSuccess.ShouldBeTrue();
+        var payment = result.Value.Payments.Last();
+        payment.Method.ShouldBe(PaymentMethods.Cash);
+        payment.Reference.ShouldBe("Receipt 0042");
+        payment.IsPaid.ShouldBeTrue();
+        payment.IsOnSite.ShouldBeTrue();
+        result.Value.PaidAmount.ShouldBe(480m);
+        result.Value.OutstandingBalance.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task RecordAPartOfTheBalance()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(RecordAPartOfTheBalance));
+        await using var _db = dbContext;
+
+        var result = await new BillingService(dbContext).RecordPaymentAsync(new BillingRequest.RecordPayment
+        {
+            BookingId = booking.Id,
+            Amount = 100m,
+            Method = PaymentMethods.BankTransfer,
+        });
+
+        result.Value.Payments.ShouldHaveSingleItem().Method.ShouldBe(PaymentMethods.BankTransfer);
+        result.Value.OutstandingBalance.ShouldBe(364m);
+        result.Value.Status.ShouldBe(BookingStatus.Paid);
+    }
+
+    [Fact]
+    public async Task RefuseAPaymentAboveTheOutstandingBalance()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(RefuseAPaymentAboveTheOutstandingBalance),
+            x => x.AddPayment(400m).MarkAsPaid(DateTime.UtcNow));
+        await using var _db = dbContext;
+
+        var result = await new BillingService(dbContext).RecordPaymentAsync(Cash(booking.Id, 64.01m));
+
+        result.Status.ShouldBe(ResultStatus.Invalid);
+        result.ValidationErrors.ShouldHaveSingleItem().ErrorMessage.ShouldContain("64.00");
+        (await dbContext.Payments.CountAsync()).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task RefuseAPaymentWhenNothingIsOutstanding()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(RefuseAPaymentWhenNothingIsOutstanding),
+            x => x.AddPayment(464m).MarkAsPaid(DateTime.UtcNow));
+        await using var _db = dbContext;
+
+        var result = await new BillingService(dbContext).RecordPaymentAsync(Cash(booking.Id, 1m));
+
+        result.Status.ShouldBe(ResultStatus.Invalid);
+        (await dbContext.Payments.CountAsync()).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task ReturnNotFoundWhenPayingAnUnknownBooking()
+    {
+        var (dbContext, _) = await CreateSeededDbContextAsync(nameof(ReturnNotFoundWhenPayingAnUnknownBooking));
+        await using var _db = dbContext;
+
+        var result = await new BillingService(dbContext).RecordPaymentAsync(Cash(999, 10m));
+
+        result.Status.ShouldBe(ResultStatus.NotFound);
+    }
+
+    [Fact]
+    public async Task ReturnConflictWhenPayingACancelledBooking()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(ReturnConflictWhenPayingACancelledBooking),
+            x => x.CancelRooms(x.Rooms.Select(r => new RoomCancellation(r, 0m)).ToList(), DateTime.UtcNow, "Guest is ill"));
+        await using var _db = dbContext;
+
+        var result = await new BillingService(dbContext).RecordPaymentAsync(Cash(booking.Id, 10m));
+
+        result.Status.ShouldBe(ResultStatus.Conflict);
+        (await dbContext.Payments.CountAsync()).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task NotTurnAnOnSitePaymentForOtherServicesIntoACancellationFee()
+    {
+        // the remaining room is paid online, the twin is cancelled without refund before it was paid
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(NotTurnAnOnSitePaymentForOtherServicesIntoACancellationFee), x =>
+        {
+            x.AddPayment(220m).MarkAsPaid(DateTime.UtcNow);
+            CancelTwin(x, 0m);
+            x.AddBillLine("Minibar", 2, 8m, 22m);
+        });
+        await using var _db = dbContext;
+
+        var result = await new BillingService(dbContext).RecordPaymentAsync(Cash(booking.Id, 16m));
+
+        result.Value.CancellationFeesTotal.ShouldBe(0m);
+        result.Value.Total.ShouldBe(236m);
+        result.Value.OutstandingBalance.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task DeleteAnOnSitePaymentSoftly()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(DeleteAnOnSitePaymentSoftly),
+            x => x.RecordPayment(100m, PaymentMethod.Cash, DateTime.UtcNow));
+        await using var _db = dbContext;
+        var payment = booking.Payments.Single();
+
+        var result = await new BillingService(dbContext).DeletePaymentAsync(new BillingRequest.DeletePayment
+        {
+            BookingId = booking.Id,
+            PaymentId = payment.Id,
+        });
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Payments.ShouldBeEmpty();
+        result.Value.OutstandingBalance.ShouldBe(464m);
+        (await dbContext.Payments.SingleAsync()).IsDeleted.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task NotDeleteAStripePayment()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(NotDeleteAStripePayment),
+            x => x.AddPayment(464m).MarkAsPaid(DateTime.UtcNow));
+        await using var _db = dbContext;
+
+        var result = await new BillingService(dbContext).DeletePaymentAsync(new BillingRequest.DeletePayment
+        {
+            BookingId = booking.Id,
+            PaymentId = booking.Payments.Single().Id,
+        });
+
+        result.Status.ShouldBe(ResultStatus.Conflict);
+        (await dbContext.Payments.SingleAsync()).IsDeleted.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ReturnNotFoundForAPaymentOfAnotherBooking()
+    {
+        var (dbContext, booking) = await CreateSeededDbContextAsync(nameof(ReturnNotFoundForAPaymentOfAnotherBooking),
+            x => x.RecordPayment(100m, PaymentMethod.Cash, DateTime.UtcNow));
+        await using var _db = dbContext;
+
+        var result = await new BillingService(dbContext).DeletePaymentAsync(new BillingRequest.DeletePayment
+        {
+            BookingId = booking.Id + 1,
+            PaymentId = booking.Payments.Single().Id,
+        });
+
+        result.Status.ShouldBe(ResultStatus.NotFound);
+        (await dbContext.Payments.SingleAsync()).IsDeleted.ShouldBeFalse();
+    }
 }

@@ -323,6 +323,8 @@ public sealed class BookingService(
                     CardBrand = x.CardBrand,
                     CardLast4 = x.CardLast4,
                     StripeReceiptUrl = x.StripeReceiptUrl,
+                    Method = x.Method.ToString(),
+                    Reference = x.Reference,
                 })
                 .ToList(),
         };
