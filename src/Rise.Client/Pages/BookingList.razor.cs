@@ -11,23 +11,38 @@ public partial class BookingList
     private string? _errorMessage;
     private int _currentPage = 1;
     private int _totalCount;
-    private string _cancellationFilter = BookingCancellationFilters.All;
+    // values of the first select, it only picks which detailed statuses the second select offers
+    private const string AllCategory = "All";
+    private const string PaymentCategory = "Payment";
+    private const string CancellationCategory = "Cancellation";
+
+    private string _category = AllCategory;
+    private string _statusFilter = BookingStatusFilters.All;
     private int _loadVersion;
+
+    /// <summary>
+    /// detailed statuses of the chosen category, empty for all bookings so the second select is hidden
+    /// </summary>
+    private IReadOnlyList<string> CategoryValues => _category switch
+    {
+        PaymentCategory => BookingStatusFilters.PaymentValues,
+        CancellationCategory => BookingStatusFilters.CancellationValues,
+        _ => [],
+    };
 
     private int TotalPages => _totalCount == 0 ? 1 : (int)Math.Ceiling(_totalCount / (double)PageSize);
 
-    private string ListTitle => _cancellationFilter switch
+    private string ListTitle => _statusFilter switch
     {
-        BookingCancellationFilters.NotCancelled => "Not cancelled bookings",
-        BookingCancellationFilters.OnlyCancelled => "Cancelled bookings",
-        _ => "All bookings",
+        BookingStatusFilters.All => "All bookings",
+        _ => $"{FilterLabel(_statusFilter)} bookings",
     };
 
-    private string EmptyMessage => _cancellationFilter switch
+    private string EmptyMessage => _statusFilter switch
     {
-        BookingCancellationFilters.NotCancelled => "No bookings that are not cancelled.",
-        BookingCancellationFilters.OnlyCancelled => "No cancelled bookings.",
-        _ => "No bookings yet.",
+        BookingStatusFilters.All => "No bookings yet.",
+        BookingStatusFilters.NotCancelled => "No bookings that are not cancelled.",
+        _ => $"No {FilterLabel(_statusFilter).ToLowerInvariant()} bookings.",
     };
 
     [Inject] public required IBookingService BookingService { get; set; }
@@ -46,7 +61,7 @@ public partial class BookingList
             Skip = (_currentPage - 1) * PageSize,
             Take = PageSize,
             OrderDescending = true, // newest first
-            CancellationFilter = _cancellationFilter,
+            Status = _statusFilter,
         };
 
         var result = await BookingService.GetIndexAsync(request);
@@ -64,6 +79,30 @@ public partial class BookingList
 
         _bookings = result.Value.Bookings;
         _totalCount = result.Value.TotalCount;
+    }
+
+    /// <summary>
+    /// label of a filter value in the select, the list title and the empty msg
+    /// </summary>
+    private static string FilterLabel(string filter) => filter switch
+    {
+        BookingStatusFilters.NotCancelled => "Not cancelled",
+        BookingStatusFilters.Pending => "Pending",
+        BookingStatusFilters.Paid => "Paid",
+        BookingStatusFilters.PartiallyCancelled => "Partially cancelled",
+        BookingStatusFilters.Cancelled => "Cancelled",
+        BookingStatusFilters.RefundPending => "Refund pending",
+        BookingStatusFilters.Refunded => "Refunded",
+        _ => "All bookings",
+    };
+
+    /// <summary>
+    /// a new category starts on "Any status", so the list always matches what both selects show
+    /// </summary>
+    private async Task ApplyCategoryAsync()
+    {
+        _statusFilter = BookingStatusFilters.All;
+        await ApplyFilterAsync();
     }
 
     private async Task ApplyFilterAsync()

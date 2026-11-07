@@ -1,0 +1,31 @@
+.refund-tag {
+    gap: var(--space-xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* gold outline, money still has to go back to the guest, stands out without looking like an error */
+.refund-tag-pending {
+    border: 1px solid var(--color-gold);
+    background-color: var(--color-warning-bg);
+    color: var(--color-text);
+}
+
+.refund-tag-pending i {
+    color: var(--color-gold);
+}
+
+/* same stamp look as the paid tag, the refund is settled */
+.refund-tag-refunded {
+    border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+    border-radius: 999px;
+    background-color: var(--color-primary-tint);
+    color: var(--color-primary);
+    cursor: default;
+}
+
+.refund-tag-none {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+    color: var(--color-text-muted);
+}

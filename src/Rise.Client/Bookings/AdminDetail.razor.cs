@@ -32,8 +32,21 @@ public partial class AdminDetail
     // why the cancellation was refused, shown in the dialog
     private string? _cancelError;
 
-    // shown above the booking once rooms are cancelled
+    // shown above the booking once rooms are cancelled or a refund payment changed
     private string? _successMessage;
+
+    // form to record the refund payment of 1 cancelled room, open under that room while it is set
+    private BookingRequest.RecordRefund? _refundForm;
+
+    private bool _isSavingRefund;
+
+    // why recording or undoing the refund payment was refused
+    private string? _refundError;
+
+    // room whose refund payment the admin is about to undo, asks to confirm first
+    private int? _undoRoomId;
+
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
 
     // rooms still booked, only these can be cancelled
     private List<BookingDto.AdminRoomDto> ActiveRooms => _booking!.Rooms.Where(x => x.Cancellation is null).ToList();
@@ -73,6 +86,8 @@ public partial class AdminDetail
         _errorMessage = null;
         _successMessage = null;
         _cancelForm = null;
+        _refundForm = null;
+        _undoRoomId = null;
 
         await LoadAsync();
 
@@ -202,6 +217,89 @@ public partial class AdminDetail
             ? $"{what}. A refund of {Format.Amount(cancelled.RefundAmount)} is recorded, remember to pay it back yourself."
             : $"{what}, no refund is due.";
     }
+
+    /// <summary>
+    /// opens the form under the room, prefilled with today and the decided refund, the admin can change both
+    /// </summary>
+    private void OpenRefundForm(BookingDto.AdminRoomDto room)
+    {
+        _refundError = null;
+        _undoRoomId = null;
+        _refundForm = new BookingRequest.RecordRefund
+        {
+            BookingId = BookingId,
+            BookingRoomId = room.BookingRoomId,
+            PaidOn = Today,
+            Amount = room.Cancellation!.RefundAmount,
+        };
+    }
+
+    private void CloseRefundForm()
+    {
+        if (!_isSavingRefund)
+            _refundForm = null;
+    }
+
+    private async Task RecordRefundAsync()
+    {
+        var form = _refundForm!;
+        var roomNumber = RoomNumberOf(form.BookingRoomId);
+        _isSavingRefund = true;
+        _refundError = null;
+
+        var result = await BookingService.RecordRefundAsync(form);
+
+        _isSavingRefund = false;
+
+        if (!result.IsSuccess)
+        {
+            _refundError = ErrorOf(result) ?? "Sorry, the refund payment could not be saved. Please try again later.";
+            return;
+        }
+
+        _refundForm = null;
+        _successMessage = $"The refund of {Format.Amount(form.Amount)} for room {roomNumber} is recorded as paid.";
+        await LoadAsync();
+    }
+
+    private void AskUndoRefund(BookingDto.AdminRoomDto room)
+    {
+        _refundError = null;
+        _refundForm = null;
+        _undoRoomId = room.BookingRoomId;
+    }
+
+    private async Task UndoRefundAsync(BookingDto.AdminRoomDto room)
+    {
+        _isSavingRefund = true;
+        _refundError = null;
+
+        var result = await BookingService.UndoRefundAsync(new BookingRequest.UndoRefund
+        {
+            BookingId = BookingId,
+            BookingRoomId = room.BookingRoomId,
+        });
+
+        _isSavingRefund = false;
+
+        if (!result.IsSuccess)
+        {
+            // stays under the confirmation of this room
+            _refundError = ErrorOf(result) ?? "Sorry, the refund payment could not be undone. Please try again later.";
+            return;
+        }
+
+        _undoRoomId = null;
+        _successMessage = $"The refund of room {room.RoomNumber} is open again.";
+        await LoadAsync();
+    }
+
+    private string RoomNumberOf(int bookingRoomId)
+        => _booking!.Rooms.Single(x => x.BookingRoomId == bookingRoomId).RoomNumber;
+
+    // first msg of a refused Result, the server checks again, eg already paid in another tab
+    private static string? ErrorOf<T>(Result<T> result)
+        => result.ValidationErrors.Select(x => x.ErrorMessage).Concat(result.Errors).FirstOrDefault();
 
     /// <summary>
     /// step of the refund timeline the reference date of the room falls in, 0 full refund, 1 partial refund, 2 no refund

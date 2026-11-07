@@ -5,7 +5,7 @@ using Rise.Shared.Bookings;
 namespace Rise.Services.Bookings;
 
 /// <summary>
-/// the rule behind <see cref="BookingStatus"/>, shared by the booking list, the booking detail and the final bill
+/// the rules behind <see cref="BookingStatus"/> and <see cref="BookingRefundStatus"/>, shared by the booking list, the booking detail and the final bill
 /// </summary>
 public static class BookingStatusRule
 {
@@ -31,5 +31,28 @@ public static class BookingStatusRule
         if (isCancelled) return BookingStatus.Cancelled;
 
         return hasSettledPayment ? BookingStatus.Paid : BookingStatus.Pending;
+    }
+
+    /// <summary>
+    /// refund status of the cancelled part of a booking with its rooms loaded
+    /// </summary>
+    public static string RefundStatusFor(Booking booking)
+    {
+        var cancelled = booking.Rooms.Where(x => !x.IsDeleted && x.IsCancelled).ToList();
+        return RefundStatusFor(cancelled.Count, cancelled.Count(x => x.RefundAmount > 0), cancelled.Count(x => x.HasOpenRefund));
+    }
+
+    /// <summary>
+    /// an open refund wins, so a refund can't be forgotten behind a paid one, for a query that only selects the counts
+    /// </summary>
+    /// <param name="cancelledRooms">nb of cancelled rooms</param>
+    /// <param name="roomsWithRefund">nb of cancelled rooms with a refund above 0</param>
+    /// <param name="openRefunds">nb of those refunds not paid back yet</param>
+    public static string RefundStatusFor(int cancelledRooms, int roomsWithRefund, int openRefunds)
+    {
+        if (cancelledRooms == 0) return BookingRefundStatus.None;
+        if (openRefunds > 0) return BookingRefundStatus.RefundPending;
+
+        return roomsWithRefund > 0 ? BookingRefundStatus.Refunded : BookingRefundStatus.NoRefund;
     }
 }

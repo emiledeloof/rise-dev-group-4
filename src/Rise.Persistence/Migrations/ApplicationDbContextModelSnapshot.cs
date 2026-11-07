@@ -437,6 +437,18 @@ namespace Rise.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("RefundNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal?>("RefundPaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateOnly?>("RefundPaidOn")
+                        .IsConcurrencyToken()
+                        .HasColumnType("date");
+
                     b.Property<int>("RoomId")
                         .HasColumnType("integer");
 

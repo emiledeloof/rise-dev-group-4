@@ -60,9 +60,20 @@ public class Booking : Entity
     public decimal ActiveAmount => ActiveRooms.Sum(x => x.TotalPrice);
 
     /// <summary>
-    /// Sum of the refunds recorded on the cancelled rooms, the rooms must be loaded.
+    /// Sum of the refunds of the cancelled rooms, paid or still open, the rooms must be loaded.
+    /// A paid refund counts with the amount actually paid back.
     /// </summary>
-    public decimal RefundedAmount => _rooms.Where(x => !x.IsDeleted).Sum(x => x.RefundAmount ?? 0m);
+    public decimal RefundedAmount => _rooms.Where(x => !x.IsDeleted).Sum(x => x.EffectiveRefund);
+
+    /// <summary>
+    /// Sum of the refunds already paid back, the rooms must be loaded.
+    /// </summary>
+    public decimal RefundPaidTotal => _rooms.Where(x => !x.IsDeleted && x.IsRefundPaid).Sum(x => x.RefundPaidAmount ?? 0m);
+
+    /// <summary>
+    /// Sum of the refunds decided but not paid back yet, what the admin still has to pay, the rooms must be loaded.
+    /// </summary>
+    public decimal RefundOpenAmount => _rooms.Where(x => !x.IsDeleted && x.HasOpenRefund).Sum(x => x.RefundAmount ?? 0m);
 
     /// <summary>
     /// Sum of the settled payments, the most that can be refunded.
@@ -167,6 +178,76 @@ public class Booking : Entity
         var trimmedReason = reason.Trim();
         foreach (var (room, refund) in rooms)
             room.Cancel(cancelledAt, trimmedReason, refund);
+    }
+
+    /// <summary>
+    /// Max length of <see cref="BookingRoom.RefundNote"/>.
+    /// </summary>
+    public const int RefundNoteMaxLength = 500;
+
+    /// <summary>
+    /// Records that the refund of a cancelled room was paid back by hand.
+    /// The amount defaults to the decided refund in the UI but can differ, eg when the admin agreed on another amount with the guest.
+    /// The rooms and the payments must be loaded.
+    /// BookingService.RecordRefundAsync checks the same rules first to return a Result, keep both in sync.
+    /// </summary>
+    /// <param name="room">cancelled room of this booking with an open refund</param>
+    /// <param name="paidOn">day the refund was paid</param>
+    /// <param name="amount">what was actually paid back</param>
+    /// <param name="note">optional, eg the Stripe refund id</param>
+    public void RecordRefundPayment(BookingRoom room, DateOnly paidOn, decimal amount, string? note = null)
+    {
+        Guard.Against.Null(room);
+
+        if (!_rooms.Contains(room) || room.IsDeleted)
+            throw new ArgumentException("The room is not part of this booking.", nameof(room));
+
+        if (!room.IsCancelled)
+            throw new InvalidOperationException("Only the refund of a cancelled room can be paid.");
+
+        if (!(room.RefundAmount > 0))
+            throw new InvalidOperationException("No refund was decided for this room.");
+
+        if (room.IsRefundPaid)
+            throw new InvalidOperationException("The refund of this room is already paid.");
+
+        Guard.Against.NegativeOrZero(amount);
+
+        if (amount > room.TotalPrice)
+            throw new ArgumentException("The refund can't be more than the price of the room.", nameof(amount));
+
+        // ! the decided amount of this room is replaced by the paid amount
+        if (RefundedAmount - room.EffectiveRefund + amount > PaidAmount)
+            throw new ArgumentException("The refunds can't be more than the amount paid.", nameof(amount));
+
+        var trimmedNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        if (trimmedNote?.Length > RefundNoteMaxLength)
+            throw new ArgumentException($"The note can't be longer than {RefundNoteMaxLength} characters.", nameof(note));
+
+        room.MarkRefundPaid(paidOn, amount, trimmedNote);
+    }
+
+    /// <summary>
+    /// Undoes a refund payment recorded by mistake, the refund of the room is open again with its decided amount.
+    /// Refused when the decided amount no longer fits in what was paid, eg when another room got the rest in the meantime.
+    /// The rooms and the payments must be loaded.
+    /// BookingService.UndoRefundAsync checks the same rules first to return a Result, keep both in sync.
+    /// </summary>
+    public void UndoRefundPayment(BookingRoom room)
+    {
+        Guard.Against.Null(room);
+
+        if (!_rooms.Contains(room) || room.IsDeleted)
+            throw new ArgumentException("The room is not part of this booking.", nameof(room));
+
+        if (!room.IsRefundPaid)
+            throw new InvalidOperationException("The refund of this room is not paid.");
+
+        // ! the paid amount of this room is replaced by its decided amount again
+        if (RefundedAmount - room.EffectiveRefund + (room.RefundAmount ?? 0m) > PaidAmount)
+            throw new InvalidOperationException("Undoing would make the refunds more than the amount paid.");
+
+        room.UndoRefundPaid();
     }
 
     public Payment AddPayment(decimal amount, string? stripeCheckoutSession = null)

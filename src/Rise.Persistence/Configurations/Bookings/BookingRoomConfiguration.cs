@@ -19,6 +19,10 @@ internal class BookingRoomConfiguration : EntityConfiguration<BookingRoom>
         // a double submit fails instead of silently replacing the first cancellation and its refund
         builder.Property(x => x.CancelledAt).IsConcurrencyToken();
 
+        builder.Property(x => x.RefundNote).HasMaxLength(Booking.RefundNoteMaxLength);
+        // same for the refund payment, a double click doesn't record it twice
+        builder.Property(x => x.RefundPaidOn).IsConcurrencyToken();
+
         builder.HasOne(x => x.Room)
             .WithMany()
             .IsRequired()
