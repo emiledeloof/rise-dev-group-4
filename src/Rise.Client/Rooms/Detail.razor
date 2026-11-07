@@ -92,23 +92,18 @@ else
                         <p class="room-detail-empty room-detail-no-specs">No room details are available yet.</p>
                     }
 
-                    <h3 class="room-detail-subtitle">@Text["Amenities"]</h3>
-
-                    @* empty state when the room has no amenity, never a made up list *@
+                    @* no amenities block at all when the room type has none, never an empty list or a made up one *@
                     @if (_room.Amenities.Count > 0)
                     {
+                        <h3 class="room-detail-subtitle">@Text["Amenities"]</h3>
                         <ul class="room-detail-amenities">
                             @foreach (var amenity in _room.Amenities)
                             {
                                 <li class="room-detail-amenity">
-                                    <i class="fas @(amenity.Icon ?? "fa-check")" aria-hidden="true"></i><span>@amenity.Name</span>
+                                    <i class="fas @amenity.Icon" aria-hidden="true"></i><span>@amenity.Name</span>
                                 </li>
                             }
                         </ul>
-                    }
-                    else
-                    {
-                        <p class="room-detail-empty room-detail-no-amenities">No amenities are listed for this room yet.</p>
                     }
                 </section>
 

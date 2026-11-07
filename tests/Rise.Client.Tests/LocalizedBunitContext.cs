@@ -15,6 +15,13 @@ public abstract class BunitContext : global::Bunit.BunitContext
 
 internal sealed class TestAppTextProvider : IAppTextProvider
 {
+    public event EventHandler? LanguageChanged;
+
+    /// <summary>
+    /// lets a test act as if the guest picked an other language
+    /// </summary>
+    public void RaiseLanguageChanged() => LanguageChanged?.Invoke(this, EventArgs.Empty);
+
     public Task<AppText> GetTextAsync(Microsoft.AspNetCore.Components.ComponentBase component)
     {
         var path = Path.GetFullPath(Path.Combine(
