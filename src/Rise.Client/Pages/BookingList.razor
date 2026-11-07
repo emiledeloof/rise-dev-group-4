@@ -13,11 +13,21 @@
     @* outside the loading branch, so it stays available when a filter finds nothing *@
     <FilterBar>
         <SelectField Label="Show">
+            @* one select, grouped so the list of statuses stays easy to scan *@
             <select @bind="_statusFilter" @bind:after="ApplyFilterAsync">
-                @foreach (var filter in BookingStatusFilters.Values)
-                {
-                    <option value="@filter">@FilterLabel(filter)</option>
-                }
+                <option value="@BookingStatusFilters.All">@FilterLabel(BookingStatusFilters.All)</option>
+                <optgroup label="Payment status">
+                    @foreach (var filter in BookingStatusFilters.PaymentValues)
+                    {
+                        <option value="@filter">@FilterLabel(filter)</option>
+                    }
+                </optgroup>
+                <optgroup label="Cancellation status">
+                    @foreach (var filter in BookingStatusFilters.CancellationValues)
+                    {
+                        <option value="@filter">@FilterLabel(filter)</option>
+                    }
+                </optgroup>
             </select>
         </SelectField>
     </FilterBar>

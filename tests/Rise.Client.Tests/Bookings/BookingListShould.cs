@@ -231,6 +231,17 @@ public class BookingListShould : BunitContext
     }
 
     [Fact]
+    public void GroupTheFilterOnPaymentAndCancellationStatus()
+    {
+        var cut = Render<BookingList>();
+
+        var groups = cut.FindAll(".select-field optgroup");
+        groups.Select(x => x.GetAttribute("label")).ShouldBe(["Payment status", "Cancellation status"]);
+        groups[0].QuerySelectorAll("option").Select(x => x.GetAttribute("value")).ShouldBe(BookingStatusFilters.PaymentValues);
+        groups[1].QuerySelectorAll("option").Select(x => x.GetAttribute("value")).ShouldBe(BookingStatusFilters.CancellationValues);
+    }
+
+    [Fact]
     public void ShowTheRefundStatusNextToTheBookingStatus()
     {
         var booking = Booking(1, "Paid");
