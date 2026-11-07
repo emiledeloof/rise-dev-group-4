@@ -8,6 +8,7 @@ using Rise.Persistence.Triggers;
 using Rise.Server.Identity;
 using Rise.Server.Processors;
 using Rise.Services;
+using Rise.Services.Common;
 using Rise.Services.Identity;
 using Serilog.Events;
 using Serilog.Sinks.Grafana.Loki;
@@ -63,6 +64,7 @@ try
         })
         .AddHttpContextAccessor()
         .AddScoped<ISessionContextProvider, HttpContextSessionProvider>() // Provides the current user from the HttpContext to the session provider.
+        .AddScoped<ILanguageProvider, AcceptLanguageProvider>() // Language of the guest from the Accept-Language header.
         .AddApplicationServices() // You'll need to add your own services in this function call.
         .AddAuthorization()
         .AddFastEndpoints(o =>
