@@ -38,4 +38,36 @@ public class RoomTypeValidatorShould
 
         result.IsValid.ShouldBeFalse();
     }
+
+    [Fact]
+    public void RefuseTheSameAmenityTwice()
+    {
+        var result = new RoomTypeRequest.Create.Validator().Validate(new RoomTypeRequest.Create { Name = "Deluxe Room", AmenityIds = [1, 1] });
+
+        result.IsValid.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RefuseABedConfigurationInAnUnknownLanguage()
+    {
+        var result = new RoomTypeRequest.Create.Validator().Validate(new RoomTypeRequest.Create
+        {
+            Name = "Deluxe Room",
+            BedConfigurations = new() { ["es"] = "Cama doble" },
+        });
+
+        result.IsValid.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RefuseATooLongBedConfiguration()
+    {
+        var result = new RoomTypeRequest.Create.Validator().Validate(new RoomTypeRequest.Create
+        {
+            Name = "Deluxe Room",
+            BedConfigurations = new() { ["en"] = new string('a', 101) },
+        });
+
+        result.IsValid.ShouldBeFalse();
+    }
 }
