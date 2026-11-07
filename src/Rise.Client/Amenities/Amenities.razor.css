@@ -1,0 +1,243 @@
+/* ---------- heading ---------- */
+.amenity-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.amenity-heading .title {
+    margin-bottom: var(--space-xs);
+}
+
+.amenity-intro,
+.amenity-muted,
+.amenity-help {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
+/* ---------- list, mobile first: one card per amenity ---------- */
+.amenity-list {
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.amenity-muted {
+    padding: var(--space-md);
+}
+
+.amenity-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.amenity-table thead {
+    display: none;
+}
+
+.amenity-table tr {
+    display: grid;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.amenity-table tbody tr:last-child {
+    border-bottom: 0;
+}
+
+.amenity-table td {
+    display: block;
+    color: var(--color-text);
+    font-size: 0.875rem;
+}
+
+/* label in front of the value on the cards, the table header does it from tablets on */
+.amenity-table td[data-label]::before {
+    content: attr(data-label) ": ";
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.amenity-name {
+    display: flex !important;
+    gap: var(--space-sm);
+    align-items: center;
+    font-weight: 600;
+}
+
+.amenity-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+}
+
+.amenity-row.is-inactive .amenity-name,
+.amenity-row.is-inactive .amenity-icon {
+    opacity: 0.6;
+}
+
+.amenity-actions {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-top: var(--space-xs);
+}
+
+/* ---------- tablets and up: a real table ---------- */
+@media (min-width: 768px) {
+    .amenity-table thead {
+        display: table-header-group;
+    }
+
+    .amenity-table tr {
+        display: table-row;
+        padding: 0;
+    }
+
+    .amenity-table th {
+        padding: 0.7rem 1rem;
+        background: var(--color-bg);
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .amenity-table td {
+        display: table-cell;
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid var(--color-border);
+        vertical-align: middle;
+    }
+
+    .amenity-table td[data-label]::before {
+        content: none;
+    }
+
+    .amenity-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .amenity-name {
+        display: table-cell !important;
+        white-space: nowrap;
+    }
+
+    .amenity-name .amenity-icon {
+        margin-right: var(--space-sm);
+    }
+
+    .amenity-actions {
+        display: table-cell !important;
+        margin-top: 0;
+        text-align: right;
+        white-space: nowrap;
+    }
+}
+
+/* ---------- form ---------- */
+.amenity-panel {
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.amenity-panel h3 {
+    margin-bottom: var(--space-md);
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+}
+
+.amenity-fieldset {
+    margin-bottom: var(--space-md);
+    padding: 0;
+    border: 0;
+}
+
+.amenity-fieldset legend {
+    margin-bottom: var(--space-sm);
+    font-weight: 600;
+}
+
+/* 1 column on phones, 2 from tablets, 3 on wide screens */
+.amenity-names {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-sm) var(--space-md);
+}
+
+@media (min-width: 768px) {
+    .amenity-names {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1100px) {
+    .amenity-names {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.amenity-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.amenity-field > span:first-child {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.amenity-field input,
+.amenity-field ::deep input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font: inherit;
+}
+
+.amenity-icon-field {
+    max-width: 24rem;
+    margin-bottom: var(--space-md);
+}
+
+.amenity-icon-input {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
+.amenity-icon-preview {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.1rem;
+}
+
+.amenity-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
