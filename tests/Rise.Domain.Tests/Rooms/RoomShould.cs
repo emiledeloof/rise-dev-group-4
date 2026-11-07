@@ -136,9 +136,7 @@ public class RoomShould
         var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
 
         room.SizeInSquareMeters.ShouldBeNull();
-        room.BedType.ShouldBeNull();
         room.View.ShouldBeNull();
-        room.Amenities.ShouldBeEmpty();
     }
 
     [Theory]
@@ -159,15 +157,13 @@ public class RoomShould
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public void StoreAnEmptyBedTypeOrViewAsUnknown(string value)
+    public void StoreAnEmptyViewAsUnknown(string value)
     {
         var room = new Room("101", "Single Room", 1, new RoomType("Standard"))
         {
-            BedType = value,
             View = value,
         };
 
-        room.BedType.ShouldBeNull();
         room.View.ShouldBeNull();
     }
 
@@ -205,39 +201,5 @@ public class RoomShould
         };
 
         room.Policies.ShouldBeNull();
-    }
-
-    [Fact]
-    public void AddAnAmenity()
-    {
-        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
-        var wifi = new Amenity("Wi-Fi", "fa-wifi");
-
-        room.AddAmenity(wifi);
-
-        room.Amenities.ShouldHaveSingleItem().ShouldBe(wifi);
-    }
-
-    [Fact]
-    public void NotAddTheSameAmenityTwice()
-    {
-        var room = new Room("101", "Single Room", 1, new RoomType("Standard"));
-        var wifi = new Amenity("Wi-Fi");
-
-        room.AddAmenity(wifi);
-        room.AddAmenity(wifi);
-
-        room.Amenities.ShouldHaveSingleItem();
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("   ")]
-    [InlineData("")]
-    public void NotCreateAnAmenityWithAnInvalidName(string? name)
-    {
-        Action act = () => new Amenity(name!);
-
-        act.ShouldThrow<ArgumentException>();
     }
 }

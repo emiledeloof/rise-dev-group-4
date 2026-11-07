@@ -38,16 +38,6 @@ public class Room : Entity
         set => _sizeInSquareMeters = value is null ? null : Guard.Against.NegativeOrZero(value.Value);
     }
 
-    private string? _bedType;
-    /// <summary>
-    /// e.g. California king bed or 2 single beds, null when unknown
-    /// </summary>
-    public string? BedType
-    {
-        get => _bedType;
-        set => _bedType = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    }
-
     private string? _view;
     /// <summary>
     /// e.g. Garden view, null when unknown
@@ -73,9 +63,6 @@ public class Room : Entity
     /// </summary>
     public RoomType RoomType { get; private set; } = default!;
 
-    private readonly List<Amenity> _amenities = [];
-    public IReadOnlyList<Amenity> Amenities => _amenities.AsReadOnly();
-
     private readonly List<RoomPhoto> _photos = [];
     public IReadOnlyList<RoomPhoto> Photos => _photos.AsReadOnly();
 
@@ -100,17 +87,6 @@ public class Room : Entity
         // ! a new room always has a type
         RoomType = Guard.Against.Null(roomType);
         Description = description;
-    }
-
-    /// <summary>
-    /// links an amenity to the room, adding the same amenity twice does nothing
-    /// </summary>
-    public void AddAmenity(Amenity amenity)
-    {
-        Guard.Against.Null(amenity);
-
-        if (!_amenities.Contains(amenity))
-            _amenities.Add(amenity);
     }
 
     /// <summary>
