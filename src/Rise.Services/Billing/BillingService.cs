@@ -222,7 +222,8 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
         foreach (var room in rooms)
         {
             var total = PriceCalculator.Total(room.PricePerNight, nights);
-            var refund = room.RefundAmount ?? 0m;
+            // a refund paid back with another amount counts with what was really paid
+            var refund = room.EffectiveRefund;
             var fee = room.IsCancelled ? Math.Min(total - refund, paidAboveActiveRooms) : 0m;
             paidAboveActiveRooms -= fee;
 
