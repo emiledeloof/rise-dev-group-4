@@ -4,6 +4,7 @@ using Rise.Shared.Rooms;
 using Rise.Shared.Search;
 using Rise.Services.Bookings;
 using Rise.Services.Pricing;
+using Rise.Domain.Common;
 using Rise.Domain.Rooms;
 using Rise.Domain.Settings;
 
@@ -153,13 +154,19 @@ public class RoomService(ApplicationDbContext dbContext) : IRoomService
                     .Select(p => p.Url)
                     .ToList(),
                 SizeInSquareMeters = r.SizeInSquareMeters,
-                BedType = r.BedType,
+                // the beds and amenities belong to the room type, shared by all its rooms
+                BedType = r.RoomType.Translations
+                    .Where(t => t.Language == Language.Default)
+                    .Select(t => t.BedConfiguration)
+                    .FirstOrDefault(),
                 View = r.View,
                 Policies = r.Policies,
-                Amenities = r.Amenities
-                    .Where(a => !a.IsDeleted)
+                Amenities = r.RoomType.Amenities
+                    .Where(a => !a.IsDeleted && a.IsActive)
+                    .SelectMany(a => a.Translations
+                        .Where(t => t.Language == Language.Default)
+                        .Select(t => new AmenityDto.Index { Name = t.Name, Icon = a.Icon }))
                     .OrderBy(a => a.Name)
-                    .Select(a => new AmenityDto.Index { Name = a.Name, Icon = a.Icon })
                     .ToList()
             })
             .SingleOrDefaultAsync(ctx);
