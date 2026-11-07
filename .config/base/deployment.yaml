@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rise-server-prod
+  name: rise-server
   labels:
     app: rise
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: rise
@@ -18,7 +18,7 @@ spec:
       - name: regcred
       containers:
       - name: rise-server
-        image: emiledeloofhg/devops:latest
+        image: emiledeloofhg/devops:placeholder
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
@@ -32,4 +32,3 @@ spec:
       - name: rise-logs
         persistentVolumeClaim:
           claimName: rise-logs-pvc
-
