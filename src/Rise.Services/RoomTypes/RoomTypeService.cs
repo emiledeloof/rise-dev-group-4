@@ -27,7 +27,7 @@ public class RoomTypeService(ApplicationDbContext dbContext) : IRoomTypeService
                 // ! compared on the id, the == of Entity is a custom operator that sql does not know
                 // a room without type gives null in sql so it is never listed
                 RoomNumbers = dbContext.Rooms
-                    .Where(r => !r.IsDeleted && r.RoomType!.Id == t.Id)
+                    .Where(r => !r.IsDeleted && r.RoomType.Id == t.Id)
                     .OrderBy(r => r.RoomNumber)
                     .Select(r => r.RoomNumber)
                     .ToList(),
@@ -95,7 +95,7 @@ public class RoomTypeService(ApplicationDbContext dbContext) : IRoomTypeService
             return Result.NotFound($"Room type with id '{roomTypeId}' was not found.");
 
         // ! a room without its type would break the room pages later
-        var isUsed = await dbContext.Rooms.AnyAsync(r => !r.IsDeleted && r.RoomType!.Id == roomTypeId, ctx);
+        var isUsed = await dbContext.Rooms.AnyAsync(r => !r.IsDeleted && r.RoomType.Id == roomTypeId, ctx);
         if (isUsed)
             return Result.Conflict($"'{roomType.Name}' is still used by a room and cannot be deleted.");
 

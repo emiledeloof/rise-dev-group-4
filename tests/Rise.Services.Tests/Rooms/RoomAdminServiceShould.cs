@@ -71,7 +71,7 @@ public class RoomAdminServiceShould
         saved.Id.ShouldBe(result.Value);
         saved.RoomNumber.ShouldBe("104");
         saved.Name.ShouldBe("Deluxe Room 104");
-        saved.RoomType!.Name.ShouldBe("Deluxe Room");
+        saved.RoomType.Name.ShouldBe("Deluxe Room");
         saved.MaxGuests.ShouldBe(2);
     }
 
