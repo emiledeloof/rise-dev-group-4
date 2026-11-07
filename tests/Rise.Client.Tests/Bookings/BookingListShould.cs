@@ -138,6 +138,7 @@ public class BookingListShould : BunitContext
                 Status = "Pending",
                 RoomCount = 1,
                 CancelledRoomCount = 0,
+                RefundStatus = BookingRefundStatus.None,
             }).ToList(),
             TotalCount = 25,
         });
@@ -266,5 +267,6 @@ public class BookingListShould : BunitContext
         Status = status,
         RoomCount = 1,
         CancelledRoomCount = status == "Cancelled" ? 1 : 0,
+        RefundStatus = status == "Cancelled" ? BookingRefundStatus.NoRefund : BookingRefundStatus.None,
     };
 }
