@@ -261,6 +261,11 @@ public static class BookingDto
         public string? CardBrand { get; set; }
         public string? CardLast4 { get; set; }
         public string? StripeReceiptUrl { get; set; }
+        /// <summary>
+        /// One of <see cref="Billing.PaymentMethods"/>.
+        /// </summary>
+        public string Method { get; set; } = Billing.PaymentMethods.Online;
+        public string? Reference { get; set; }
     }
 
     /// <summary>

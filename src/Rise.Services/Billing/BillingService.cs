@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Rise.Domain.Bookings;
 using Rise.Persistence;
@@ -104,6 +105,84 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
     }
 
     /// <summary>
+    /// The payment is checked against the bill as it is now, so the outstanding balance can't go below 0 by a typo.
+    /// </summary>
+    public async Task<Result<BillingDto.Bill>> RecordPaymentAsync(BillingRequest.RecordPayment request, CancellationToken ctx = default)
+    {
+        // ! the whole bill is needed to know the outstanding balance
+        var booking = await dbContext.Bookings
+            .AsSplitQuery()
+            .Include(x => x.Guest)
+            .Include(x => x.Rooms)
+                .ThenInclude(x => x.Room)
+            .Include(x => x.Payments)
+            .Include(x => x.BillLines)
+            .SingleOrDefaultAsync(x => x.Id == request.BookingId && !x.IsDeleted, ctx);
+
+        if (booking is null)
+        {
+            return Result.NotFound($"Booking with ID '{request.BookingId}' was not found.");
+        }
+
+        if (booking.IsCancelled)
+        {
+            return CancelledConflict(booking);
+        }
+
+        var outstanding = ToBill(booking).OutstandingBalance;
+        if (outstanding <= 0)
+        {
+            return Result.Invalid(new ValidationError(nameof(request.Amount), "Nothing is outstanding on this bill."));
+        }
+
+        if (request.Amount > outstanding)
+        {
+            return Result.Invalid(new ValidationError(nameof(request.Amount),
+                $"The guest only owes {outstanding.ToString("0.00", CultureInfo.InvariantCulture)} EUR."));
+        }
+
+        var method = Enum.Parse<PaymentMethod>(request.Method);
+        booking.RecordPayment(request.Amount, method, DateTime.UtcNow, request.Reference);
+        await dbContext.SaveChangesAsync(ctx);
+
+        return await GetBillAsync(booking.Id, ctx);
+    }
+
+    /// <summary>
+    /// Soft deletes the payment, the EntityBeforeSaveTrigger turns the remove into IsDeleted.
+    /// </summary>
+    public async Task<Result<BillingDto.Bill>> DeletePaymentAsync(BillingRequest.DeletePayment request, CancellationToken ctx = default)
+    {
+        var payment = await dbContext.Payments
+            .Include(x => x.Booking)
+                .ThenInclude(x => x.Rooms)
+            .SingleOrDefaultAsync(x => x.Id == request.PaymentId
+                && !x.IsDeleted
+                && x.Booking.Id == request.BookingId
+                && !x.Booking.IsDeleted, ctx);
+
+        if (payment is null)
+        {
+            return Result.NotFound($"Payment with ID '{request.PaymentId}' was not found on this bill.");
+        }
+
+        if (!payment.IsOnSite)
+        {
+            return Result.Conflict("An online payment went through Stripe, it can't be deleted here.");
+        }
+
+        if (payment.Booking.IsCancelled)
+        {
+            return CancelledConflict(payment.Booking);
+        }
+
+        dbContext.Payments.Remove(payment);
+        await dbContext.SaveChangesAsync(ctx);
+
+        return await GetBillAsync(request.BookingId, ctx);
+    }
+
+    /// <summary>
     /// The line only counts when it belongs to the booking from the route, a line of another booking is not found.
     /// ! the rooms are needed, IsCancelled is derived from them
     /// </summary>
@@ -197,6 +276,8 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
                     CardBrand = x.CardBrand,
                     CardLast4 = x.CardLast4,
                     StripeReceiptUrl = x.StripeReceiptUrl,
+                    Method = x.Method.ToString(),
+                    Reference = x.Reference,
                 })
                 .ToList(),
             PaidAmount = paidAmount,
@@ -211,12 +292,16 @@ public class BillingService(ApplicationDbContext dbContext) : IBillingService
     /// its price minus the refund, but never more than what was paid on top of the rooms still booked.
     /// So an unpaid room or a deposit that goes to the remaining rooms gives no fee, like checkout doesn't charge cancelled rooms.
     /// The free lines stay out of this, adding a minibar line must not lower the fee.
+    /// On-site payments go to the free lines first, cash for the minibar must not turn into a fee,
+    /// only what they pay on top of the free lines counts for the rooms.
     /// </summary>
     private static List<BillingDto.AccommodationLine> ToAccommodationLines(Booking booking, int nights)
     {
         var rooms = booking.Rooms.Where(x => !x.IsDeleted).OrderBy(x => x.Room.RoomNumber).ToList();
         var activeTotal = rooms.Where(x => !x.IsCancelled).Sum(x => PriceCalculator.Total(x.PricePerNight, nights));
-        var paidAboveActiveRooms = Math.Max(booking.PaidAmount - booking.RefundedAmount - activeTotal, 0m);
+        var otherServicesTotal = booking.BillLines.Where(x => !x.IsDeleted).Sum(x => x.Total);
+        var paidForRooms = booking.PaidAmount - Math.Min(booking.OnSitePaidAmount, otherServicesTotal);
+        var paidAboveActiveRooms = Math.Max(paidForRooms - booking.RefundedAmount - activeTotal, 0m);
 
         var lines = new List<BillingDto.AccommodationLine>();
         foreach (var room in rooms)

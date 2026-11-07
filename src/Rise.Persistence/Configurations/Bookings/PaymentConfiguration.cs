@@ -12,6 +12,12 @@ internal class PaymentConfiguration : EntityConfiguration<Payment>
     {
         base.Configure(builder);
         builder.Property(x => x.Amount).IsRequired();
+        // stored as text so the rows stay readable, the migration marks the existing rows as Online (Stripe)
+        builder.Property(x => x.Method)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+        builder.Property(x => x.Reference).HasMaxLength(Payment.ReferenceMaxLength);
         builder.Property(x => x.StripeCheckoutSession).HasMaxLength(250);
         // Unique, but nullable: multiple payments without a checkout session are allowed.
         builder.HasIndex(x => x.StripeCheckoutSession).IsUnique();
@@ -26,5 +32,6 @@ internal class PaymentConfiguration : EntityConfiguration<Payment>
         builder.Property(x => x.CardBrand).HasMaxLength(50);
         builder.Property(x => x.CardLast4).HasMaxLength(4);
         builder.Ignore(x => x.IsPaid);
+        builder.Ignore(x => x.IsOnSite);
     }
 }

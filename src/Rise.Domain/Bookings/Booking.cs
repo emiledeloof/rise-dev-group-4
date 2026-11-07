@@ -81,6 +81,11 @@ public class Booking : Entity
     public decimal PaidAmount => _payments.Where(x => x.IsPaid && !x.IsDeleted).Sum(x => x.Amount);
 
     /// <summary>
+    /// The part of <see cref="PaidAmount"/> the admin recorded on site, eg cash for the minibar.
+    /// </summary>
+    public decimal OnSitePaidAmount => _payments.Where(x => x.IsPaid && !x.IsDeleted && x.IsOnSite).Sum(x => x.Amount);
+
+    /// <summary>
     /// Entity Framework Core Constructor
     /// </summary>
     private Booking()
@@ -253,6 +258,21 @@ public class Booking : Entity
     public Payment AddPayment(decimal amount, string? stripeCheckoutSession = null)
     {
         var payment = new Payment(this, amount, stripeCheckoutSession);
+        _payments.Add(payment);
+        return payment;
+    }
+
+    /// <summary>
+    /// Records a payment the guest made on site, eg cash at the desk, it counts as paid right away.
+    /// Whether it fits the open balance is checked by the BillingService, the booking doesn't know its bill lines' fees.
+    /// The rooms must be loaded, <see cref="IsCancelled"/> is derived from them.
+    /// </summary>
+    public Payment RecordPayment(decimal amount, PaymentMethod method, DateTime paidAt, string? reference = null)
+    {
+        if (IsCancelled)
+            throw new InvalidOperationException("No payment can be recorded on a cancelled booking.");
+
+        var payment = new Payment(this, amount, method, paidAt, reference);
         _payments.Add(payment);
         return payment;
     }

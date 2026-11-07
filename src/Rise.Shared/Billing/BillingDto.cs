@@ -4,7 +4,7 @@ public static class BillingDto
 {
     /// <summary>
     /// The final bill of a booking. All amounts include VAT unless named net.
-    /// Catalogue services and cash payments will be added as more lines and payments later.
+    /// Catalogue services will be added as more lines later.
     /// </summary>
     public class Bill
     {
@@ -45,7 +45,7 @@ public static class BillingDto
 
         public required List<Payment> Payments { get; set; } = [];
         /// <summary>
-        /// Sum of the settled payments, open Stripe sessions don't count.
+        /// Sum of the settled payments, online and on site, open Stripe sessions don't count.
         /// </summary>
         public required decimal PaidAmount { get; set; }
         /// <summary>
@@ -134,8 +134,18 @@ public static class BillingDto
         public string? CardBrand { get; set; }
         public string? CardLast4 { get; set; }
         public string? StripeReceiptUrl { get; set; }
+        /// <summary>
+        /// One of <see cref="PaymentMethods"/>.
+        /// </summary>
+        public string Method { get; set; } = PaymentMethods.Online;
+        public string? Reference { get; set; }
 
         public bool IsPaid => PaidAt is not null;
+
+        /// <summary>
+        /// Recorded by the admin, only these can be deleted.
+        /// </summary>
+        public bool IsOnSite => PaymentMethods.IsOnSite(Method);
     }
 
     /// <summary>

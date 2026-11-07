@@ -1,12 +1,20 @@
 namespace Rise.Domain.Bookings;
 
 /// <summary>
-/// A (Stripe) payment for a <see cref="Booking"/>, created via <see cref="Booking.AddPayment"/>.
+/// A payment for a <see cref="Booking"/>, a Stripe one is created via <see cref="Booking.AddPayment"/>,
+/// one taken on site via <see cref="Booking.RecordPayment"/>.
 /// </summary>
 public class Payment : Entity
 {
+    public const int ReferenceMaxLength = 100;
+
     public Booking Booking { get; private set; } = default!;
     public decimal Amount { get; private set; }
+    public PaymentMethod Method { get; private set; } = PaymentMethod.Online;
+    /// <summary>
+    /// Optional note of an on-site payment, eg the receipt or terminal slip number.
+    /// </summary>
+    public string? Reference { get; private set; }
     public string? StripeCheckoutSession { get; private set; }
     /// <summary>
     /// Used to download the Stripe invoice.
@@ -28,6 +36,11 @@ public class Payment : Entity
     public bool IsPaid => PaidAt is not null;
 
     /// <summary>
+    /// Recorded by the admin, not through Stripe.
+    /// </summary>
+    public bool IsOnSite => Method != PaymentMethod.Online;
+
+    /// <summary>
     /// Entity Framework Core Constructor
     /// </summary>
     private Payment()
@@ -39,6 +52,26 @@ public class Payment : Entity
         Booking = Guard.Against.Null(booking);
         Amount = Guard.Against.NegativeOrZero(amount);
         StripeCheckoutSession = stripeCheckoutSession;
+    }
+
+    /// <summary>
+    /// A payment taken on site, it is paid the moment it is recorded.
+    /// </summary>
+    internal Payment(Booking booking, decimal amount, PaymentMethod method, DateTime paidAt, string? reference)
+        : this(booking, amount, stripeCheckoutSession: null)
+    {
+        Guard.Against.EnumOutOfRange(method);
+
+        if (method == PaymentMethod.Online)
+            throw new ArgumentException("An online payment goes through Stripe.", nameof(method));
+
+        var trimmed = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim();
+        if (trimmed?.Length > ReferenceMaxLength)
+            throw new ArgumentException($"The reference can't be longer than {ReferenceMaxLength} characters.", nameof(reference));
+
+        Method = method;
+        Reference = trimmed;
+        PaidAt = paidAt;
     }
 
     /// <summary>

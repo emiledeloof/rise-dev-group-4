@@ -195,7 +195,15 @@
 
                 @* ---------- payments, only the settled ones are subtracted ---------- *@
                 <section class="box bill-card bill-payments">
-                    <span class="eyebrow">Payments</span>
+                    <div class="bill-card-header">
+                        <span class="eyebrow">Payments</span>
+                        @if (CanRecordPayment)
+                        {
+                            <Button Variant="ButtonVariant.Secondary" OnClick="OpenRecordPayment" Class="bill-record-payment">
+                                <i class="fas fa-plus" aria-hidden="true"></i><span>Record payment</span>
+                            </Button>
+                        }
+                    </div>
 
                     @if (_bill.Payments.Count > 0 || CancelledRooms.Count > 0)
                     {
@@ -203,34 +211,65 @@
                             @foreach (var payment in _bill.Payments)
                             {
                                 <li @key="payment.Id" class="bill-line bill-payment @(payment.IsPaid ? null : "is-open")">
-                                    <div class="bill-line-text">
-                                        <p class="bill-line-title">@(payment.PaidAt is { } paidAt ? $"Paid {Format.Date(paidAt)}" : "Awaiting payment")</p>
-                                        <p class="bill-muted bill-payment-info">
-                                            @if (payment.InvoiceNumber is not null)
+                                    @if (_confirmDeletePaymentId == payment.Id)
+                                    {
+                                        <div class="bill-delete-confirm" role="alert">
+                                            <p>Delete the <strong>@PaymentMethods.Label(payment.Method).ToLowerInvariant()</strong> payment of <strong>@Format.Amount(payment.Amount)</strong>?</p>
+                                            <div class="bill-delete-actions">
+                                                <Button Variant="ButtonVariant.Secondary" OnClick="KeepPayment" IsDisabled="_isDeletingPayment">Keep</Button>
+                                                <Button Variant="ButtonVariant.Danger" OnClick="() => DeletePaymentAsync(payment.Id)" IsLoading="_isDeletingPayment" Class="bill-delete-payment-yes">Delete</Button>
+                                            </div>
+                                            @if (_deletePaymentError is not null)
                                             {
-                                                <span>@payment.InvoiceNumber</span>
+                                                <p class="help is-danger bill-delete-error">@_deletePaymentError</p>
                                             }
-                                            @if (payment.CardLast4 is not null)
-                                            {
-                                                <span>@Format.Card(payment.CardBrand, payment.CardLast4)</span>
-                                            }
-                                            @if (payment.StripeReceiptUrl is not null)
-                                            {
-                                                <a href="@payment.StripeReceiptUrl" target="_blank" rel="noopener">Stripe receipt ↗</a>
-                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="bill-line-text">
+                                            <p class="bill-line-title">@(payment.PaidAt is { } paidAt ? $"Paid {Format.Date(paidAt)}" : "Awaiting payment")</p>
+                                            <p class="bill-muted bill-payment-info">
+                                                <span class="bill-payment-method">
+                                                    <i class="fas @MethodIcon(payment.Method)" aria-hidden="true"></i> @PaymentMethods.Label(payment.Method)
+                                                </span>
+                                                @if (payment.Reference is not null)
+                                                {
+                                                    <span class="bill-payment-reference">@payment.Reference</span>
+                                                }
+                                                @if (payment.InvoiceNumber is not null)
+                                                {
+                                                    <span>@payment.InvoiceNumber</span>
+                                                }
+                                                @if (payment.CardLast4 is not null)
+                                                {
+                                                    <span>@Format.Card(payment.CardBrand, payment.CardLast4)</span>
+                                                }
+                                                @if (payment.StripeReceiptUrl is not null)
+                                                {
+                                                    <a href="@payment.StripeReceiptUrl" target="_blank" rel="noopener">Stripe receipt ↗</a>
+                                                }
+                                                @if (!payment.IsPaid)
+                                                {
+                                                    <span>Not counted until paid</span>
+                                                }
+                                            </p>
+                                        </div>
+                                        <div class="bill-line-end">
+                                            <span class="bill-line-amount">@(payment.IsPaid ? $"− {Format.Amount(payment.Amount)}" : Format.Amount(payment.Amount))</span>
                                             @if (!payment.IsPaid)
                                             {
-                                                <span>Not counted until paid</span>
+                                                <span class="tag is-warning is-light">Open</span>
                                             }
-                                        </p>
-                                    </div>
-                                    <div class="bill-line-end">
-                                        <span class="bill-line-amount">@(payment.IsPaid ? $"− {Format.Amount(payment.Amount)}" : Format.Amount(payment.Amount))</span>
-                                        @if (!payment.IsPaid)
-                                        {
-                                            <span class="tag is-warning is-light">Open</span>
-                                        }
-                                    </div>
+                                            @if (payment.IsOnSite && !_bill.IsCancelled)
+                                            {
+                                                <button type="button" class="bill-icon-btn bill-delete-payment" @onclick="() => AskDeletePayment(payment.Id)"
+                                                        aria-label="Delete the payment of @Format.Amount(payment.Amount)">
+                                                    <i class="fas fa-trash" aria-hidden="true"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    }
                                 </li>
                             }
                             @foreach (var room in CancelledRooms)
@@ -390,6 +429,74 @@
                         <div class="bill-sheet-actions">
                             <Button Variant="ButtonVariant.Secondary" OnClick="CloseLineSheet" IsDisabled="_isSaving">Cancel</Button>
                             <Button Type="submit" Variant="ButtonVariant.Primary" IsLoading="_isSaving" Class="bill-line-save">@(IsNewLine ? "Add line" : "Save")</Button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        }
+
+        @* ---------- record a payment taken on site, same bottom sheet as the lines ---------- *@
+        @if (_paymentForm is not null)
+        {
+            <div class="modal is-active bill-line-dialog bill-payment-dialog" role="dialog" aria-modal="true" aria-labelledby="bill-payment-title">
+                <div class="modal-background" @onclick="ClosePaymentSheet"></div>
+                <div class="modal-content bill-line-sheet">
+                    <EditForm Model="_paymentForm" OnValidSubmit="RecordPaymentAsync">
+                        <FluentValidationValidator />
+
+                        <span class="eyebrow">Bill @_bill.BookingNumber</span>
+                        <h2 id="bill-payment-title" class="bill-sheet-title">Record a payment</h2>
+                        <p class="bill-muted">Outstanding <strong class="bill-payment-outstanding">@Format.Amount(_bill.OutstandingBalance)</strong></p>
+
+                        <fieldset class="field mt-4">
+                            <legend class="label is-required">Paid by</legend>
+                            <InputRadioGroup @bind-Value="_paymentForm.Method" Name="bill-payment-method">
+                                <div class="bill-methods">
+                                    @foreach (var method in PaymentMethods.OnSite)
+                                    {
+                                        <label @key="method" class="bill-method @(_paymentForm.Method == method ? "is-selected" : null)">
+                                            <InputRadio Value="method" class="bill-method-input" />
+                                            <i class="fas @MethodIcon(method)" aria-hidden="true"></i>
+                                            <span>@PaymentMethods.Label(method)</span>
+                                        </label>
+                                    }
+                                </div>
+                            </InputRadioGroup>
+                            <ValidationMessage For="() => _paymentForm.Method" class="help is-danger" />
+                        </fieldset>
+
+                        <div class="bill-payment-grid">
+                            <div class="field">
+                                <label class="label is-required" for="bill-payment-amount">Amount (€)</label>
+                                <div class="control">
+                                    <InputNumber @bind-Value="_paymentForm.Amount" id="bill-payment-amount" class="input" min="0.01" step="0.01" inputmode="decimal" />
+                                </div>
+                                <ValidationMessage For="() => _paymentForm.Amount" class="help is-danger" />
+                            </div>
+
+                            <div class="field">
+                                <label class="label" for="bill-payment-reference">Reference <span class="bill-muted">(optional)</span></label>
+                                <div class="control">
+                                    <InputText @bind-Value="_paymentForm.Reference" id="bill-payment-reference" class="input"
+                                               maxlength="@BillingRequest.RecordPayment.ReferenceMaxLength" placeholder="e.g. receipt 0042" />
+                                </div>
+                                <ValidationMessage For="() => _paymentForm.Reference" class="help is-danger" />
+                            </div>
+                        </div>
+
+                        <p class="bill-sheet-total">
+                            <span>Balance after</span>
+                            <span class="bill-sheet-total-amount bill-balance-after">@Format.Amount(BalanceAfterPayment)</span>
+                        </p>
+
+                        @if (_paymentError is not null)
+                        {
+                            <p class="help is-danger bill-line-error bill-payment-error" role="alert">@_paymentError</p>
+                        }
+
+                        <div class="bill-sheet-actions">
+                            <Button Variant="ButtonVariant.Secondary" OnClick="ClosePaymentSheet" IsDisabled="_isRecording">Cancel</Button>
+                            <Button Type="submit" Variant="ButtonVariant.Primary" IsLoading="_isRecording" Class="bill-payment-save">Record payment</Button>
                         </div>
                     </EditForm>
                 </div>

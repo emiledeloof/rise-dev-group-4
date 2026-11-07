@@ -54,6 +54,78 @@ public class PaymentShould
     }
 
     [Fact]
+    public void BeOnlineByDefault()
+    {
+        var payment = CreateBooking().AddPayment(158m);
+
+        payment.Method.ShouldBe(PaymentMethod.Online);
+        payment.IsOnSite.ShouldBeFalse();
+        payment.Reference.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(PaymentMethod.Cash)]
+    [InlineData(PaymentMethod.CardTerminal)]
+    [InlineData(PaymentMethod.BankTransfer)]
+    public void BeRecordedOnSiteWithItsMethod(PaymentMethod method)
+    {
+        var paidAt = new DateTime(2026, 10, 12, 9, 0, 0, DateTimeKind.Utc);
+
+        var payment = CreateBooking().RecordPayment(19.50m, method, paidAt, "  Receipt 0042 ");
+
+        payment.Method.ShouldBe(method);
+        payment.Amount.ShouldBe(19.50m);
+        payment.PaidAt.ShouldBe(paidAt);
+        payment.Reference.ShouldBe("Receipt 0042");
+        payment.StripeCheckoutSession.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("   ")]
+    public void KeepNoEmptyReference(string? reference)
+    {
+        var payment = CreateBooking().RecordPayment(10m, PaymentMethod.Cash, DateTime.UtcNow, reference);
+
+        payment.Reference.ShouldBeNull();
+    }
+
+    [Fact]
+    public void NotBeRecordedOnSiteAsOnline()
+    {
+        var booking = CreateBooking();
+
+        Action act = () => booking.RecordPayment(10m, PaymentMethod.Online, DateTime.UtcNow);
+
+        act.ShouldThrow<ArgumentException>();
+        booking.Payments.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void NotBeRecordedOnSiteWithAnInvalidAmount(decimal amount)
+    {
+        var booking = CreateBooking();
+
+        Action act = () => booking.RecordPayment(amount, PaymentMethod.Cash, DateTime.UtcNow);
+
+        act.ShouldThrow<ArgumentException>();
+        booking.Payments.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void NotBeRecordedWithATooLongReference()
+    {
+        var booking = CreateBooking();
+
+        Action act = () => booking.RecordPayment(10m, PaymentMethod.Cash, DateTime.UtcNow, new string('x', Payment.ReferenceMaxLength + 1));
+
+        act.ShouldThrow<ArgumentException>();
+        booking.Payments.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void NotBeMarkedAsPaidTwice()
     {
         var payment = CreateBooking().AddPayment(158m);
