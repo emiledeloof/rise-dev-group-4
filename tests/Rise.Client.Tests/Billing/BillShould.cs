@@ -274,4 +274,129 @@ public class BillShould : BunitContext
         cut.Find(".bill-line-error").TextContent.ShouldContain("is cancelled");
         cut.FindAll(".bill-line-dialog").Count.ShouldBe(1);
     }
+
+    [Fact]
+    public void RecordACashPaymentAndShowTheNewBalance()
+    {
+        _billingService.ChangeAnswer = Result.Success(TestBills.WithCashPayment());
+        var cut = RenderPage();
+
+        cut.Find(".bill-record-payment").Click();
+        cut.Find("#bill-payment-amount").Change("16");
+        cut.Find("#bill-payment-reference").Change("Receipt 0042");
+        cut.Find(".bill-payment-dialog form").Submit();
+
+        var request = _billingService.RecordPaymentRequests.ShouldHaveSingleItem();
+        request.BookingId.ShouldBe(7);
+        request.Amount.ShouldBe(16m);
+        request.Method.ShouldBe(PaymentMethods.Cash);
+        request.Reference.ShouldBe("Receipt 0042");
+        cut.FindAll(".bill-payment-dialog").ShouldBeEmpty();
+        cut.Find(".bill-balance-amount").TextContent.ShouldBe("€130.00");
+        cut.FindAll(".bill-payment-method")[2].TextContent.ShouldContain("Cash");
+        cut.Find(".bill-payment-reference").TextContent.ShouldBe("Receipt 0042");
+    }
+
+    [Fact]
+    public void PrefillTheOutstandingBalanceWhenRecordingAPayment()
+    {
+        var cut = RenderPage();
+
+        cut.Find(".bill-record-payment").Click();
+
+        cut.Find("#bill-payment-amount").GetAttribute("value").ShouldBe("146");
+        cut.Find(".bill-balance-after").TextContent.ShouldBe("€0.00");
+        cut.Find(".bill-method.is-selected").TextContent.ShouldContain("Cash");
+    }
+
+    [Fact]
+    public void RecordTheChosenPaymentMethod()
+    {
+        var cut = RenderPage();
+
+        cut.Find(".bill-record-payment").Click();
+        cut.FindAll(".bill-method input")[1].Change(PaymentMethods.CardTerminal);
+        cut.Find(".bill-payment-dialog form").Submit();
+
+        _billingService.RecordPaymentRequests.ShouldHaveSingleItem().Method.ShouldBe(PaymentMethods.CardTerminal);
+    }
+
+    [Fact]
+    public void NotRecordAPaymentWithoutAmount()
+    {
+        var cut = RenderPage();
+
+        cut.Find(".bill-record-payment").Click();
+        cut.Find("#bill-payment-amount").Change("0");
+        cut.Find(".bill-payment-dialog form").Submit();
+
+        _billingService.RecordPaymentRequests.ShouldBeEmpty();
+        cut.Find(".bill-payment-dialog .help.is-danger").TextContent.ShouldBe("The amount must be more than €0.");
+    }
+
+    [Fact]
+    public void HideRecordPaymentWhenNothingIsOutstanding()
+    {
+        var bill = TestBills.Open();
+        bill.OutstandingBalance = 0m;
+        _billingService.BillAnswer = Result.Success(bill);
+
+        var cut = RenderPage();
+
+        cut.FindAll(".bill-record-payment").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void HideRecordPaymentForACancelledBooking()
+    {
+        _billingService.BillAnswer = Result.Success(TestBills.Cancelled());
+
+        var cut = RenderPage();
+
+        cut.FindAll(".bill-record-payment").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void AskBeforeDeletingAnOnSitePayment()
+    {
+        _billingService.BillAnswer = Result.Success(TestBills.WithCashPayment());
+        var cut = RenderPage();
+
+        cut.Find(".bill-delete-payment").Click();
+
+        _billingService.DeletePaymentRequests.ShouldBeEmpty();
+        cut.Find(".bill-payments .bill-delete-confirm").TextContent.ShouldContain("€16.00");
+
+        cut.Find(".bill-delete-payment-yes").Click();
+
+        var request = _billingService.DeletePaymentRequests.ShouldHaveSingleItem();
+        request.BookingId.ShouldBe(7);
+        request.PaymentId.ShouldBe(3);
+        cut.FindAll(".bill-delete-confirm").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void NotOfferToDeleteAStripePayment()
+    {
+        _billingService.BillAnswer = Result.Success(TestBills.WithCashPayment());
+
+        var cut = RenderPage();
+
+        // only the cash payment, not the 2 Stripe ones
+        cut.FindAll(".bill-delete-payment").Count.ShouldBe(1);
+        cut.FindAll(".bill-payment-method")[0].TextContent.ShouldContain("Online · Stripe");
+    }
+
+    [Fact]
+    public void ShowWhyTheServerRefusedAPayment()
+    {
+        _billingService.ChangeAnswer = Result.Invalid(new ValidationError("Amount", "The guest only owes 146.00 EUR."));
+        var cut = RenderPage();
+
+        cut.Find(".bill-record-payment").Click();
+        cut.Find(".bill-payment-dialog form").Submit();
+
+        cut.Find(".bill-payment-error").TextContent.ShouldContain("only owes");
+        cut.FindAll(".bill-payment-dialog").Count.ShouldBe(1);
+    }
 }

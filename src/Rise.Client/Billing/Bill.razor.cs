@@ -40,7 +40,27 @@ public partial class Bill
     // why the server refused the delete, shown under the line
     private string? _deleteError;
 
+    // form of the payment sheet, the sheet is open while it is set
+    private BillingRequest.RecordPayment? _paymentForm;
+
+    private bool _isRecording;
+
+    // why the server refused the payment, shown in the sheet
+    private string? _paymentError;
+
+    // on-site payment that asks "delete this payment?", only 1 at a time
+    private int? _confirmDeletePaymentId;
+
+    private bool _isDeletingPayment;
+
+    private string? _deletePaymentError;
+
     private bool IsNewLine => _lineForm is { LineId: 0 };
+
+    // a payment only makes sense while something is still open
+    private bool CanRecordPayment => _bill is { IsCancelled: false, OutstandingBalance: > 0 };
+
+    private decimal BalanceAfterPayment => _bill!.OutstandingBalance - (_paymentForm?.Amount ?? 0m);
 
     private List<BillingDto.AccommodationLine> CancelledRooms => _bill!.Accommodation.Where(x => x.IsCancelled).ToList();
 
@@ -57,6 +77,8 @@ public partial class Bill
         _errorMessage = null;
         _lineForm = null;
         _confirmDeleteId = null;
+        _paymentForm = null;
+        _confirmDeletePaymentId = null;
 
         var result = await BillingService.GetBillAsync(BookingId);
 
@@ -151,6 +173,84 @@ public partial class Bill
         _bill = result.Value;
         _confirmDeleteId = null;
     }
+
+    /// <summary>
+    /// opens the payment sheet with the whole open balance, the most common case at checkout
+    /// </summary>
+    private void OpenRecordPayment()
+    {
+        _paymentError = null;
+        _confirmDeletePaymentId = null;
+        _paymentForm = new BillingRequest.RecordPayment
+        {
+            BookingId = BookingId,
+            Amount = _bill!.OutstandingBalance,
+        };
+    }
+
+    private void ClosePaymentSheet()
+    {
+        if (!_isRecording)
+            _paymentForm = null;
+    }
+
+    private async Task RecordPaymentAsync()
+    {
+        _isRecording = true;
+        _paymentError = null;
+
+        var result = await BillingService.RecordPaymentAsync(_paymentForm!);
+
+        _isRecording = false;
+
+        if (!result.IsSuccess)
+        {
+            _paymentError = ErrorOf(result, "Sorry, the payment could not be recorded. Please try again later.");
+            return;
+        }
+
+        _bill = result.Value;
+        _paymentForm = null;
+    }
+
+    private void AskDeletePayment(int paymentId)
+    {
+        _deletePaymentError = null;
+        _confirmDeletePaymentId = paymentId;
+    }
+
+    private void KeepPayment()
+    {
+        if (!_isDeletingPayment)
+            _confirmDeletePaymentId = null;
+    }
+
+    private async Task DeletePaymentAsync(int paymentId)
+    {
+        _isDeletingPayment = true;
+        _deletePaymentError = null;
+
+        var result = await BillingService.DeletePaymentAsync(new BillingRequest.DeletePayment { BookingId = BookingId, PaymentId = paymentId });
+
+        _isDeletingPayment = false;
+
+        if (!result.IsSuccess)
+        {
+            _deletePaymentError = ErrorOf(result, "Sorry, the payment could not be deleted. Please try again later.");
+            return;
+        }
+
+        _bill = result.Value;
+        _confirmDeletePaymentId = null;
+    }
+
+    private static string MethodIcon(string method) => method switch
+    {
+        PaymentMethods.Cash => "fa-money-bill-wave",
+        PaymentMethods.CardTerminal => "fa-credit-card",
+        PaymentMethods.BankTransfer => "fa-building-columns",
+        _ => "fa-globe",
+    };
 
     // the server checks again, eg the booking was cancelled in another tab
     private static string ErrorOf(Result<BillingDto.Bill> result, string fallback)

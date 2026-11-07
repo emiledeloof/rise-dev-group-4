@@ -122,7 +122,8 @@
     gap: var(--space-sm);
 }
 
-.bill-card-header ::deep .bill-add-line {
+.bill-card-header ::deep .bill-add-line,
+.bill-card-header ::deep .bill-record-payment {
     gap: var(--space-xs);
 }
 
@@ -214,6 +215,8 @@
 }
 
 .bill-delete-line:hover,
+.bill-delete-payment:hover,
+.bill-delete-payment:focus-visible,
 .bill-delete-line:focus-visible {
     border-color: var(--color-accent);
     color: var(--color-accent);
@@ -413,6 +416,101 @@
     margin-top: var(--space-md);
 }
 
+/* ---------- payments ---------- */
+
+.bill-payment-method {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--color-text);
+}
+
+.bill-payment-method .fas {
+    color: var(--color-gold);
+    font-size: 0.8rem;
+}
+
+.bill-delete-payment {
+    margin-left: var(--space-xs);
+}
+
+/* ---------- payment sheet ---------- */
+
+.bill-payment-dialog fieldset {
+    min-width: 0;
+    margin-bottom: var(--space-md);
+    padding: 0;
+    border: 0;
+}
+
+/* 3 big tiles, easy to hit with a thumb at the desk */
+.bill-methods {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-sm);
+}
+
+.bill-method {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    min-height: 4.75rem;
+    padding: var(--space-sm) var(--space-xs);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    line-height: 1.2;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.bill-method .fas {
+    font-size: 1.15rem;
+    color: var(--color-gold);
+}
+
+.bill-method:hover {
+    border-color: var(--color-primary);
+}
+
+.bill-method.is-selected {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-tint);
+    color: var(--color-primary-dark);
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.bill-method.is-selected .fas {
+    color: var(--color-primary);
+}
+
+.bill-method:focus-within {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* the native radio stays for the keyboard and screen readers, the tile shows the choice */
+.bill-method ::deep .bill-method-input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+.bill-payment-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0 var(--space-md);
+}
+
 /* main action on top when stacked on phones */
 .bill-sheet-actions {
     display: flex;
@@ -445,6 +543,10 @@
     .bill-sheet-grid > .field:nth-child(2) {
         grid-column: auto;
         grid-row: auto;
+    }
+
+    .bill-payment-grid {
+        grid-template-columns: 10rem minmax(0, 1fr);
     }
 
     .bill-sheet-actions {

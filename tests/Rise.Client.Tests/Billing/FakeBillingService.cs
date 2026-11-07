@@ -40,6 +40,21 @@ public class FakeBillingService : IBillingService
         DeleteRequests.Add(request);
         return Task.FromResult(ChangeAnswer);
     }
+
+    public List<BillingRequest.RecordPayment> RecordPaymentRequests { get; } = [];
+    public List<BillingRequest.DeletePayment> DeletePaymentRequests { get; } = [];
+
+    public Task<Result<BillingDto.Bill>> RecordPaymentAsync(BillingRequest.RecordPayment request, CancellationToken ctx = default)
+    {
+        RecordPaymentRequests.Add(request);
+        return Task.FromResult(ChangeAnswer);
+    }
+
+    public Task<Result<BillingDto.Bill>> DeletePaymentAsync(BillingRequest.DeletePayment request, CancellationToken ctx = default)
+    {
+        DeletePaymentRequests.Add(request);
+        return Task.FromResult(ChangeAnswer);
+    }
 }
 
 /// <summary>
@@ -104,6 +119,25 @@ public static class TestBills
         RefundedAmount = 0m,
         OutstandingBalance = 130m + otherServicesTotal,
     };
+
+    /// <summary>
+    /// <see cref="Open"/> with the minibar paid in cash at the desk, €130 still open
+    /// </summary>
+    public static BillingDto.Bill WithCashPayment()
+    {
+        var bill = Open();
+        bill.Payments.Add(new BillingDto.Payment
+        {
+            Id = 3,
+            Amount = 16m,
+            PaidAt = new DateTime(2026, 10, 18, 19, 45, 0, DateTimeKind.Utc),
+            Method = PaymentMethods.Cash,
+            Reference = "Receipt 0042",
+        });
+        bill.PaidAmount += 16m;
+        bill.OutstandingBalance -= 16m;
+        return bill;
+    }
 
     public static BillingDto.Bill Cancelled()
     {
