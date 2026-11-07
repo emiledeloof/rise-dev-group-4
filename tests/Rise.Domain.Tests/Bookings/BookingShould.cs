@@ -581,6 +581,46 @@ public class BookingShould
         booking.BillLines.ShouldHaveSingleItem().ShouldBe(line);
     }
 
+    [Fact]
+    public void RecordAnOnSitePaymentAsPaid()
+    {
+        var (booking, _, _) = CreatePaidBookingWithTwoRooms();
+        var paidAt = new DateTime(2026, 10, 12, 9, 0, 0, DateTimeKind.Utc);
+
+        var payment = booking.RecordPayment(19.50m, PaymentMethod.Cash, paidAt, "Receipt 0042");
+
+        booking.Payments.ShouldContain(payment);
+        payment.IsPaid.ShouldBeTrue();
+        payment.IsOnSite.ShouldBeTrue();
+        payment.PaidAt.ShouldBe(paidAt);
+        booking.PaidAmount.ShouldBe(219.50m);
+        booking.OnSitePaidAmount.ShouldBe(19.50m);
+    }
+
+    [Fact]
+    public void NotRecordAPaymentOnACancelledBooking()
+    {
+        var (booking, a, b) = CreatePaidBookingWithTwoRooms();
+        booking.CancelRooms([new RoomCancellation(a, 0m), new RoomCancellation(b, 0m)], CancelledAt, "Guest is ill");
+
+        Action act = () => booking.RecordPayment(10m, PaymentMethod.Cash, CancelledAt);
+
+        act.ShouldThrow<InvalidOperationException>();
+        booking.Payments.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void LeaveDeletedOnSitePaymentsOutOfThePaidAmount()
+    {
+        var (booking, _, _) = CreatePaidBookingWithTwoRooms();
+        var payment = booking.RecordPayment(19.50m, PaymentMethod.CardTerminal, CancelledAt);
+
+        payment.IsDeleted = true;
+
+        booking.PaidAmount.ShouldBe(200m);
+        booking.OnSitePaidAmount.ShouldBe(0m);
+    }
+
     /// <summary>
     /// a new checkout after a cancellation charges only the remaining rooms, the webhook compares the payment with this
     /// </summary>
