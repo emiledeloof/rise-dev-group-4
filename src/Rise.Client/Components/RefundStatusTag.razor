@@ -1,0 +1,21 @@
+@using Rise.Shared.Bookings
+
+@* no own bulma colour modifier, so it never gets mixed up with the booking status tag next to it *@
+@switch (Status)
+{
+    case BookingRefundStatus.RefundPending:
+        <span class="tag @SizeClass refund-tag refund-tag-pending">
+            <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+            <span>Refund pending</span>
+        </span>
+        break;
+    case BookingRefundStatus.Refunded:
+        <span class="tag @SizeClass refund-tag refund-tag-refunded">
+            <i class="fas fa-rotate-left" aria-hidden="true"></i>
+            <span>Refunded</span>
+        </span>
+        break;
+    case BookingRefundStatus.NoRefund:
+        <span class="tag @SizeClass refund-tag refund-tag-none">No refund</span>
+        break;
+}
