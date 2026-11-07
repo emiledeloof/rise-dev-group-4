@@ -762,7 +762,8 @@ namespace Rise.Persistence.Migrations
                     b.HasIndex("Name");
 
                     b.HasIndex("RoomNumber")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("RoomTypeId");
 

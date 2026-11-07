@@ -13,7 +13,8 @@ internal class RoomConfiguration : EntityConfiguration<Room>
     {
         base.Configure(builder);
         builder.Property(x => x.RoomNumber).IsRequired().HasMaxLength(20);
-        builder.HasIndex(x => x.RoomNumber).IsUnique();
+        // ! unique only among rooms that are not deleted, a deleted room frees its number
+        builder.HasIndex(x => x.RoomNumber).IsUnique().HasFilter("\"IsDeleted\" = false");
         builder.Property(x => x.Name).IsRequired().HasMaxLength(250);
         // lookup by room name in RateService and sorts by name, low gain with few rooms
         builder.HasIndex(x => x.Name);
