@@ -514,6 +514,16 @@ public sealed class BookingService(
             return Result.Conflict($"The refund of room {bookingRoom.Room.RoomNumber} is not paid.");
         }
 
+        // ! repeats the rule of Booking.UndoRefundPayment so the admin gets a clear msg, change it in both places
+        // undoing puts the decided amount back, another room can have got the rest of the paid amount in the meantime
+        var refundsAfterUndo = booking.RefundedAmount - bookingRoom.EffectiveRefund + (bookingRoom.RefundAmount ?? 0m);
+        if (refundsAfterUndo > booking.PaidAmount)
+        {
+            return Result.Conflict(
+                $"The refund of room {bookingRoom.Room.RoomNumber} can't be opened again: the refunds would total "
+                + $"{Euro(refundsAfterUndo)}, more than the {Euro(booking.PaidAmount)} paid.");
+        }
+
         booking.UndoRefundPayment(bookingRoom);
 
         return await SaveRefundAsync(booking, bookingRoom, ctx);

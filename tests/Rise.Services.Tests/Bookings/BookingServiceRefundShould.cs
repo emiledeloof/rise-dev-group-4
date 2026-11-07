@@ -246,6 +246,35 @@ public class BookingServiceRefundShould
         result.Status.ShouldBe(ResultStatus.Conflict);
     }
 
+    [Fact]
+    public async Task RefuseToUndoWhenTheRefundsWouldExceedThePaidAmount()
+    {
+        var databaseName = Guid.NewGuid().ToString();
+        var seed = await SeedAsync(databaseName, refund: 200m, paid: 250m);
+
+        // only 150 of the 200 is paid back, room 302 then gets the 100 that are left of the 250 paid
+        // undoing would bring the refunds to 200 + 100
+        // ! done in an own context, the context of the service would keep the booking it loaded and miss the cancellation
+        await using (var dbContext = CreateContext(databaseName))
+        {
+            var booking = await dbContext.Bookings
+                .Include(x => x.Rooms).ThenInclude(x => x.Room)
+                .Include(x => x.Payments)
+                .SingleAsync();
+            booking.RecordRefundPayment(booking.Rooms.Single(x => x.Id == seed.FirstId), Today, 150m);
+            booking.CancelRooms([new RoomCancellation(booking.Rooms.Single(x => x.Id == seed.SecondId), 100m)], DateTime.UtcNow, "Trip is off");
+            await dbContext.SaveChangesAsync();
+        }
+
+        var result = await seed.Service.UndoRefundAsync(new BookingRequest.UndoRefund { BookingId = seed.BookingId, BookingRoomId = seed.FirstId });
+
+        result.Status.ShouldBe(ResultStatus.Conflict);
+        result.Errors.ShouldHaveSingleItem().ShouldContain("€300.00, more than the €250.00 paid");
+        var stored = await StoredRoomAsync(databaseName, seed.FirstId);
+        stored.IsRefundPaid.ShouldBeTrue();
+        stored.RefundPaidAmount.ShouldBe(150m);
+    }
+
     // ── status filter of the booking list ───────────────────────────────────
 
     private static async Task<bool> IsListedAsync(Seed seed, string filter)
