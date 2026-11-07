@@ -291,18 +291,6 @@
     margin-bottom: var(--space-md);
 }
 
-.amenity-icon-input {
-    display: flex;
-    gap: var(--space-sm);
-    align-items: center;
-}
-
-.amenity-icon-preview {
-    width: 2.75rem;
-    height: 2.75rem;
-    font-size: 1.1rem;
-}
-
 .amenity-form-actions {
     display: flex;
     flex-wrap: wrap;

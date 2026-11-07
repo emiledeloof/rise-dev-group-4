@@ -11,16 +11,6 @@ namespace Rise.Client.Amenities;
 /// </summary>
 public partial class Amenities : ComponentBase
 {
-    /// <summary>
-    /// icons offered in the icon field, the admin can still type an other Font Awesome name
-    /// </summary>
-    internal static readonly IReadOnlyList<string> SuggestedIcons =
-    [
-        "fa-wifi", "fa-snowflake", "fa-temperature-high", "fa-temperature-low", "fa-tv", "fa-mug-hot", "fa-mug-saucer",
-        "fa-shower", "fa-bath", "fa-wind", "fa-shirt", "fa-ban-smoking", "fa-bed", "fa-couch", "fa-baby",
-        "fa-dog", "fa-square-parking", "fa-wine-glass", "fa-lock", "fa-phone", "fa-sun", "fa-tree", "fa-water", "fa-check",
-    ];
-
     // null while loading
     private IReadOnlyList<AmenityDto.Admin>? _amenities;
     private bool _loadFailed;

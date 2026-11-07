@@ -115,21 +115,13 @@
                         <p class="amenity-help">An empty language shows the English name to the guest.</p>
                     </fieldset>
 
-                    <label class="amenity-field amenity-icon-field">
-                        <span class="is-required">Icon (required)</span>
-                        <span class="amenity-icon-input">
-                            <span class="amenity-icon amenity-icon-preview" aria-hidden="true"><i class="fas @_formModel.Icon"></i></span>
-                            <InputText @bind-Value="_formModel.Icon" @bind-Value:after="StateHasChanged" id="amenity-icon" list="amenity-icon-options" placeholder="fa-wifi" />
-                        </span>
-                        <datalist id="amenity-icon-options">
-                            @foreach (var icon in SuggestedIcons)
-                            {
-                                <option value="@icon"></option>
-                            }
-                        </datalist>
-                        <ValidationMessage For="() => _formModel.Icon" class="help is-danger" />
-                        <span class="amenity-help">A Font Awesome name, see fontawesome.com/icons.</span>
-                    </label>
+                    <div class="amenity-icon-field">
+                        <IconSelect @bind-Value="_formModel.Icon" id="amenity-icon" Label="Icon (required)">
+                            <Validation>
+                                <ValidationMessage For="() => _formModel.Icon" class="help is-danger" />
+                            </Validation>
+                        </IconSelect>
+                    </div>
 
                     @if (_formError is not null)
                     {
