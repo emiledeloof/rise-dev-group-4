@@ -71,9 +71,7 @@ public class Room : Entity
     /// <summary>
     /// type of the room, several rooms can share the same type, for example two deluxe rooms 104 and 105
     /// </summary>
-    // ? nullable for now so the existing rooms and the code of the team keep working
-    // TODO: make the type required once the rooms are managed in the admin and the rates are linked to the room type
-    public RoomType? RoomType { get; private set; }
+    public RoomType RoomType { get; private set; } = default!;
 
     private readonly List<Amenity> _amenities = [];
     public IReadOnlyList<Amenity> Amenities => _amenities.AsReadOnly();
