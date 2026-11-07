@@ -7,8 +7,9 @@ namespace Rise.Client.Rooms;
 
 /// <summary>
 /// client side of IRoomService, calls the room endpoints of the server
+/// sends the language picked on the site, so the server answers with the texts of the guest
 /// </summary>
-public class RoomService(HttpClient httpClient) : IRoomService
+public class RoomService(HttpClient httpClient, Toolbelt.Blazor.I18nText.I18nText i18nText) : IRoomService
 {
     /// <summary>
     /// asks the server for the rooms free during the stay
@@ -38,12 +39,15 @@ public class RoomService(HttpClient httpClient) : IRoomService
     }
 
     /// <summary>
-    /// GET on the url and reads the answer as a Result
+    /// GET on the url in the language of the guest and reads the answer as a Result
     /// GetAsync and not GetFromJsonAsync, a 400 or 404 would make GetFromJsonAsync throw but its body holds the Result we want
     /// </summary>
     private async Task<Result<T>> GetAsync<T>(string url, CancellationToken ctx)
     {
-        var response = await httpClient.GetAsync(url, ctx);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        // ! set here and not in a message handler, the handlers live in an other di scope with an other I18nText
+        request.Headers.AcceptLanguage.ParseAdd(await i18nText.GetCurrentLanguageAsync());
+        var response = await httpClient.SendAsync(request, ctx);
 
         // any other error, eg a 503 while the server starts, has no Result body, so the page shows its error msg instead of crashing
         if (!response.IsSuccessStatusCode && response.StatusCode is not (HttpStatusCode.BadRequest or HttpStatusCode.NotFound))
