@@ -44,7 +44,7 @@
                         <th scope="col">Name</th>
                         <th scope="col">Translations</th>
                         <th scope="col">Room types</th>
-                        <th scope="col">Status</th>
+                        <th scope="col">Active</th>
                         <th scope="col"><span class="is-sr-only">Actions</span></th>
                     </tr>
                     </thead>
@@ -62,19 +62,21 @@
                             <td class="amenity-room-types" data-label="Room types">
                                 @(amenity.RoomTypeNames.Count == 0 ? "—" : string.Join(", ", amenity.RoomTypeNames))
                             </td>
-                            <td class="amenity-status" data-label="Status">
-                                <span class="tag @(amenity.IsActive ? "is-success" : "is-warning") is-light">@(amenity.IsActive ? "Active" : "Inactive")</span>
+                            <td class="amenity-status" data-label="Active">
+                                @* same switch as on the rates page, the @key renders it again when the server refuses the change *@
+                                <label class="amenity-switch">
+                                    <input @key="(amenity.Id, _switchVersion)"
+                                           type="checkbox"
+                                           role="switch"
+                                           aria-label="@(amenity.IsActive ? $"Deactivate {EnglishName(amenity)}" : $"Activate {EnglishName(amenity)}")"
+                                           checked="@amenity.IsActive"
+                                           disabled="@_pendingStatusChanges.Contains(amenity.Id)"
+                                           @onchange="args => SetActiveAsync(amenity, args)" />
+                                    <span aria-hidden="true"></span>
+                                </label>
                             </td>
                             <td class="amenity-actions">
                                 <Button Variant="ButtonVariant.Secondary" OnClick="() => OpenEditFormAsync(amenity)">Edit</Button>
-                                @if (amenity.IsActive)
-                                {
-                                    <Button Variant="ButtonVariant.Secondary" OnClick="() => ChangeActiveAsync(amenity, false)" Class="amenity-deactivate">Deactivate</Button>
-                                }
-                                else
-                                {
-                                    <Button Variant="ButtonVariant.Secondary" OnClick="() => ChangeActiveAsync(amenity, true)" Class="amenity-activate">Activate</Button>
-                                }
                             </td>
                         </tr>
                     }

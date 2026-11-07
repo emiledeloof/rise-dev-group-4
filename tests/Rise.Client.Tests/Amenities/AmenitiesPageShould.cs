@@ -37,7 +37,8 @@ public class AmenitiesPageShould : BunitContext
         var rows = cut.FindAll("tr.amenity-row");
         rows.Count.ShouldBe(2);
         rows[0].ClassList.ShouldContain("is-inactive");
-        rows[0].QuerySelector(".amenity-status")!.TextContent.ShouldContain("Inactive");
+        rows[0].QuerySelector(".amenity-switch input")!.HasAttribute("checked").ShouldBeFalse();
+        rows[1].QuerySelector(".amenity-switch input")!.HasAttribute("checked").ShouldBeTrue();
         rows[1].QuerySelector(".amenity-name")!.TextContent.ShouldContain("Wi-Fi");
         rows[1].QuerySelector(".amenity-translations")!.TextContent.ShouldContain("2 / 6");
         rows[1].QuerySelector(".amenity-room-types")!.TextContent.ShouldContain("Deluxe Room, Standard Room");
@@ -91,7 +92,7 @@ public class AmenitiesPageShould : BunitContext
     {
         var cut = Render<Amenities>();
 
-        cut.FindAll("tr.amenity-row")[1].QuerySelector(".amenity-deactivate")!.Click();
+        cut.FindAll("tr.amenity-row")[1].QuerySelector(".amenity-switch input")!.Change(false);
 
         _amenityService.StatusChanges.ShouldBe([(2, false)]);
         cut.Find(".notification.is-success").TextContent.ShouldContain("hidden from guests");
@@ -102,9 +103,21 @@ public class AmenitiesPageShould : BunitContext
     {
         var cut = Render<Amenities>();
 
-        cut.FindAll("tr.amenity-row")[0].QuerySelector(".amenity-activate")!.Click();
+        cut.FindAll("tr.amenity-row")[0].QuerySelector(".amenity-switch input")!.Change(true);
 
         _amenityService.StatusChanges.ShouldBe([(1, true)]);
+    }
+
+    [Fact]
+    public void ShowTheSwitchAsActiveAgainWhenTheServerRefuses()
+    {
+        _amenityService.StatusAnswer = Result.NotFound("The amenity does not exist.");
+        var cut = Render<Amenities>();
+
+        cut.FindAll("tr.amenity-row")[1].QuerySelector(".amenity-switch input")!.Change(false);
+
+        cut.Find(".notification.is-danger").TextContent.ShouldContain("does not exist");
+        cut.FindAll("tr.amenity-row")[1].QuerySelector(".amenity-switch input")!.HasAttribute("checked").ShouldBeTrue();
     }
 
     [Fact]

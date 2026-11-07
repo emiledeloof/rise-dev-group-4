@@ -34,6 +34,9 @@ public class FakeAmenityService : IAmenityService
 
     public Result EditAnswer { get; set; } = Result.Success();
 
+    // answer of activate and deactivate
+    public Result StatusAnswer { get; set; } = Result.Success();
+
     public AmenityRequest.Create? LastCreate { get; private set; }
     public AmenityRequest.Edit? LastEdit { get; private set; }
     public List<(int Id, bool IsActive)> StatusChanges { get; } = [];
@@ -55,12 +58,12 @@ public class FakeAmenityService : IAmenityService
     public Task<Result> ActivateAsync(int amenityId, CancellationToken ctx = default)
     {
         StatusChanges.Add((amenityId, true));
-        return Task.FromResult(Result.Success());
+        return Task.FromResult(StatusAnswer);
     }
 
     public Task<Result> DeactivateAsync(int amenityId, CancellationToken ctx = default)
     {
         StatusChanges.Add((amenityId, false));
-        return Task.FromResult(Result.Success());
+        return Task.FromResult(StatusAnswer);
     }
 }

@@ -35,6 +35,12 @@ public partial class Amenities : ComponentBase
     private string? _formError;
     private bool _isSaving;
 
+    // amenities whose switch waits for the server, a second click is ignored meanwhile
+    private readonly HashSet<int> _pendingStatusChanges = [];
+
+    // raised when the server refuses a change, the switches render again with the saved state
+    private int _switchVersion;
+
     private UnsavedChangesGuard _guard = default!;
 
     /// <summary>
@@ -141,22 +147,33 @@ public partial class Amenities : ComponentBase
         }
     }
 
-    private async Task ChangeActiveAsync(AmenityDto.Admin amenity, bool isActive)
+    private async Task SetActiveAsync(AmenityDto.Admin amenity, ChangeEventArgs args)
     {
-        var result = isActive
-            ? await AmenityService.ActivateAsync(amenity.Id)
-            : await AmenityService.DeactivateAsync(amenity.Id);
-
-        if (!result.IsSuccess)
-        {
-            ShowMessage(FirstError(result, "The amenity could not be changed."), isError: true);
+        if (args.Value is not bool isActive || isActive == amenity.IsActive || !_pendingStatusChanges.Add(amenity.Id))
             return;
-        }
 
-        ShowMessage(isActive
-            ? $"'{EnglishName(amenity)}' is shown to guests again."
-            : $"'{EnglishName(amenity)}' is hidden from guests. It stays ticked on its room types.", isError: false);
-        await LoadAsync();
+        try
+        {
+            var result = isActive
+                ? await AmenityService.ActivateAsync(amenity.Id)
+                : await AmenityService.DeactivateAsync(amenity.Id);
+
+            if (!result.IsSuccess)
+            {
+                _switchVersion++;
+                ShowMessage(FirstError(result, "The amenity could not be changed."), isError: true);
+                return;
+            }
+
+            ShowMessage(isActive
+                ? $"'{EnglishName(amenity)}' is shown to guests again."
+                : $"'{EnglishName(amenity)}' is hidden from guests. It stays ticked on its room types.", isError: false);
+            await LoadAsync();
+        }
+        finally
+        {
+            _pendingStatusChanges.Remove(amenity.Id);
+        }
     }
 
     private void ShowMessage(string message, bool isError)
