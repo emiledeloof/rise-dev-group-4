@@ -39,7 +39,8 @@ public class BookingServiceRefundShould
             var booking = new Booking("20261001-SVM-000001", guest, checkIn, checkIn.AddDays(2), 1);
             var a = booking.AddRoom(first, first.AddRate("Flexible", 100m));
             var b = booking.AddRoom(second, second.AddRate("Flexible", 50m));
-            booking.AddPayment(paid).MarkAsPaid(DateTime.UtcNow.AddDays(-1));
+            if (paid > 0)
+                booking.AddPayment(paid).MarkAsPaid(DateTime.UtcNow.AddDays(-1));
 
             var cancellations = new List<RoomCancellation> { new(a, refund) };
             if (cancelSecond)
@@ -243,5 +244,81 @@ public class BookingServiceRefundShould
         var result = await seed.Service.UndoRefundAsync(new BookingRequest.UndoRefund { BookingId = seed.BookingId, BookingRoomId = seed.FirstId });
 
         result.Status.ShouldBe(ResultStatus.Conflict);
+    }
+
+    // ── status filter of the booking list ───────────────────────────────────
+
+    private static async Task<bool> IsListedAsync(Seed seed, string filter)
+        => (await seed.Service.GetIndexAsync(new BookingRequest.Index { Skip = 0, Take = 50, Status = filter })).Value.TotalCount == 1;
+
+    /// <summary>
+    /// room 301 cancelled with an open refund, room 302 still booked and paid
+    /// </summary>
+    [Theory]
+    [InlineData(BookingStatusFilters.All, true)]
+    [InlineData(BookingStatusFilters.NotCancelled, true)]
+    [InlineData(BookingStatusFilters.Pending, false)]
+    [InlineData(BookingStatusFilters.Paid, true)]
+    [InlineData(BookingStatusFilters.PartiallyCancelled, true)]
+    [InlineData(BookingStatusFilters.Cancelled, false)]
+    [InlineData(BookingStatusFilters.RefundPending, true)]
+    [InlineData(BookingStatusFilters.Refunded, false)]
+    public async Task FilterAPartlyCancelledBookingWithAnOpenRefund(string filter, bool listed)
+    {
+        var seed = await SeedAsync(Guid.NewGuid().ToString());
+
+        (await IsListedAsync(seed, filter)).ShouldBe(listed);
+    }
+
+    [Theory]
+    [InlineData(BookingStatusFilters.RefundPending, false)]
+    [InlineData(BookingStatusFilters.Refunded, true)]
+    [InlineData(BookingStatusFilters.Paid, true)]
+    public async Task FilterABookingOnceItsRefundIsPaid(string filter, bool listed)
+    {
+        var seed = await SeedAsync(Guid.NewGuid().ToString());
+        (await seed.Service.RecordRefundAsync(Request(seed, 150m))).IsSuccess.ShouldBeTrue();
+
+        (await IsListedAsync(seed, filter)).ShouldBe(listed);
+    }
+
+    /// <summary>
+    /// both rooms cancelled, 301 with an open refund
+    /// </summary>
+    [Theory]
+    [InlineData(BookingStatusFilters.NotCancelled, false)]
+    [InlineData(BookingStatusFilters.Pending, false)]
+    [InlineData(BookingStatusFilters.Paid, false)]
+    [InlineData(BookingStatusFilters.PartiallyCancelled, false)]
+    [InlineData(BookingStatusFilters.Cancelled, true)]
+    [InlineData(BookingStatusFilters.RefundPending, true)]
+    public async Task FilterAFullyCancelledBookingWithAnOpenRefund(string filter, bool listed)
+    {
+        var seed = await SeedAsync(Guid.NewGuid().ToString(), cancelSecond: true);
+
+        (await IsListedAsync(seed, filter)).ShouldBe(listed);
+    }
+
+    [Theory]
+    [InlineData(BookingStatusFilters.Pending, true)]
+    [InlineData(BookingStatusFilters.Paid, false)]
+    [InlineData(BookingStatusFilters.RefundPending, false)]
+    [InlineData(BookingStatusFilters.Refunded, false)]
+    public async Task FilterAnUnpaidBookingWithoutRefund(string filter, bool listed)
+    {
+        var seed = await SeedAsync(Guid.NewGuid().ToString(), refund: 0m, paid: 0m);
+
+        (await IsListedAsync(seed, filter)).ShouldBe(listed);
+    }
+
+    [Fact]
+    public async Task ShowTheRefundStatusInTheList()
+    {
+        var seed = await SeedAsync(Guid.NewGuid().ToString());
+
+        var booking = (await seed.Service.GetIndexAsync(new BookingRequest.Index { Skip = 0, Take = 50 })).Value.Bookings.Single();
+
+        booking.Status.ShouldBe(BookingStatus.Paid);
+        booking.RefundStatus.ShouldBe(BookingRefundStatus.RefundPending);
     }
 }

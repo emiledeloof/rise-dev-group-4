@@ -635,7 +635,7 @@ public sealed class BookingService(
     }
 
     /// <summary>
-    /// Returns a paginated list of the bookings for the admin overview, optionally filtered on cancellation.
+    /// Returns a paginated list of the bookings for the admin overview, optionally filtered on a status of <see cref="BookingStatusFilters"/>.
     /// Status is "Cancelled" when all rooms are cancelled, else "Paid" when at least one payment has been settled, otherwise "Pending".
     /// </summary>
     public async Task<Result<BookingResponse.Index>> GetIndexAsync(
@@ -644,13 +644,24 @@ public sealed class BookingService(
     {
         var query = dbContext.Bookings.Where(b => !b.IsDeleted);
 
-        // same rule as Booking.IsCancelled, a partly cancelled booking still has booked rooms so it counts as not cancelled
-        query = request.CancellationFilter switch
+        // same rules as Booking.IsCancelled and BookingStatusRule, a partly cancelled booking still has booked rooms so it counts as not cancelled
+        var notCancelled = query.Where(b =>
+            !b.Rooms.Any(r => !r.IsDeleted) || b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt == null));
+        query = request.Status switch
         {
-            BookingCancellationFilters.NotCancelled => query.Where(b =>
-                !b.Rooms.Any(r => !r.IsDeleted) || b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt == null)),
-            BookingCancellationFilters.OnlyCancelled => query.Where(b =>
+            BookingStatusFilters.NotCancelled => notCancelled,
+            BookingStatusFilters.Pending => notCancelled.Where(b => !b.Payments.AsQueryable().Any(BookingStatusRule.IsSettled)),
+            BookingStatusFilters.Paid => notCancelled.Where(b => b.Payments.AsQueryable().Any(BookingStatusRule.IsSettled)),
+            BookingStatusFilters.PartiallyCancelled => query.Where(b =>
+                b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt != null) && b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt == null)),
+            BookingStatusFilters.Cancelled => query.Where(b =>
                 b.Rooms.Any(r => !r.IsDeleted) && !b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt == null)),
+            // an open refund wins, like BookingStatusRule.RefundStatusFor
+            BookingStatusFilters.RefundPending => query.Where(b =>
+                b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt != null && r.RefundAmount > 0 && r.RefundPaidOn == null)),
+            BookingStatusFilters.Refunded => query.Where(b =>
+                b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt != null && r.RefundAmount > 0)
+                && !b.Rooms.Any(r => !r.IsDeleted && r.CancelledAt != null && r.RefundAmount > 0 && r.RefundPaidOn == null)),
             _ => query,
         };
 
