@@ -97,11 +97,11 @@ public partial class BookingList
     };
 
     /// <summary>
-    /// a new category starts on its first detailed status, so the list always matches what both selects show
+    /// a new category starts on "Any status", so the list always matches what both selects show
     /// </summary>
     private async Task ApplyCategoryAsync()
     {
-        _statusFilter = CategoryValues.Count > 0 ? CategoryValues[0] : BookingStatusFilters.All;
+        _statusFilter = BookingStatusFilters.All;
         await ApplyFilterAsync();
     }
 

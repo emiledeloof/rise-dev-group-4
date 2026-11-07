@@ -24,6 +24,8 @@
         {
             <SelectField Label="@(_category == PaymentCategory ? "Payment status" : "Cancellation status")">
                 <select class="booking-filter-status" @bind="_statusFilter" @bind:after="ApplyFilterAsync">
+                    @* nothing chosen yet, the list shows all bookings *@
+                    <option value="@BookingStatusFilters.All">Any status</option>
                     @foreach (var filter in CategoryValues)
                     {
                         <option value="@filter">@FilterLabel(filter)</option>

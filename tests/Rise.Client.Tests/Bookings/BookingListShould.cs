@@ -233,17 +233,31 @@ public class BookingListShould : BunitContext
     }
 
     [Theory]
-    [InlineData("Payment", BookingStatusFilters.Pending)]
-    [InlineData("Cancellation", BookingStatusFilters.NotCancelled)]
-    public async Task ShowTheDetailedStatusesOfTheChosenCategory(string category, string firstStatus)
+    [InlineData("Payment")]
+    [InlineData("Cancellation")]
+    public async Task ShowTheDetailedStatusesOfTheChosenCategoryWithNothingChosen(string category)
     {
         var cut = Render<BookingList>();
 
         await cut.Find(".booking-filter-category").ChangeAsync(category);
 
-        var expected = category == "Payment" ? BookingStatusFilters.PaymentValues : BookingStatusFilters.CancellationValues;
-        cut.FindAll(".booking-filter-status option").Select(x => x.GetAttribute("value")).ShouldBe(expected);
-        _bookingService.IndexRequests[^1].Status.ShouldBe(firstStatus);
+        var statuses = category == "Payment" ? BookingStatusFilters.PaymentValues : BookingStatusFilters.CancellationValues;
+        cut.FindAll(".booking-filter-status option").Select(x => x.GetAttribute("value"))
+            .ShouldBe([BookingStatusFilters.All, .. statuses]);
+        cut.Find(".booking-filter-status option").TextContent.ShouldBe("Any status");
+        _bookingService.IndexRequests[^1].Status.ShouldBe(BookingStatusFilters.All);
+    }
+
+    [Fact]
+    public async Task ShowAllBookingsWhenAnyStatusIsChosenAgain()
+    {
+        var cut = Render<BookingList>();
+        await ChooseFilterAsync(cut, BookingStatusFilters.Paid);
+
+        await cut.Find(".booking-filter-status").ChangeAsync(BookingStatusFilters.All);
+
+        _bookingService.IndexRequests[^1].Status.ShouldBe(BookingStatusFilters.All);
+        cut.Find(".booking-list-title").TextContent.ShouldBe("All bookings");
     }
 
     [Fact]
