@@ -3,16 +3,17 @@
 @* a link of the app or an action of the page (cancel, edit an other row): our dialog below *@
 <NavigationLock ConfirmExternalNavigation="IsDirty" OnBeforeInternalNavigation="OnBeforeInternalNavigationAsync" />
 
-<Dialog IsOpen="_pending is not null"
-        Title="Discard your changes?"
-        Description="You have changes that are not saved yet. They will be lost if you leave this form."
-        Size="DialogSize.Small"
-        IsAlert="true"
-        ShowCloseButton="false"
-        Class="unsaved-dialog"
-        OnClose="() => Choose(false)">
-    <Footer>
-        <Button Variant="ButtonVariant.Danger" OnClick="() => Choose(true)" Class="unsaved-discard">Discard changes</Button>
-        <Button Variant="ButtonVariant.Secondary" OnClick="() => Choose(false)" Class="unsaved-keep">Keep editing</Button>
-    </Footer>
-</Dialog>
+@if (_pending is not null)
+{
+    <div class="modal is-active unsaved-dialog" role="alertdialog" aria-modal="true" aria-labelledby="unsaved-title" aria-describedby="unsaved-text">
+        <div class="modal-background" @onclick="() => Choose(false)"></div>
+        <div class="modal-content unsaved-sheet">
+            <h2 id="unsaved-title" class="unsaved-title">Discard your changes?</h2>
+            <p id="unsaved-text" class="unsaved-text">You have changes that are not saved yet. They will be lost if you leave this form.</p>
+            <div class="unsaved-actions">
+                <Button Variant="ButtonVariant.Secondary" OnClick="() => Choose(false)" Class="unsaved-keep">Keep editing</Button>
+                <Button Variant="ButtonVariant.Danger" OnClick="() => Choose(true)" Class="unsaved-discard">Discard changes</Button>
+            </div>
+        </div>
+    </div>
+}

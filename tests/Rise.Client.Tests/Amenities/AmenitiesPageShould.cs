@@ -84,7 +84,7 @@ public class AmenitiesPageShould : BunitContext
 
         cut.Find("form").Submit();
 
-        cut.Find(".amenity-dialog .notification.is-danger").TextContent.ShouldBe("An amenity named 'Wifi' already exists in Dutch.");
+        cut.Find(".amenity-panel .notification.is-danger").TextContent.ShouldBe("An amenity named 'Wifi' already exists in Dutch.");
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class AmenitiesPageShould : BunitContext
         cut.Find(".amenity-cancel").Click();
         cut.Find(".unsaved-discard").Click();
 
-        cut.FindAll(".amenity-dialog").ShouldBeEmpty();
+        cut.FindAll(".amenity-panel").ShouldBeEmpty();
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public class AmenitiesPageShould : BunitContext
         cut.Find(".amenity-cancel").Click();
 
         cut.FindAll(".unsaved-dialog").ShouldBeEmpty();
-        cut.FindAll(".amenity-dialog").ShouldBeEmpty();
+        cut.FindAll(".amenity-panel").ShouldBeEmpty();
     }
 
     [Fact]
