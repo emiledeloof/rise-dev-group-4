@@ -190,6 +190,8 @@ public class DbSeeder(ApplicationDbContext dbContext, RoleManager<IdentityRole> 
         // VAT is off in the seeded settings, so the rooms have 0 % VAT and only these lines carry VAT
         familyBooking.AddBillLine("Minibar", 3, 6.50m, 22m);
         familyBooking.AddBillLine("Guided vineyard tour", 2, 45m, 22m);
+        // the minibar was paid in cash at the desk, the tour is still open
+        familyBooking.RecordPayment(19.50m, PaymentMethod.Cash, new DateTime(2026, 10, 18, 19, 45, 0, DateTimeKind.Utc), "Receipt 0042");
 
         // Deposit is paid, the remaining amount is still open.
         var suiteBooking = new Booking("20261005-0004", guests[0], new DateOnly(2026, 12, 23), new DateOnly(2026, 12, 27), 2);
