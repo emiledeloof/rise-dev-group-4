@@ -64,6 +64,11 @@ public class Booking : Entity
     /// </summary>
     public decimal RefundedAmount => _rooms.Where(x => !x.IsDeleted).Sum(x => x.RefundAmount ?? 0m);
 
+    /// <summary>set by settle, a settled bill is closed and can not be changed anymore</summary>
+    public DateTime? SettledAt { get; private set; }
+
+    public bool IsSettled => SettledAt is not null;
+
     /// <summary>
     /// Sum of the settled payments, the most that can be refunded.
     /// </summary>
@@ -126,6 +131,11 @@ public class Booking : Entity
     public void CancelRooms(IReadOnlyCollection<RoomCancellation> rooms, DateTime cancelledAt, string reason, int? adults = null)
     {
         Guard.Against.Null(rooms);
+
+        // a settled bill is final, cancelling would make it wrong
+        if (IsSettled)
+            throw new InvalidOperationException("A settled booking can't be cancelled.");
+
         Guard.Against.NullOrWhiteSpace(reason);
 
         if (rooms.Count == 0)
@@ -169,6 +179,19 @@ public class Booking : Entity
             room.Cancel(cancelledAt, trimmedReason, refund);
     }
 
+    /// <summary>closes the bill, it can be settled before everything is paid and payments stay recorded by the admin</summary>
+    public void Settle(DateTime settledAt)
+    {
+        if (IsCancelled)
+            throw new InvalidOperationException("A cancelled booking can't be settled.");
+
+        // ! a settled bill is final, settling it again would change its date
+        if (IsSettled)
+            throw new InvalidOperationException("The booking is already settled.");
+
+        SettledAt = settledAt;
+    }
+
     public Payment AddPayment(decimal amount, string? stripeCheckoutSession = null)
     {
         var payment = new Payment(this, amount, stripeCheckoutSession);
@@ -184,6 +207,9 @@ public class Booking : Entity
     {
         if (IsCancelled)
             throw new InvalidOperationException("The bill of a cancelled booking can't be changed.");
+
+        if (IsSettled)
+            throw new InvalidOperationException("The bill of a settled booking can't be changed.");
 
         var line = new BillLine(this, description, quantity, unitPrice, vatPercentage);
         _billLines.Add(line);

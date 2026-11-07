@@ -41,6 +41,9 @@ public static class InvoiceDto
         /// </summary>
         public required decimal RefundedAmount { get; set; }
 
+        /// <summary>the final bill of the booking is closed</summary>
+        public bool IsBillSettled { get; set; }
+
         public bool IsPaid => PaidAt is not null;
         public bool IsBookingCancelled => RoomCount > 0 && CancelledRoomCount == RoomCount;
     }

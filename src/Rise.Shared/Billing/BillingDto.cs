@@ -63,6 +63,14 @@ public static class BillingDto
         /// </summary>
         public bool IsCancelled => Status == Bookings.BookingStatus.Cancelled;
 
+        /// <summary>null while the bill is not settled</summary>
+        public DateTime? SettledAt { get; set; }
+
+        public bool IsSettled => SettledAt is not null;
+
+        /// <summary>a cancelled or settled bill can not be changed anymore</summary>
+        public bool IsClosed => IsCancelled || IsSettled;
+
         /// <summary>
         /// Some rooms are cancelled, the bill of the remaining rooms stays open.
         /// </summary>

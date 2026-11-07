@@ -31,6 +31,12 @@ public class BillingService(HttpClient httpClient) : IBillingService
         return await ReadAsync(response, ctx);
     }
 
+    public async Task<Result<BillingDto.Bill>> SettleAsync(BillingRequest.Settle request, CancellationToken ctx = default)
+    {
+        var response = await httpClient.PostAsJsonAsync($"/api/bookings/{request.BookingId}/bill/settle", request, ctx);
+        return await ReadAsync(response, ctx);
+    }
+
     /// <summary>
     /// same rules as BookingService.CancelAsync, only these codes hold a Result body, a 401 or a 503 has none
     /// </summary>

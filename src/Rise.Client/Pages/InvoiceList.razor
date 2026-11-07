@@ -37,7 +37,7 @@
                         <li @key="invoice.Id" class="invoice-row">
                             <div>
                                 <p class="invoice-booking">
-                                    <a class="invoice-booking-link" href="admin/bookings/@invoice.BookingId/bill">Booking @invoice.BookingNumber</a> · @invoice.GuestName
+                                    <a class="invoice-booking-link" href="admin/bookings/@invoice.BookingId/bill?from=invoices">Booking @invoice.BookingNumber</a> · @invoice.GuestName
                                 </p>
                                 <p class="invoice-muted">
                                     @if (invoice.IsPaid)
@@ -90,6 +90,14 @@
                                 {
                                     <span class="tag is-warning is-light">Open</span>
                                 }
+                                @if (invoice.IsBillSettled)
+                                {
+                                    <span class="tag is-primary is-light invoice-settled">Bill settled</span>
+                                }
+                                @* only a visual cue, the booking link already covers the whole row *@
+                                <span class="invoice-view-bill" aria-hidden="true">
+                                    View bill <i class="fas fa-chevron-right"></i>
+                                </span>
                             </div>
                         </li>
                     }

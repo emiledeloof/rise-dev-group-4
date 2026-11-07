@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Rise.Shared.Billing;
+using Rise.Shared.Bookings;
 
 namespace Rise.Client.Billing;
 
@@ -19,6 +20,7 @@ public class FakeBillingService : IBillingService
     public List<BillingRequest.AddLine> AddRequests { get; } = [];
     public List<BillingRequest.EditLine> EditRequests { get; } = [];
     public List<BillingRequest.DeleteLine> DeleteRequests { get; } = [];
+    public List<BillingRequest.Settle> SettleRequests { get; } = [];
 
     public Task<Result<BillingDto.Bill>> GetBillAsync(int bookingId, CancellationToken ctx = default)
         => Task.FromResult(BillAnswer);
@@ -38,6 +40,12 @@ public class FakeBillingService : IBillingService
     public Task<Result<BillingDto.Bill>> DeleteLineAsync(BillingRequest.DeleteLine request, CancellationToken ctx = default)
     {
         DeleteRequests.Add(request);
+        return Task.FromResult(ChangeAnswer);
+    }
+
+    public Task<Result<BillingDto.Bill>> SettleAsync(BillingRequest.Settle request, CancellationToken ctx = default)
+    {
+        SettleRequests.Add(request);
         return Task.FromResult(ChangeAnswer);
     }
 }
@@ -104,6 +112,15 @@ public static class TestBills
         RefundedAmount = 0m,
         OutstandingBalance = 130m + otherServicesTotal,
     };
+
+    /// <summary>the open bill once settled, settling records no payment so the balance stays open</summary>
+    public static BillingDto.Bill Settled()
+    {
+        var bill = Open();
+        bill.Status = BookingStatus.Settled;
+        bill.SettledAt = new DateTime(2026, 10, 20, 10, 0, 0, DateTimeKind.Utc);
+        return bill;
+    }
 
     public static BillingDto.Bill Cancelled()
     {

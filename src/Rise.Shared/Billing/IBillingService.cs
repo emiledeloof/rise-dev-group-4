@@ -16,4 +16,7 @@ public interface IBillingService
     Task<Result<BillingDto.Bill>> EditLineAsync(BillingRequest.EditLine request, CancellationToken ctx = default);
 
     Task<Result<BillingDto.Bill>> DeleteLineAsync(BillingRequest.DeleteLine request, CancellationToken ctx = default);
+
+    /// <summary>closes the bill and records the outstanding balance as paid on site, a bill is settled only once</summary>
+    Task<Result<BillingDto.Bill>> SettleAsync(BillingRequest.Settle request, CancellationToken ctx = default);
 }

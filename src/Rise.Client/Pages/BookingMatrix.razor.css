@@ -117,6 +117,7 @@
 
 .legend-chip.available { background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface)); color: var(--color-primary-dark); }
 .legend-chip.occupied  { background: var(--color-warning-bg); color: var(--color-text); }
+.legend-chip.settled   { background: var(--color-primary); color: var(--color-surface); }
 .legend-chip.temporary { background: color-mix(in srgb, var(--color-gold) 20%, var(--color-surface)); color: var(--color-gold); border: 1px dashed var(--color-gold); }
 
 /* ──────────────────────────────────────────────
@@ -289,8 +290,22 @@
     text-decoration: none;
 }
 
+/* Settled — the bill is closed, solid primary like the settled status tag */
+.matrix-cell-settled {
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+    display: flex;
+    align-items: center;
+    padding: 0 0.75rem;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    text-decoration: none;
+}
+
 .matrix-cell-occupied:hover,
-.matrix-cell-temporary:hover {
+.matrix-cell-temporary:hover,
+.matrix-cell-settled:hover {
     text-decoration: none;
     filter: brightness(0.96);
 }

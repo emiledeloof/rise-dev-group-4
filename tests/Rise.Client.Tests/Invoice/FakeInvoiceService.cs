@@ -29,6 +29,7 @@ public class FakeInvoiceService : IInvoiceService
                 RoomCount = 2,
                 CancelledRoomCount = i - 1,
                 RefundedAmount = i == 2 ? 150m : 0m,
+                IsBillSettled = i == 1,
             });
 
         var wrapper = new InvoiceResponse.Index

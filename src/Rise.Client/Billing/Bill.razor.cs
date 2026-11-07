@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Rise.Client.Common;
 using Rise.Shared.Billing;
 
 namespace Rise.Client.Billing;
@@ -13,6 +14,15 @@ public partial class Bill
     /// id of the booking from the url, eg /admin/bookings/3/bill
     /// </summary>
     [Parameter] public int BookingId { get; set; }
+
+    /// <summary>where the admin came from, "invoices" when opened from the invoice list</summary>
+    [SupplyParameterFromQuery(Name = "from")] public string? From { get; set; }
+
+    private bool CameFromInvoices => From == "invoices";
+
+    private string BackUrl => CameFromInvoices ? "admin/invoice-list" : $"admin/bookings/{BookingId}";
+
+    private string BackLabel => CameFromInvoices ? "Invoices" : "Booking";
 
     [Inject] public required IBillingService BillingService { get; set; }
 
@@ -40,6 +50,14 @@ public partial class Bill
     // why the server refused the delete, shown under the line
     private string? _deleteError;
 
+    // the settle button asks for a confirmation first, money is recorded
+    private bool _confirmSettle;
+
+    private bool _isSettling;
+
+    // why the server refused the settlement, shown under the buttons
+    private string? _settleError;
+
     private bool IsNewLine => _lineForm is { LineId: 0 };
 
     private List<BillingDto.AccommodationLine> CancelledRooms => _bill!.Accommodation.Where(x => x.IsCancelled).ToList();
@@ -57,6 +75,8 @@ public partial class Bill
         _errorMessage = null;
         _lineForm = null;
         _confirmDeleteId = null;
+        _confirmSettle = false;
+        _settleError = null;
 
         var result = await BillingService.GetBillAsync(BookingId);
 
@@ -150,6 +170,42 @@ public partial class Bill
 
         _bill = result.Value;
         _confirmDeleteId = null;
+    }
+
+    // tells the admin how much will be collected, a credit or a paid bill collects nothing
+    private string SettleQuestion => _bill!.OutstandingBalance > 0
+        ? $"Collect {Format.Amount(_bill.OutstandingBalance)} on site and close this bill? It can't be changed afterwards."
+        : "Close this bill? It can't be changed afterwards.";
+
+    private void AskSettle()
+    {
+        _settleError = null;
+        _confirmSettle = true;
+    }
+
+    private void KeepOpen()
+    {
+        if (!_isSettling)
+            _confirmSettle = false;
+    }
+
+    private async Task SettleAsync()
+    {
+        _isSettling = true;
+        _settleError = null;
+
+        var result = await BillingService.SettleAsync(new BillingRequest.Settle { BookingId = BookingId });
+
+        _isSettling = false;
+        _confirmSettle = false;
+
+        if (!result.IsSuccess)
+        {
+            _settleError = ErrorOf(result, "Sorry, the bill could not be settled. Please try again later.");
+            return;
+        }
+
+        _bill = result.Value;
     }
 
     // the server checks again, eg the booking was cancelled in another tab

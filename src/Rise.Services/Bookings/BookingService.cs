@@ -353,6 +353,11 @@ public sealed class BookingService(
             return Result.Conflict($"Booking {booking.BookingNumber} is already cancelled.");
         }
 
+        if (booking.IsSettled)
+        {
+            return Result.Conflict($"Booking {booking.BookingNumber} is settled, it can't be cancelled.");
+        }
+
         // ! the validator checks the request, these checks repeat the rules of Booking.CancelRooms that need the loaded booking,
         // so the admin gets a Result with a clear msg, the domain checks everything again and throws, it stays the backstop
         // change a rule in both places
@@ -560,6 +565,7 @@ public sealed class BookingService(
                     .Where(r => !r.IsDeleted)
                     .Select(r => new { r.PricePerNight, r.Room.RoomNumber, IsCancelled = r.CancelledAt != null })
                     .ToList(),
+                IsBillSettled = b.SettledAt != null,
                 HasSettledPayment = b.Payments.AsQueryable().Any(BookingStatusRule.IsSettled),
             })
             .ToListAsync(ctx);
@@ -582,7 +588,7 @@ public sealed class BookingService(
                 GuestEmail = x.GuestEmail,
                 TotalAmount = shownRooms.Sum(r => PriceCalculator.Total(r.PricePerNight, nights)),
                 RoomNumbers = shownRooms.Select(r => r.RoomNumber).ToList(),
-                Status = BookingStatusRule.For(isCancelled, x.HasSettledPayment),
+                Status = BookingStatusRule.For(isCancelled, x.IsBillSettled, x.HasSettledPayment),
                 RoomCount = x.Rooms.Count,
                 CancelledRoomCount = cancelledRoomCount,
             };
@@ -629,6 +635,7 @@ public sealed class BookingService(
                 br.Booking.CheckIn,
                 br.Booking.CheckOut,
                 IsPaid = br.Booking.Payments.Any(p => p.PaidAt != null),
+                IsBillSettled = br.Booking.SettledAt != null,
             })
             .ToListAsync(ctx);
 
@@ -652,7 +659,9 @@ public sealed class BookingService(
                     GuestName = b.GuestName,
                     CheckIn = b.CheckIn,
                     CheckOut = b.CheckOut,
-                    Status = b.IsPaid ? CellStatus.Occupied : CellStatus.Temporary,
+                    Status = b.IsBillSettled ? CellStatus.Settled
+                        : b.IsPaid ? CellStatus.Occupied
+                        : CellStatus.Temporary,
                 }).ToList(),
             };
         }).ToList();

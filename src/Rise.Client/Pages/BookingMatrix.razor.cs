@@ -90,9 +90,9 @@ public partial class BookingMatrix
         {
             var day = _windowStart.AddDays(dayIndex);
 
-            // Prefer Occupied over Temporary when both somehow cover the same day
+            // Prefer Settled and Occupied over Temporary when both somehow cover the same day
             var booking =
-                row.Bookings.FirstOrDefault(b => b.Status == CellStatus.Occupied && b.CheckIn <= day && b.CheckOut > day)
+                row.Bookings.FirstOrDefault(b => b.Status is CellStatus.Settled or CellStatus.Occupied && b.CheckIn <= day && b.CheckOut > day)
                 ?? row.Bookings.FirstOrDefault(b => b.Status == CellStatus.Temporary && b.CheckIn <= day && b.CheckOut > day);
 
             if (booking is null)
@@ -103,7 +103,7 @@ public partial class BookingMatrix
                 {
                     var nextDay = _windowStart.AddDays(dayIndex);
                     var hitsBooking = row.Bookings.Any(b =>
-                        (b.Status == CellStatus.Occupied || b.Status == CellStatus.Temporary)
+                        b.Status != CellStatus.Available
                         && b.CheckIn <= nextDay && b.CheckOut > nextDay);
                     if (hitsBooking)
                         break;

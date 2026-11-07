@@ -332,7 +332,8 @@
                     Final bill
                 </Button>
 
-                @if (ActiveRooms.Count > 0)
+                @* a settled bill is final, the booking can not be cancelled anymore *@
+                @if (ActiveRooms.Count > 0 && _booking.Status != BookingStatus.Settled)
                 {
                     <Button Variant="ButtonVariant.Danger" IsFullWidth="true" OnClick="OpenCancelDialog" Class="booking-detail-cancel-open">
                         @(ActiveRooms.Count == 1 ? "Cancel booking" : "Cancel rooms")

@@ -26,7 +26,11 @@
             <div class="popup-header">
                 <span class="popup-booking-number">@_detail.BookingNumber</span>
                 <span class="popup-status">
-                    @if (_detail.Status == "Paid")
+                    @if (_detail.Status == BookingStatus.Settled)
+                    {
+                        <span class="tag is-primary is-light">Settled</span>
+                    }
+                    else if (_detail.Status == BookingStatus.Paid)
                     {
                         <span class="tag is-primary is-light">Paid</span>
                     }
