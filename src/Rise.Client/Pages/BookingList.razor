@@ -12,24 +12,25 @@
 
     @* outside the loading branch, so it stays available when a filter finds nothing *@
     <FilterBar>
+        @* a short first choice, the detailed statuses only show up once payment or cancellation is chosen *@
         <SelectField Label="Show">
-            @* one select, grouped so the list of statuses stays easy to scan *@
-            <select @bind="_statusFilter" @bind:after="ApplyFilterAsync">
-                <option value="@BookingStatusFilters.All">@FilterLabel(BookingStatusFilters.All)</option>
-                <optgroup label="Payment status">
-                    @foreach (var filter in BookingStatusFilters.PaymentValues)
-                    {
-                        <option value="@filter">@FilterLabel(filter)</option>
-                    }
-                </optgroup>
-                <optgroup label="Cancellation status">
-                    @foreach (var filter in BookingStatusFilters.CancellationValues)
-                    {
-                        <option value="@filter">@FilterLabel(filter)</option>
-                    }
-                </optgroup>
+            <select class="booking-filter-category" @bind="_category" @bind:after="ApplyCategoryAsync">
+                <option value="@AllCategory">All bookings</option>
+                <option value="@PaymentCategory">Payment status</option>
+                <option value="@CancellationCategory">Cancellation status</option>
             </select>
         </SelectField>
+        @if (CategoryValues.Count > 0)
+        {
+            <SelectField Label="@(_category == PaymentCategory ? "Payment status" : "Cancellation status")">
+                <select class="booking-filter-status" @bind="_statusFilter" @bind:after="ApplyFilterAsync">
+                    @foreach (var filter in CategoryValues)
+                    {
+                        <option value="@filter">@FilterLabel(filter)</option>
+                    }
+                </select>
+            </SelectField>
+        }
     </FilterBar>
 
     @if (_bookings is null)

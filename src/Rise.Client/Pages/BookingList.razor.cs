@@ -11,8 +11,24 @@ public partial class BookingList
     private string? _errorMessage;
     private int _currentPage = 1;
     private int _totalCount;
+    // values of the first select, it only picks which detailed statuses the second select offers
+    private const string AllCategory = "All";
+    private const string PaymentCategory = "Payment";
+    private const string CancellationCategory = "Cancellation";
+
+    private string _category = AllCategory;
     private string _statusFilter = BookingStatusFilters.All;
     private int _loadVersion;
+
+    /// <summary>
+    /// detailed statuses of the chosen category, empty for all bookings so the second select is hidden
+    /// </summary>
+    private IReadOnlyList<string> CategoryValues => _category switch
+    {
+        PaymentCategory => BookingStatusFilters.PaymentValues,
+        CancellationCategory => BookingStatusFilters.CancellationValues,
+        _ => [],
+    };
 
     private int TotalPages => _totalCount == 0 ? 1 : (int)Math.Ceiling(_totalCount / (double)PageSize);
 
@@ -79,6 +95,15 @@ public partial class BookingList
         BookingStatusFilters.Refunded => "Refunded",
         _ => "All bookings",
     };
+
+    /// <summary>
+    /// a new category starts on its first detailed status, so the list always matches what both selects show
+    /// </summary>
+    private async Task ApplyCategoryAsync()
+    {
+        _statusFilter = CategoryValues.Count > 0 ? CategoryValues[0] : BookingStatusFilters.All;
+        await ApplyFilterAsync();
+    }
 
     private async Task ApplyFilterAsync()
     {
