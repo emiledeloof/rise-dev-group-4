@@ -745,6 +745,22 @@ public class BookingShould
     }
 
     [Fact]
+    public void NotUndoARefundPaymentWhenTheRefundsWouldExceedThePaidAmount()
+    {
+        var (booking, a, b) = CreatePaidBookingWithTwoRooms(paid: 100m, adults: 1);
+        booking.CancelRooms([new RoomCancellation(a, 100m)], CancelledAt, "Guest is ill");
+        booking.RecordRefundPayment(a, RefundPaidOn, 60m);
+        booking.CancelRooms([new RoomCancellation(b, 40m)], CancelledAt, "Trip is off");
+
+        Action act = () => booking.UndoRefundPayment(a);
+
+        act.ShouldThrow<InvalidOperationException>();
+        a.IsRefundPaid.ShouldBeTrue();
+        a.RefundPaidAmount.ShouldBe(60m);
+        booking.RefundedAmount.ShouldBe(100m);
+    }
+
+    [Fact]
     public void NotUndoARefundThatIsNotPaid()
     {
         var (booking, _, b) = CreatePaidBookingWithTwoRooms();

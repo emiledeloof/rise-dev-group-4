@@ -229,7 +229,9 @@ public class Booking : Entity
 
     /// <summary>
     /// Undoes a refund payment recorded by mistake, the refund of the room is open again with its decided amount.
-    /// The rooms must be loaded.
+    /// Refused when the decided amount no longer fits in what was paid, eg when another room got the rest in the meantime.
+    /// The rooms and the payments must be loaded.
+    /// BookingService.UndoRefundAsync checks the same rules first to return a Result, keep both in sync.
     /// </summary>
     public void UndoRefundPayment(BookingRoom room)
     {
@@ -240,6 +242,10 @@ public class Booking : Entity
 
         if (!room.IsRefundPaid)
             throw new InvalidOperationException("The refund of this room is not paid.");
+
+        // ! the paid amount of this room is replaced by its decided amount again
+        if (RefundedAmount - room.EffectiveRefund + (room.RefundAmount ?? 0m) > PaidAmount)
+            throw new InvalidOperationException("Undoing would make the refunds more than the amount paid.");
 
         room.UndoRefundPaid();
     }
