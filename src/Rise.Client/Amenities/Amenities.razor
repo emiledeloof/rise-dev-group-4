@@ -85,55 +85,63 @@
             }
         </div>
 
-        @* one form for create and edit, the type of the model decides which api is called *@
-        @if (_formModel is not null)
-        {
-            <section class="amenity-panel" aria-labelledby="amenity-form-heading">
-                <h3 id="amenity-form-heading">@(_formModel is AmenityRequest.Edit ? "Edit amenity" : "New amenity")</h3>
-
-                <EditForm Model="_formModel" OnValidSubmit="SaveAsync">
-                    <FluentValidationValidator />
-
-                    <fieldset class="amenity-fieldset">
-                        <legend>Name</legend>
-                        <div class="amenity-names">
-                            @foreach (var language in Languages.Supported)
-                            {
-                                var lang = language;
-                                <label class="amenity-field">
-                                    <span class="@(lang == Languages.Default ? "is-required" : "")">
-                                        @Languages.Names[lang]@(lang == Languages.Default ? " (required)" : "")
-                                    </span>
-                                    @* ! plain input, InputText cannot bind to a dictionary entry *@
-                                    <input id="amenity-name-@lang" lang="@lang" maxlength="100"
-                                           value="@_formModel.Names.GetValueOrDefault(lang)"
-                                           @oninput="e => _formModel.Names[lang] = e.Value?.ToString()" />
-                                </label>
-                            }
-                        </div>
-                        <ValidationMessage For="() => _formModel.Names" class="help is-danger" />
-                        <p class="amenity-help">An empty language shows the English name to the guest.</p>
-                    </fieldset>
-
-                    <div class="amenity-icon-field">
-                        <IconSelect @bind-Value="_formModel.Icon" id="amenity-icon" Label="Icon (required)">
-                            <Validation>
-                                <ValidationMessage For="() => _formModel.Icon" class="help is-danger" />
-                            </Validation>
-                        </IconSelect>
-                    </div>
-
-                    @if (_formError is not null)
-                    {
-                        <p class="notification is-danger is-light" role="alert">@_formError</p>
-                    }
-
-                    <div class="amenity-form-actions">
-                        <Button Type="submit" IsLoading="_isSaving" Class="amenity-save">Save</Button>
-                        <Button Variant="ButtonVariant.Secondary" OnClick="CancelFormAsync" Class="amenity-cancel">Cancel</Button>
-                    </div>
-                </EditForm>
-            </section>
-        }
     }
 </div>
+
+@* one form for create and edit, the type of the model decides which api is called *@
+@* the cross, escape and a click next to the dialog cancel, so the unsaved changes guard asks first *@
+<Dialog IsOpen="_formModel is not null"
+        Title="@(_formModel is AmenityRequest.Edit ? "Edit amenity" : "New amenity")"
+        Description="Guests see the name in their language and the icon on the room page."
+        Size="DialogSize.Large"
+        Class="amenity-dialog"
+        OnClose="CancelFormAsync">
+    <ChildContent>
+        @* * a local, the validation messages can render once more after the form is closed and _formModel is null *@
+        @if (_formModel is { } form)
+        {
+            <EditForm id="amenity-form" Model="form" OnValidSubmit="SaveAsync">
+                <FluentValidationValidator />
+
+                <fieldset class="amenity-fieldset">
+                    <legend>Name</legend>
+                    <div class="amenity-names">
+                        @foreach (var language in Languages.Supported)
+                        {
+                            var lang = language;
+                            <label class="amenity-field">
+                                <span class="@(lang == Languages.Default ? "is-required" : "")">
+                                    @Languages.Names[lang]@(lang == Languages.Default ? " (required)" : "")
+                                </span>
+                                @* ! plain input, InputText cannot bind to a dictionary entry *@
+                                <input id="amenity-name-@lang" lang="@lang" maxlength="100"
+                                       value="@form.Names.GetValueOrDefault(lang)"
+                                       @oninput="e => form.Names[lang] = e.Value?.ToString()" />
+                            </label>
+                        }
+                    </div>
+                    <ValidationMessage For="() => form.Names" class="help is-danger" />
+                    <p class="amenity-help">An empty language shows the English name to the guest.</p>
+                </fieldset>
+
+                <div class="amenity-icon-field">
+                    <IconSelect @bind-Value="form.Icon" id="amenity-icon" Label="Icon (required)">
+                        <Validation>
+                            <ValidationMessage For="() => form.Icon" class="help is-danger" />
+                        </Validation>
+                    </IconSelect>
+                </div>
+
+                @if (_formError is not null)
+                {
+                    <p class="notification is-danger is-light" role="alert">@_formError</p>
+                }
+            </EditForm>
+        }
+    </ChildContent>
+    <Footer>
+        @* ! the buttons are outside the form, form="amenity-form" still makes save submit it *@
+        <Button Variant="ButtonVariant.Secondary" OnClick="CancelFormAsync" Class="amenity-cancel">Cancel</Button>
+        <Button Type="submit" form="amenity-form" IsLoading="_isSaving" Class="amenity-save">Save</Button>
+    </Footer>
+</Dialog>

@@ -217,20 +217,6 @@
 }
 
 /* ---------- form ---------- */
-.amenity-panel {
-    margin-top: var(--space-lg);
-    padding: var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-card);
-    background: var(--color-surface);
-}
-
-.amenity-panel h3 {
-    margin-bottom: var(--space-md);
-    font-family: var(--font-title);
-    font-size: 1.25rem;
-}
-
 .amenity-fieldset {
     margin-bottom: var(--space-md);
     padding: 0;
@@ -288,13 +274,10 @@
 
 .amenity-icon-field {
     max-width: 24rem;
-    margin-bottom: var(--space-md);
 }
 
-.amenity-form-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
+.amenity-dialog .notification {
+    margin: var(--space-md) 0 0;
 }
 
 /* ! a grid item cannot shrink below its content by default, the inputs would overflow into the next column */
